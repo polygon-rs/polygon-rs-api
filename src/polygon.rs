@@ -1,3 +1,3 @@
-mod timespan;
-mod sort;
+pub mod timespan;
+pub mod sort;
 pub mod polygon;
