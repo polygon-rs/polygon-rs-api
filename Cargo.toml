@@ -1,5 +1,5 @@
 [package]
-name = "polygon-rs-api"
+name = "polygon_rs_api"
 version = "0.1.0"
 edition = "2021"
 
@@ -12,5 +12,5 @@ serde_json = "1.0.107"
 tokio = { version = "1.33.0", features = ["full"] }
 
 [lib]
-name = "polygon"
+name = "polygon_rs_api"
 path = "src/polygon-rs-api.rs"

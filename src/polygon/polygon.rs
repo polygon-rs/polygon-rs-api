@@ -36,18 +36,18 @@ impl Polygon {
         date: Option<String>,
     ) -> Polygon {
         Polygon {
-            security: security,
-            call: call,
-            api_key: api_key,
-            ticker: ticker,
-            multiplier: multiplier,
-            timespan: timespan,
-            from: from,
-            to: to,
-            adjusted: adjusted,
-            sort: sort,
-            limit: limit,
-            date: date,
+            security,
+            call,
+            api_key,
+            ticker,
+            multiplier,
+            timespan,
+            from,
+            to,
+            adjusted,
+            sort,
+            limit,
+            date,
         }
     }
 

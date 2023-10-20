@@ -11,61 +11,17 @@ pub struct Indices {}
 impl Indices {
     pub fn request(polygon: &Polygon) -> Result<Call, Box<dyn Error>> {
         match &polygon.call {
-            Some(s) => match s {
-                Call::NBBO(_) => Ok(Call::NBBO(Self::nbbo(polygon.clone()).unwrap())),
-                Call::Daily(_) => Ok(Call::Daily(Self::daily(polygon.clone()).unwrap())),
+            Some(call) => match call {
+                Call::NBBO(_) => match NBBO::nbbo(polygon.clone()) {
+                    Ok(nbbo) => Ok(Call::NBBO(nbbo)),
+                    Err(e) => panic!("The following error occured: {}", e),
+                },
+                Call::Daily(_) => match Daily::daily(polygon.clone()) {
+                    Ok(daily) => Ok(Call::Daily(daily)),
+                    Err(e) => panic!("The following error occured: {}", e),
+                },
             },
             None => panic!("There is no call type set"),
         }
-    }
-
-    #[tokio::main]
-    async fn nbbo(p: Polygon) -> Result<NBBO, Box<dyn Error>> {
-        let ticker = match p.ticker {
-            Some(t) => t,
-            None => panic!("There is no ticker set"),
-        };
-        let api_key = match p.api_key {
-            Some(a) => a,
-            None => panic!("There is no api key set"),
-        };
-        let url = format!("https://api.polygon.io/v3/quotes/{}?apiKey={}", ticker, api_key);
-        Ok(serde_json::from_str(
-            reqwest::get(url)
-                .await
-                .unwrap()
-                .text()
-                .await
-                .unwrap()
-                .as_str(),
-        )
-        .unwrap())
-    }
-
-    #[tokio::main]
-    async fn daily(p: Polygon) -> Result<Daily, Box<dyn Error>> {
-        let ticker = match p.ticker {
-            Some(t) => t,
-            None => panic!("There is no ticker set"),
-        };
-        let api_key = match p.api_key {
-            Some(a) => a,
-            None => panic!("There is no api key set"),
-        };
-        let date = match p.date {
-            Some(d) => d,
-            None => panic!("There is no date set"),
-        };
-        let url = format!("https://api.polygon.io/v1/open-close/{}/{}?apiKey={}", ticker, date, api_key);
-        Ok(serde_json::from_str(
-            reqwest::get(url)
-                .await
-                .unwrap()
-                .text()
-                .await
-                .unwrap()
-                .as_str(),
-        )
-        .unwrap())
     }
 }
