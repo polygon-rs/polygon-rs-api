@@ -2,6 +2,10 @@
 name = "polygon_rs_api"
 version = "0.1.0"
 edition = "2021"
+authors = ["stephen-cameron <stephen@oxt.ca>"]
+description = "Unofficial Library for interacting with the polygon.io api"
+license = "MIT"
+repository = "https://github.com/polygon-rs/polygon-rs-api/"
 
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
