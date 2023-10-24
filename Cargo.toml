@@ -1,0 +1,20 @@
+[package]
+name = "polygon_rs_api"
+version = "0.1.0"
+edition = "2021"
+authors = ["stephen-cameron <stephen@oxt.ca>"]
+description = "Unofficial Library for interacting with the polygon.io api"
+license = "MIT"
+repository = "https://github.com/polygon-rs/polygon-rs-api/"
+
+# See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
+
+[dependencies]
+reqwest = { version = "0.11.22", features = ["json"] }
+serde = { version = "1.0.189", features = ["derive"] }
+serde_json = "1.0.107"
+tokio = { version = "1.33.0", features = ["full"] }
+
+[lib]
+name = "polygon_rs_api"
+path = "src/polygon-rs-api.rs"
