@@ -13,7 +13,8 @@ pub struct Daily {
     pub pre_market: Option<f64>,
     pub status: Option<String>,
     pub symbol: Option<String>,
-    pub volume: Option<i32>,
+    pub volume: Option<f64>,
+    pub request_id: Option<String>,
 }
 
 impl Daily {
