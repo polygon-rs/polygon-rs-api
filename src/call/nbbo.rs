@@ -35,25 +35,25 @@ impl NBBO {
         let mut url_options = String::from("");
         match p.ticker {
             Some(t) => {
-                urlOptions = format!("{}", t);
+                url_options = format!("{}", t);
             }
             None => panic!("There is no ticker set"),
         };
         match p.date {
             Some(d) => {
-                urlOptions = format!("{}&timestamp={}", urlOptions, d);
+                url_options = format!("{}&timestamp={}", url_options, d);
             }
             None => {
                 println!("There is no date set, trying from and to.");
                 match p.from {
                     Some(f) => {
-                        urlOptions = format!("{}&timestamp.gte={}", urlOptions, f);
+                        url_options = format!("{}&timestamp.gte={}", url_options, f);
                     }
                     None => println!("There is no from set"),
                 };
                 match p.to {
                     Some(t) => {
-                        urlOptions = format!("{}&timestamp.lt={}", urlOptions, t);
+                        url_options = format!("{}&timestamp.lt={}", url_options, t);
                     }
                     None => println!("There is no to set"),
                 };
@@ -62,20 +62,20 @@ impl NBBO {
 
         match p.sort {
             Some(s) => {
-                urlOptions = format!("{}&order={:?}&sort=timestamp", urlOptions, s);
+                url_options = format!("{}&order={:?}&sort=timestamp", url_options, s);
             }
             None => println!("There is no sort set"),
         };
         match p.limit {
             Some(l) => {
-                urlOptions = format!("{}&limit={}", urlOptions, l);
+                url_options = format!("{}&limit={}", url_options, l);
             }
             None => println!("There is no limit set"),
         };
 
         let url = format!(
             "https://api.polygon.io/v3/quotes/{}?apiKey={}",
-            urlOptions, api_key
+            url_options, api_key
         );
         let request = match reqwest::get(url).await {
             Ok(response) => match response.text().await {
