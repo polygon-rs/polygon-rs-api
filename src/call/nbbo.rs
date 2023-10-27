@@ -1,5 +1,5 @@
-use serde::{Deserialize, Serialize};
 use crate::Polygon;
+use serde::{Deserialize, Serialize};
 use std::error::Error;
 
 #[derive(Serialize, Deserialize, Clone, Debug)]
@@ -28,17 +28,54 @@ pub struct Quote {
 impl NBBO {
     #[tokio::main]
     pub async fn nbbo(p: Polygon) -> Result<NBBO, Box<dyn Error>> {
-        let ticker = match p.ticker {
-            Some(t) => t,
-            None => panic!("There is no ticker set"),
-        };
         let api_key = match p.api_key {
             Some(a) => a,
             None => panic!("There is no api key set"),
         };
+        let mut url_options = String::from("");
+        match p.ticker {
+            Some(t) => {
+                urlOptions = format!("{}", t);
+            }
+            None => panic!("There is no ticker set"),
+        };
+        match p.date {
+            Some(d) => {
+                urlOptions = format!("{}&timestamp={}", urlOptions, d);
+            }
+            None => {
+                println!("There is no date set, trying from and to.");
+                match p.from {
+                    Some(f) => {
+                        urlOptions = format!("{}&timestamp.gte={}", urlOptions, f);
+                    }
+                    None => println!("There is no from set"),
+                };
+                match p.to {
+                    Some(t) => {
+                        urlOptions = format!("{}&timestamp.lt={}", urlOptions, t);
+                    }
+                    None => println!("There is no to set"),
+                };
+            }
+        };
+
+        match p.sort {
+            Some(s) => {
+                urlOptions = format!("{}&order={:?}&sort=timestamp", urlOptions, s);
+            }
+            None => println!("There is no sort set"),
+        };
+        match p.limit {
+            Some(l) => {
+                urlOptions = format!("{}&limit={}", urlOptions, l);
+            }
+            None => println!("There is no limit set"),
+        };
+
         let url = format!(
             "https://api.polygon.io/v3/quotes/{}?apiKey={}",
-            ticker, api_key
+            urlOptions, api_key
         );
         let request = match reqwest::get(url).await {
             Ok(response) => match response.text().await {
