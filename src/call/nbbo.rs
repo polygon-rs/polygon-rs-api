@@ -32,7 +32,7 @@ impl NBBO {
             Some(a) => a,
             None => panic!("There is no api key set"),
         };
-        let mut urlOptions = String::from("");
+        let mut url_options = String::from("");
         match p.ticker {
             Some(t) => {
                 urlOptions = format!("{}", t);
