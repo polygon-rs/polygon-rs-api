@@ -18,6 +18,7 @@ pub struct Polygon {
     pub sort: Option<Sort>,
     pub limit: Option<u16>,
     pub date: Option<String>,
+    pub verbose: Option<bool>,
 }
 
 impl Polygon {
@@ -34,6 +35,7 @@ impl Polygon {
         sort: Option<Sort>,
         limit: Option<u16>,
         date: Option<String>,
+        verbose: Option<bool>,
     ) -> Polygon {
         Polygon {
             security,
@@ -48,6 +50,7 @@ impl Polygon {
             sort,
             limit,
             date,
+            verbose
         }
     }
 

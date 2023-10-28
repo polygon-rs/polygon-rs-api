@@ -44,18 +44,20 @@ impl NBBO {
                 url_options = format!("{}timestamp={}&", url_options, d);
             }
             None => {
-                println!("There is no date set, trying from and to.");
+                if p.verbose == Some(true) {
+                    println!("There is no date set, trying from and to.");
+                }
                 match p.from {
                     Some(f) => {
                         url_options = format!("{}timestamp.gte={}&", url_options, f);
                     }
-                    None => println!("There is no from set"),
+                    None => { if p.verbose == Some(true) { println!("There is no from set")} },
                 };
                 match p.to {
                     Some(t) => {
                         url_options = format!("{}timestamp.lt={}&", url_options, t);
                     }
-                    None => println!("There is no to set"),
+                    None => { if p.verbose == Some(true) { println!("There is no to set")} },
                 };
             }
         };
@@ -64,13 +66,13 @@ impl NBBO {
             Some(s) => {
                 url_options = format!("{}order={:?}&sort=timestamp&", url_options, s);
             }
-            None => println!("There is no sort set"),
+            None => { if p.verbose == Some(true) { println!("There is no sort set")} },
         };
         match p.limit {
             Some(l) => {
                 url_options = format!("{}limit={}&", url_options, l);
             }
-            None => println!("There is no limit set"),
+            None => { if p.verbose == Some(true) { println!("There is no limit set")} },
         };
 
         let url = format!(
