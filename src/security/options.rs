@@ -2,6 +2,7 @@ use crate::Call;
 use crate::Daily;
 use crate::Polygon;
 use crate::NBBO;
+use crate::Trades;
 use serde::{Deserialize, Serialize};
 use std::error::Error;
 
@@ -18,6 +19,10 @@ impl Options {
                 },
                 Call::Daily(_) => match Daily::daily(polygon.clone()) {
                     Ok(daily) => Ok(Call::Daily(daily)),
+                    Err(e) => panic!("The following error occured: {}", e),
+                },
+                Call::Trades(_) => match Trades::trades(polygon.clone()) {
+                    Ok(trades) => Ok(Call::Trades(trades)),
                     Err(e) => panic!("The following error occured: {}", e),
                 },
             },

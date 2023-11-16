@@ -3,6 +3,7 @@ use std::error::Error;
 use crate::Polygon;
 use crate::Call;
 use crate::NBBO;
+use crate::Trades;
 use crate::Daily;
 
 #[derive(Serialize, Deserialize, Clone, Debug)]
@@ -18,6 +19,10 @@ impl Crypto {
                 },
                 Call::Daily(_) => match Daily::daily(polygon.clone()) {
                     Ok(daily) => Ok(Call::Daily(daily)),
+                    Err(e) => panic!("The following error occured: {}", e),
+                },
+                Call::Trades(_) => match Trades::trades(polygon.clone()) {
+                    Ok(trades) => Ok(Call::Trades(trades)),
                     Err(e) => panic!("The following error occured: {}", e),
                 },
             },
