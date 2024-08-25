@@ -1,9 +1,10 @@
 #![allow(unused)]
 
-pub mod security;
-pub mod call;
 pub mod polygon;
+pub mod rest;
 
-use crate::security::{stocks::Stocks, options::Options, indices::Indices, forex::Forex, crypto::Crypto};
-use crate::call::{Call, nbbo::NBBO, daily::Daily, trades::Trades};
-use crate::polygon::{polygon::Polygon, timespan::Timespan, sort::Sort};
+use crate::polygon::{polygon::Polygon, sort::Sort, timespan::Timespan};
+use crate::rest::{
+    market::{daily::Daily, nbbo::NBBO, snapshots::chain::Chain, trades::Trades},
+    reference,
+};

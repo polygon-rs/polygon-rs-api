@@ -1,5 +1,5 @@
-use serde::{Deserialize, Serialize};
 use crate::Polygon;
+use serde::{Deserialize, Serialize};
 use std::error::Error;
 
 #[derive(Serialize, Deserialize, Clone, Debug)]
@@ -20,7 +20,12 @@ impl Chain {
     #[tokio::main]
     pub async fn chain(p: Polygon) -> Result<Chain, Box<dyn Error>> {
         let ticker = match p.ticker {
-            Some(t) => t,
+            Some(t) => {
+                if !t.starts_with("O:") {
+                    panic!("Chain can only be used for Options contracts")
+                };
+                t
+            }
             None => panic!("There is no ticker set"),
         };
         let api_key = match p.api_key {
@@ -33,7 +38,7 @@ impl Chain {
         };
         let url = format!(
             "https://api.polygon.io/v3/snapshot/options/{}?apiKey={}",
-            ticker, date, api_key
+            ticker, api_key
         );
         let request = match reqwest::get(url).await {
             Ok(response) => match response.text().await {
