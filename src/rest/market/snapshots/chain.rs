@@ -1,6 +1,6 @@
-use crate::Polygon;
+use crate::{polygon::polygon::TickerError, Polygon};
 use serde::{Deserialize, Serialize};
-use std::error::Error;
+use std::{error::Error, fmt};
 
 #[derive(Serialize, Deserialize, Clone, Debug)]
 pub struct Chain {
@@ -18,19 +18,11 @@ pub struct Chain {
 
 impl Chain {
     #[tokio::main]
-    pub async fn chain(p: Polygon) -> Result<Chain, Box<dyn Error>> {
-        let ticker = match p.ticker {
-            Some(t) => {
-                if !t.starts_with("O:") {
-                    panic!("Chain can only be used for Options contracts")
-                };
-                t
-            }
-            None => panic!("There is no ticker set"),
-        };
-        let api_key = match p.api_key {
-            Some(a) => a,
-            None => panic!("There is no api key set"),
+    pub async fn chain(p: Polygon) -> Result<Chain, ChainError> {
+        let ticker = match p.verify_options_ticker(){
+            Ok(t) => t,
+            Err(e) => 
+                return Err(ChainError::TickerError)
         };
         let date = match p.date {
             Some(d) => d,
@@ -38,7 +30,7 @@ impl Chain {
         };
         let url = format!(
             "https://api.polygon.io/v3/snapshot/options/{}?apiKey={}",
-            ticker, api_key
+            ticker, p.api_key
         );
         let request = match reqwest::get(url).await {
             Ok(response) => match response.text().await {
@@ -53,3 +45,21 @@ impl Chain {
         }
     }
 }
+
+#[derive(Debug)]
+pub enum ChainError{
+    TickerError,
+}
+
+impl fmt::Display for ChainError {
+    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+        match *self {
+            ChainError::TickerError =>
+                write!(f, "There was a ticker error"),
+            // The wrapped error contains additional information and is available
+            // via the source() method.
+        }
+    }
+}
+
+impl std::error::Error for ChainError {}

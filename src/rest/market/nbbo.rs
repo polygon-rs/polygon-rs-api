@@ -28,10 +28,6 @@ pub struct Quote {
 impl NBBO {
     #[tokio::main]
     pub async fn nbbo(p: Polygon) -> Result<NBBO, Box<dyn Error>> {
-        let api_key = match p.api_key {
-            Some(a) => a,
-            None => panic!("There is no api key set"),
-        };
         let mut url_options = String::from("");
         match p.ticker {
             Some(t) => {
@@ -77,7 +73,7 @@ impl NBBO {
 
         let url = format!(
             "https://api.polygon.io/v3/quotes/{}apiKey={}",
-            url_options, api_key
+            url_options, p.api_key
         );
         let request = match reqwest::get(url).await {
             Ok(response) => match response.text().await {

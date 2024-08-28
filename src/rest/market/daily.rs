@@ -19,30 +19,24 @@ pub struct Daily {
 impl Daily {
     #[tokio::main]
     pub async fn daily(p: Polygon) -> Result<Daily, Box<dyn Error>> {
-        let ticker = match p.ticker {
+        let ticker = match &p.ticker {
             Some(t) => t,
             None => panic!("There is no ticker set"),
         };
-        let api_key = match p.api_key {
-            Some(a) => a,
-            None => panic!("There is no api key set"),
-        };
-        let date = match p.date {
+        let date = match & p.date {
             Some(d) => d,
             None => panic!("There is no date set"),
         };
         let url = format!(
             "https://api.polygon.io/v1/open-close/{}/{}?apiKey={}",
-            ticker, date, api_key
+            ticker, date, &p.api_key
         );
-        let request = match reqwest::get(url).await {
-            Ok(response) => match response.text().await {
-                Ok(text) => text,
-                Err(e) => panic!("The following error occured: {}", e),
-            },
+        let result = match p.request(url) 
+        {
+            Ok(response) => response,
             Err(e) => panic!("The following error occured: {}", e),
         };
-        match serde_json::from_str(request.as_str()) {
+        match serde_json::from_str(result.as_str()) {
             Ok(daily) => Ok(daily),
             Err(e) => panic!("The following error occured: {}", e),
         }
