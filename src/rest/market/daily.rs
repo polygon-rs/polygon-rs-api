@@ -1,6 +1,5 @@
+use crate::{polygon::error::ErrorCode, Polygon};
 use serde::{Deserialize, Serialize};
-use crate::Polygon;
-use std::error::Error;
 
 #[derive(Serialize, Deserialize, Clone, Debug)]
 pub struct Daily {
@@ -18,14 +17,14 @@ pub struct Daily {
 
 impl Daily {
     #[tokio::main]
-    pub async fn daily(p: Polygon) -> Result<Daily, Box<dyn Error>> {
+    pub async fn daily(p: Polygon) -> Result<Daily,  ErrorCode> {
         let ticker = match &p.ticker {
             Some(t) => t,
-            None => panic!("There is no ticker set"),
+            None => return Err(ErrorCode::TickerError),
         };
-        let date = match & p.date {
+        let date = match &p.date {
             Some(d) => d,
-            None => panic!("There is no date set"),
+            None => return Err(ErrorCode::DateError),
         };
         let url = format!(
             "https://api.polygon.io/v1/open-close/{}/{}?apiKey={}",
@@ -34,11 +33,11 @@ impl Daily {
         let result = match p.request(url) 
         {
             Ok(response) => response,
-            Err(e) => panic!("The following error occured: {}", e),
+            Err(e) => return Err(ErrorCode::RequestError),
         };
         match serde_json::from_str(result.as_str()) {
             Ok(daily) => Ok(daily),
-            Err(e) => panic!("The following error occured: {}", e),
+            Err(e) => return Err(ErrorCode::FormatError),
         }
     }
 }

@@ -1,6 +1,5 @@
-use crate::{polygon::polygon::TickerError, Polygon};
+use crate::{polygon::error::ErrorCode, Polygon};
 use serde::{Deserialize, Serialize};
-use std::{error::Error, fmt};
 
 #[derive(Serialize, Deserialize, Clone, Debug)]
 pub struct Chain {
@@ -18,48 +17,27 @@ pub struct Chain {
 
 impl Chain {
     #[tokio::main]
-    pub async fn chain(p: Polygon) -> Result<Chain, ChainError> {
+    pub async fn chain(&self, p: Polygon) -> Result<Chain, ErrorCode> {
         let ticker = match p.verify_options_ticker(){
             Ok(t) => t,
-            Err(e) => 
-                return Err(ChainError::TickerError)
+            Err(e) =>  return Err(ErrorCode::TickerError)
         };
-        let date = match p.date {
+        let date = match &p.date {
             Some(d) => d,
-            None => panic!("There is no date set"),
+            None => return Err(ErrorCode::DateError),
         };
         let url = format!(
             "https://api.polygon.io/v3/snapshot/options/{}?apiKey={}",
-            ticker, p.api_key
+            ticker, &p.api_key
         );
-        let request = match reqwest::get(url).await {
-            Ok(response) => match response.text().await {
-                Ok(text) => text,
-                Err(e) => panic!("The following error occured: {}", e),
-            },
-            Err(e) => panic!("The following error occured: {}", e),
+        let result = match p.request(url) 
+        {
+            Ok(response) => response,
+            Err(e) => return Err(ErrorCode::RequestError),
         };
-        match serde_json::from_str(request.as_str()) {
+        match serde_json::from_str(result.as_str()) {
             Ok(chain) => Ok(chain),
-            Err(e) => panic!("The following error occured: {}", e),
+            Err(e) => return Err(ErrorCode::FormatError),
         }
     }
 }
-
-#[derive(Debug)]
-pub enum ChainError{
-    TickerError,
-}
-
-impl fmt::Display for ChainError {
-    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
-        match *self {
-            ChainError::TickerError =>
-                write!(f, "There was a ticker error"),
-            // The wrapped error contains additional information and is available
-            // via the source() method.
-        }
-    }
-}
-
-impl std::error::Error for ChainError {}

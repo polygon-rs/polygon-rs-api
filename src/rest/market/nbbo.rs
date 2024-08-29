@@ -1,6 +1,5 @@
-use crate::Polygon;
+use crate::{polygon::error::ErrorCode, Polygon};
 use serde::{Deserialize, Serialize};
-use std::error::Error;
 
 #[derive(Serialize, Deserialize, Clone, Debug)]
 pub struct NBBO {
@@ -27,7 +26,7 @@ pub struct Quote {
 
 impl NBBO {
     #[tokio::main]
-    pub async fn nbbo(p: Polygon) -> Result<NBBO, Box<dyn Error>> {
+    pub async fn nbbo(p: Polygon) -> Result<NBBO, ErrorCode> {
         let mut url_options = String::from("");
         match p.ticker {
             Some(t) => {
