@@ -17,27 +17,36 @@ pub struct Daily {
 
 impl Daily {
     #[tokio::main]
-    pub async fn daily(p: Polygon) -> Result<Daily,  ErrorCode> {
-        let ticker = match &p.ticker {
-            Some(t) => t,
-            None => return Err(ErrorCode::TickerError),
+    pub async fn daily(p: Polygon) -> Result<Daily, ErrorCode> {
+        match p.verify_ticker() {
+            Ok(t) => (),
+            Err(e) => return Err(ErrorCode::TickerError),
         };
-        let date = match &p.date {
-            Some(d) => d,
-            None => return Err(ErrorCode::DateError),
+        match p.verify_date() {
+            Ok(d) => (),
+            Err(e) => return Err(ErrorCode::DateError),
         };
+        let mut url_options = String::from("");
+        match p.adjusted {
+            Some(a) => match a {
+                true => url_options = format!("{}?adjusted=true&", url_options),
+                false => url_options = format!("{}?adjusted=false&", url_options),
+            },
+            None => (),
+        }
         let url = format!(
-            "https://api.polygon.io/v1/open-close/{}/{}?apiKey={}",
-            ticker, date, &p.api_key
+            "https://api.polygon.io/v1/open-close/{}/{}{}?apiKey={}",
+            p.clone().ticker.unwrap(),
+            url_options,
+            p.clone().date.unwrap(),
+            p.api_key
         );
-        let result = match p.request(url) 
-        {
-            Ok(response) => response,
+        match p.request(url) {
+            Ok(response) => match serde_json::from_str(response.as_str()) {
+                Ok(daily) => Ok(daily),
+                Err(e) => return Err(ErrorCode::FormatError),
+            },
             Err(e) => return Err(ErrorCode::RequestError),
-        };
-        match serde_json::from_str(result.as_str()) {
-            Ok(daily) => Ok(daily),
-            Err(e) => return Err(ErrorCode::FormatError),
         }
     }
 }

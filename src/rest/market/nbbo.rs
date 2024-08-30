@@ -28,13 +28,15 @@ impl NBBO {
     #[tokio::main]
     pub async fn nbbo(p: Polygon) -> Result<NBBO, ErrorCode> {
         let mut url_options = String::from("");
-        match p.ticker {
-            Some(t) => {
+        
+        
+        match p.verify_ticker() {
+            Ok(t) => {
                 url_options = format!("{}?", t);
             }
-            None => panic!("There is no ticker set"),
+            Err(e) => println!("The following error occured: {}", e),
         };
-        match p.date {
+       /*  match p.date {
             Some(d) => {
                 url_options = format!("{}timestamp={}&", url_options, d);
             }
@@ -68,22 +70,20 @@ impl NBBO {
                 url_options = format!("{}limit={}&", url_options, l);
             }
             None => { if p.verbose == Some(true) { println!("There is no limit set")} },
-        };
+        };*/
 
         let url = format!(
             "https://api.polygon.io/v3/quotes/{}apiKey={}",
-            url_options, p.api_key
+            url_options, &p.api_key
         );
-        let request = match reqwest::get(url).await {
-            Ok(response) => match response.text().await {
-                Ok(text) => text,
-                Err(e) => panic!("The following error occured: {}", e),
-            },
-            Err(e) => panic!("The following error occured: {}", e),
+        let result = match p.request(url) 
+        {
+            Ok(response) => response,
+            Err(e) => return Err(ErrorCode::RequestError),
         };
-        match serde_json::from_str(request.as_str()) {
+        match serde_json::from_str(result.as_str()) {
             Ok(nbbo) => Ok(nbbo),
-            Err(e) => panic!("The following error occured: {}", e),
+            Err(e) => return Err(ErrorCode::FormatError),
         }
     }
 }
