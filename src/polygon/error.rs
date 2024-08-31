@@ -10,6 +10,8 @@ pub enum ErrorCode {
     RequestError,
     FormatError,
     DateError,
+    DateNotSetError,
+    RegexError,
 }
 
 impl fmt::Display for ErrorCode {
@@ -21,6 +23,8 @@ impl fmt::Display for ErrorCode {
             ErrorCode::RequestError => f.write_str("There is an issue with the Request"),
             ErrorCode::FormatError => f.write_str("There is an issue with the Format"),
             ErrorCode::DateError => f.write_str("There is an issue with the Date"),
+            ErrorCode::DateNotSetError => f.write_str("There is no date set"),
+            ErrorCode::RegexError => f.write_str("There is an issue with the Regex"),
         }
     }
 }

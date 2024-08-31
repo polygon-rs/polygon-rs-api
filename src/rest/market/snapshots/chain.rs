@@ -18,9 +18,9 @@ pub struct Chain {
 impl Chain {
     #[tokio::main]
     pub async fn chain(&self, p: Polygon) -> Result<Chain, ErrorCode> {
-        let ticker = match p.verify_options_ticker(){
+        match p.verify_ticker(){
             Ok(t) => t,
-            Err(e) =>  return Err(ErrorCode::TickerError)
+            Err(e) =>  return Err(e)
         };
         let date = match &p.date {
             Some(d) => d,
@@ -28,7 +28,7 @@ impl Chain {
         };
         let url = format!(
             "https://api.polygon.io/v3/snapshot/options/{}?apiKey={}",
-            ticker, &p.api_key
+            p.ticker.clone().unwrap(), &p.api_key
         );
         let result = match p.request(url) 
         {

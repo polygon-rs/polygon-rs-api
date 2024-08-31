@@ -31,10 +31,8 @@ impl NBBO {
         
         
         match p.verify_ticker() {
-            Ok(t) => {
-                url_options = format!("{}?", t);
-            }
-            Err(e) => println!("The following error occured: {}", e),
+            Ok(_) => (), 
+            Err(e) => return Err(e),
         };
        /*  match p.date {
             Some(d) => {
