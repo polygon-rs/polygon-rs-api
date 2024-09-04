@@ -30,10 +30,10 @@ impl NBBO {
         let mut url_options = String::from("");
         
         
-        match p.verify_ticker() {
+        /*match p.verify_ticker() {
             Ok(_) => (), 
             Err(e) => return Err(e),
-        };
+        };*/
        /*  match p.date {
             Some(d) => {
                 url_options = format!("{}timestamp={}&", url_options, d);

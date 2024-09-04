@@ -1,8 +1,10 @@
-use crate::{polygon::error::ErrorCode, rest::Rest, Get, Parameter, Parameters, Polygon};
+use crate::{rest::Rest, ErrorCode, Parameter, ParameterRequirment, Parameters, Request};
 use serde::{Deserialize, Serialize};
 
 #[derive(Serialize, Deserialize, Clone, Debug)]
 pub struct Daily {
+    daily_parameters: Option<Parameters>,
+    pub adjusted: Option<bool>,
     pub after_hours: Option<f64>,
     pub close: Option<f64>,
     pub from: Option<String>,
@@ -15,26 +17,63 @@ pub struct Daily {
     pub volume: Option<f64>,
 }
 
-impl Get for Daily {
-    const PARAMETERS: Vec<Parameters> = [
-        Parameters {
+impl Daily {
+    pub fn set_parameters(mut self, api_key: String, ticker: String, date: String, adjusted: bool) {
+        self.daily_parameters = Some(Parameters {
+            api_key: api_key,
+            ticker: Some(ticker),
+            date: Some(date),
+            adjusted: Some(adjusted),
+            ..Parameters::default()
+        })
+    }
+}
+
+/*impl Default for Daily {
+    fn default() -> Daily {
+        Daily {
+            daily_parameters: None,
+            adjusted: None,
+            after_hours: None,
+            close: None,
+            from: None,
+            high: None,
+            low: None,
+            open: None,
+            pre_market: None,
+            status: None,
+            symbol: None,
+            volume: None
+        }
+    }
+}*/
+
+impl Request for Daily {
+    const PARAMETERS: &'static [&'static ParameterRequirment] = &[
+        &ParameterRequirment {
             required: true,
             parameter: Parameter::Ticker,
         },
-        Parameters {
+        &ParameterRequirment {
             required: true,
             parameter: Parameter::Date,
         },
-        Parameters {
+        &ParameterRequirment {
             required: false,
             parameter: Parameter::Adjusted,
         },
-    ]
-    .to_vec();
+    ];
     const BASE_URL: &'static str = "https://api.polygon.io/v1/open-close/";
 
-    fn get(&self) -> Result<Rest, ErrorCode> {
-        match self.request() {
+    fn parameters(&self) -> &Parameters {
+        match &self.daily_parameters {
+            Some(p) => p,
+            None => panic!("There is no parameters set"),
+        }
+    }
+
+    fn request(&self) -> Result<Rest, ErrorCode> {
+        match self.get_raw_data() {
             Ok(response) => match serde_json::from_str(response.as_str()) {
                 Ok(daily) => Ok(daily),
                 Err(e) => return Err(ErrorCode::FormatError),
@@ -43,42 +82,3 @@ impl Get for Daily {
         }
     }
 }
-
-/*impl Daily {
-    const PARAMETERS: [Parameters; 3] = [Parameters{ required: true, parameter: Parameter::Ticker},Parameters{ required: true, parameter: Parameter::Date},Parameters{ required: false, parameter: Parameter::Adjusted}];
-    const BASE_URL: &'static str = "https://api.polygon.io/v1/open-close/";
-
-    #[tokio::main]
-    pub async fn get(&self, p: Polygon) -> Result<Daily, ErrorCode> {
-        /*match p.verify_ticker() {
-            Ok(t) => (),
-            Err(e) => return Err(ErrorCode::TickerError),
-        };
-        match p.verify_date() {
-            Ok(d) => (),
-            Err(e) => return Err(ErrorCode::DateError),
-        };
-        let mut url_options = String::from("");
-        match p.adjusted {
-            Some(a) => match a {
-                true => url_options = format!("{}?adjusted=true&", url_options),
-                false => url_options = format!("{}?adjusted=false&", url_options),
-            },
-            None => (),
-        }
-        let url = format!(
-            "https://api.polygon.io/v1/open-close/{}/{}{}?apiKey={}",
-            p.clone().ticker.unwrap(),
-            url_options,
-            p.clone().date.unwrap(),
-            p.api_key
-        );*/
-        match self.request() {
-            Ok(response) => match serde_json::from_str(response.as_str()) {
-                Ok(daily) => Ok(daily),
-                Err(e) => return Err(ErrorCode::FormatError),
-            },
-            Err(e) => return Err(ErrorCode::RequestError),
-        }
-    }
-}*/

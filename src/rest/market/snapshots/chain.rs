@@ -3,6 +3,7 @@ use serde::{Deserialize, Serialize};
 
 #[derive(Serialize, Deserialize, Clone, Debug)]
 pub struct Chain {
+    chain_parameters: Option<Polygon>,
     pub after_hours: Option<f64>,
     pub close: Option<f64>,
     pub from: Option<String>,
@@ -18,10 +19,10 @@ pub struct Chain {
 impl Chain {
     #[tokio::main]
     pub async fn chain(&self, p: Polygon) -> Result<Chain, ErrorCode> {
-        match p.verify_ticker(){
+        /*match p.verify_ticker(){
             Ok(t) => t,
             Err(e) =>  return Err(e)
-        };
+        };*/
         let date = match &p.date {
             Some(d) => d,
             None => return Err(ErrorCode::DateError),
