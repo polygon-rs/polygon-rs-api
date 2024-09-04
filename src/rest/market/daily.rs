@@ -1,4 +1,4 @@
-use crate::{polygon::error::ErrorCode, Polygon};
+use crate::{polygon::error::ErrorCode, rest::Rest, Get, Parameter, Parameters, Polygon};
 use serde::{Deserialize, Serialize};
 
 #[derive(Serialize, Deserialize, Clone, Debug)]
@@ -15,10 +15,42 @@ pub struct Daily {
     pub volume: Option<f64>,
 }
 
-impl Daily {
+impl Get for Daily {
+    const PARAMETERS: Vec<Parameters> = [
+        Parameters {
+            required: true,
+            parameter: Parameter::Ticker,
+        },
+        Parameters {
+            required: true,
+            parameter: Parameter::Date,
+        },
+        Parameters {
+            required: false,
+            parameter: Parameter::Adjusted,
+        },
+    ]
+    .to_vec();
+    const BASE_URL: &'static str = "https://api.polygon.io/v1/open-close/";
+
+    fn get(&self) -> Result<Rest, ErrorCode> {
+        match self.request() {
+            Ok(response) => match serde_json::from_str(response.as_str()) {
+                Ok(daily) => Ok(daily),
+                Err(e) => return Err(ErrorCode::FormatError),
+            },
+            Err(e) => return Err(ErrorCode::RequestError),
+        }
+    }
+}
+
+/*impl Daily {
+    const PARAMETERS: [Parameters; 3] = [Parameters{ required: true, parameter: Parameter::Ticker},Parameters{ required: true, parameter: Parameter::Date},Parameters{ required: false, parameter: Parameter::Adjusted}];
+    const BASE_URL: &'static str = "https://api.polygon.io/v1/open-close/";
+
     #[tokio::main]
-    pub async fn daily(p: Polygon) -> Result<Daily, ErrorCode> {
-        match p.verify_ticker() {
+    pub async fn get(&self, p: Polygon) -> Result<Daily, ErrorCode> {
+        /*match p.verify_ticker() {
             Ok(t) => (),
             Err(e) => return Err(ErrorCode::TickerError),
         };
@@ -40,8 +72,8 @@ impl Daily {
             url_options,
             p.clone().date.unwrap(),
             p.api_key
-        );
-        match p.request(url) {
+        );*/
+        match self.request() {
             Ok(response) => match serde_json::from_str(response.as_str()) {
                 Ok(daily) => Ok(daily),
                 Err(e) => return Err(ErrorCode::FormatError),
@@ -49,4 +81,4 @@ impl Daily {
             Err(e) => return Err(ErrorCode::RequestError),
         }
     }
-}
+}*/

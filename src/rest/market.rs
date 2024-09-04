@@ -12,3 +12,8 @@ pub mod rtc;
 pub mod currency_quote;
 pub mod bbo;
 pub mod ltc;
+
+#[derive(serde::Deserialize)]
+pub enum Market{
+    Daily(daily::Daily),
+}
