@@ -1,4 +1,5 @@
-use crate::Polygon;
+//use crate::Polygon;
+use crate::Parameters;
 use serde::{Deserialize, Serialize};
 use std::error::Error;
 
@@ -9,7 +10,7 @@ pub struct Aggregates {
     pub request_id: Option<String>,
     pub results: Option<Vec<Bar>>,
     pub status: Option<String>,
-    pub resultsCount: Option<i32>,
+    //pub resultsCount: Option<i32>,
     pub ticker: Option<String>,
     pub query_count: Option<i32>,
 }
@@ -28,7 +29,7 @@ pub struct Bar {
 
 impl Aggregates {
     #[tokio::main]
-    pub async fn daily(p: Polygon) -> Result<Aggregates, Box<dyn Error>> {
+    pub async fn daily(p: Parameters) -> Result<Aggregates, Box<dyn Error>> {
         let ticker = match p.ticker {
             Some(t) => t,
             None => panic!("There is no ticker set"),

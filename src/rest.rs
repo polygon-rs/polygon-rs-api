@@ -1,10 +1,12 @@
-pub mod market;
-pub mod reference;
-pub mod parameters;
 pub mod error;
+pub mod market;
+pub mod parameters;
+pub mod reference;
 
-use crate::{Parameter, ParameterRequirment, Parameters};
+use std::f32::consts::E;
+
 use crate::ErrorCode;
+use crate::{Parameter, ParameterRequirment, Parameters};
 use regex::Regex;
 use serde::{Deserialize, Serialize};
 
@@ -13,11 +15,17 @@ pub enum Rest {
     Market(market::Market),
 }
 
-pub trait Request{
-    const BASE_URL: &'static str;
+pub trait Request {
     const PARAMETERS: &'static [&'static ParameterRequirment];
 
     fn parameters(&self) -> &Parameters;
+
+    fn url(&self) -> String;
+
+    fn set_parameters(&self);
+
+    fn set_url(&self);
+
 
     fn set_regex(&self, pattern: &str) -> Regex {
         match Regex::new(pattern) {
@@ -27,7 +35,10 @@ pub trait Request{
     }
 
     fn verify_api_key(&self) -> Result<(), ErrorCode> {
-        if !self.set_regex(r"\S{32}").is_match(&self.parameters().api_key.as_str()) {
+        if !self
+            .set_regex(r"\S{32}")
+            .is_match(&self.parameters().api_key.as_str())
+        {
             return Err(ErrorCode::APIError);
         };
         Ok(())
@@ -76,13 +87,35 @@ pub trait Request{
         }
     }
 
-    fn url_builder(&self) -> Result<String, ErrorCode> {
-        let mut url_options = String::from("");
-        self.verify_api_key();
-        Self::PARAMETERS.into_iter().for_each(|parameter| {
+    fn check_parameters(&self) -> Result<(), ErrorCode> {
+        //let mut url_options = String::from("");
+        if let Err(check) = self.verify_api_key() {
+            return Err(check);
+        }
+        for parameter in Self::PARAMETERS {
             match parameter.parameter {
-                Parameter::Ticker => { if parameter.required { self.verify_ticker(); } match &self.parameters().ticker { Some(ti) => url_options = format!(",{}", ti), None => ()} }
-                Parameter::Date => {}
+                Parameter::Ticker => {
+                    if parameter.required {
+                        if let Err(check) = self.verify_ticker() {
+                            return Err(check);
+                        }
+                    }
+                    //if Self::VERSION == "v1" { continue }
+                    /*if let Some(t) = &self.parameters().ticker  {
+                        url_options = format!("{}ticker={}&", url_options, t);
+                    }*/
+                }
+                Parameter::Date => {
+                    if parameter.required {
+                        if let Err(check) = self.verify_date() {
+                            return Err(check);
+                        }
+                    }
+                    /*if Self::VERSION == "v1" { continue }
+                    if let Some(d) = &self.parameters().date  {
+                        url_options = format!("{}timestamp={}?", url_options, d);
+                    }*/
+                }
                 Parameter::Adjusted => {}
                 Parameter::Sort => {}
                 Parameter::Limit => {}
@@ -90,24 +123,29 @@ pub trait Request{
                 Parameter::From => {}
                 Parameter::To => {}
             }
-        });
-        Ok(format!("{}{}?api_key={}",Self::BASE_URL.to_string(), url_options,self.parameters().api_key))
+        }
+        /*let mut url = String::from(Self::BASE_URL);
+        if Self::VERSION == "v1" { if let Some(t) = &self.parameters().ticker  { url = format!("{}{}/",url,t); if let Some(d) = &self.parameters().date  { url = format!("{}{}",url,d); }}}; 
+        Ok(format!(
+            "{}{}?apiKey={}",
+            url,
+            url_options,
+            self.parameters().api_key
+        ))*/
+        Ok(())
     }
 
     #[tokio::main]
     async fn get_raw_data(&self) -> Result<String, ErrorCode> {
-        match self.url_builder() {
-            Ok(url) => {
-                match reqwest::get(url).await {
+        match reqwest::get(self.url()).await {
                 Ok(response) => match response.text().await {
                     Ok(text) => Ok(text),
                     Err(e) => Err(ErrorCode::RequestError),
                 },
                 Err(e) => return Err(ErrorCode::RequestError),
-            }},
-            Err(e) => return Err(e),
+            }
         }
-    }
+    
 
-    fn request(&self) -> Result<Rest, ErrorCode>;
+    fn request(&mut self) -> Result<(), ErrorCode>;
 }

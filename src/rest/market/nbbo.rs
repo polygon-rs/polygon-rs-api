@@ -1,4 +1,5 @@
-use crate::{polygon::error::ErrorCode, Polygon};
+//use crate::{polygon::error::ErrorCode, Polygon};
+use crate::{Parameters, ErrorCode};
 use serde::{Deserialize, Serialize};
 
 #[derive(Serialize, Deserialize, Clone, Debug)]
@@ -26,7 +27,7 @@ pub struct Quote {
 
 impl NBBO {
     #[tokio::main]
-    pub async fn nbbo(p: Polygon) -> Result<NBBO, ErrorCode> {
+    pub async fn nbbo(p: Parameters) -> Result<NBBO, ErrorCode> {
         let mut url_options = String::from("");
         
         
@@ -70,7 +71,7 @@ impl NBBO {
             None => { if p.verbose == Some(true) { println!("There is no limit set")} },
         };*/
 
-        let url = format!(
+        /*let url = format!(
             "https://api.polygon.io/v3/quotes/{}apiKey={}",
             url_options, &p.api_key
         );
@@ -78,7 +79,8 @@ impl NBBO {
         {
             Ok(response) => response,
             Err(e) => return Err(ErrorCode::RequestError),
-        };
+        };*/
+        let result = String::from("");
         match serde_json::from_str(result.as_str()) {
             Ok(nbbo) => Ok(nbbo),
             Err(e) => return Err(ErrorCode::FormatError),

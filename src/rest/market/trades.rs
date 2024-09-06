@@ -1,4 +1,4 @@
-use crate::Polygon;
+use crate::rest::Parameters;
 use serde::{Deserialize, Serialize};
 use std::error::Error;
 
@@ -25,7 +25,7 @@ pub struct Trade {
 
 impl Trades {
     #[tokio::main]
-    pub async fn trades(p: Polygon) -> Result<Trades, Box<dyn Error>> {
+    pub async fn trades(p: Parameters) -> Result<Trades, Box<dyn Error>> {
         let mut url_options = String::from("");
         match p.ticker {
             Some(t) => {
