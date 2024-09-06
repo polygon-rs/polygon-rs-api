@@ -1,4 +1,5 @@
 #![allow(unused)]
+#![allow(non_snake_case)] //Required so response objects can be properly parsed
 
 pub mod rest;
 pub mod web_socket;

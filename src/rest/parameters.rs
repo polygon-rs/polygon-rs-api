@@ -1,4 +1,5 @@
 use serde::{Deserialize, Serialize};
+use strum_macros::Display;
 
 #[derive(Clone, Debug)]
 pub enum Parameter {
@@ -10,6 +11,9 @@ pub enum Parameter {
     Timespan,
     From,
     To,
+    Multiplier,
+    IncludeOTC,
+    OptionsTicker,
 }
 
 #[derive(Clone, Debug)]
@@ -18,7 +22,7 @@ pub struct ParameterRequirment {
     pub parameter: Parameter,
 }
 
-#[derive(Serialize, Deserialize, Clone, Debug)]
+#[derive(Serialize, Deserialize, Clone, Debug, Default)]
 pub struct Parameters {
     pub api_key: String,
     pub ticker: Option<String>,
@@ -31,9 +35,11 @@ pub struct Parameters {
     pub limit: Option<u16>,
     pub date: Option<String>,
     pub verbose: Option<bool>,
+    pub contract_type: Option<ContractType>,
+    pub include_otc: Option<bool>,
 }
 
-impl Default for Parameters {
+/*impl Default for Parameters {
     fn default() -> Parameters {
         Parameters {
             api_key: String::from(""),
@@ -50,20 +56,20 @@ impl Default for Parameters {
         }
     }
 }
-
+*/
 #[derive(Serialize, Deserialize, Clone, Debug)]
 pub enum ContractType {
     Call,
     Put,
 }
 
-#[derive(Serialize, Deserialize, Clone, Debug)]
+#[derive(Serialize, Deserialize, Clone, Debug, Display)]
 pub enum Sort {
     Asc,
     Desc,
 }
 
-#[derive(Serialize, Deserialize, Clone, Debug)]
+#[derive(Serialize, Deserialize, Clone, Debug, Display)]
 pub enum Timespan {
     Second,
     Minute,

@@ -1,29 +1,29 @@
-pub mod daily;
-pub mod nbbo;
-pub mod trades;
-pub mod snapshots;
 pub mod aggregates;
+pub mod bbo;
+pub mod currency_quote;
+pub mod daily;
 pub mod grouped;
 pub mod last_quote;
 pub mod last_trade;
-pub mod previous;
-pub mod technical_indicators;
-pub mod rtc;
-pub mod currency_quote;
-pub mod bbo;
 pub mod ltc;
+pub mod nbbo;
+pub mod previous;
+pub mod rtc;
+pub mod snapshots;
+pub mod technical_indicators;
+pub mod trades;
 
 #[derive(serde::Deserialize)]
-pub enum Market{
-    Daily(daily::Daily),
-    Nbbo(nbbo::NBBO),
+pub enum Market {
+    Aggregates(aggregates::Aggregates), //Done
+    Grouped(grouped::Grouped),          //Done
+    Daily(daily::Daily),                //Done
+    Previous(previous::Previous),       //Done
     Trades(trades::Trades),
+    LastTrade(last_trade::LastTrade), //Done
+    Nbbo(nbbo::NBBO),
+    LastQuote(last_quote::LastQuote), //Done
     Snapshots(snapshots::Snapshots),
-    Aggregates(aggregates::Aggregates),
-    //Grouped(grouped::Grouped),
-    //LastQuote(last_quote::LastQuote),
-    //LastTrade(last_trade::LastTrade),
-    //Previous(previous::Previous),
     TechnicalIndicators(technical_indicators::TechnicalIndicators),
     //Rtc(rtc::Rtc),
     //CurrencyQuote(currency_quote::CurrencyQuote),

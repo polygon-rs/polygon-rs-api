@@ -1,5 +1,3 @@
-use std::f32::consts::E;
-
 use crate::{rest::Rest, ErrorCode, Parameter, ParameterRequirment, Parameters, Request};
 use serde::{Deserialize, Serialize};
 
@@ -7,21 +5,26 @@ use serde::{Deserialize, Serialize};
 pub struct Daily {
     daily_parameters: Option<Parameters>,
     daily_url: Option<String>,
-    pub adjusted: Option<bool>,
-    pub after_hours: Option<f64>,
-    pub close: Option<f64>,
-    pub from: Option<String>,
-    pub high: Option<f64>,
-    pub low: Option<f64>,
-    pub open: Option<f64>,
-    pub pre_market: Option<f64>,
-    pub status: Option<String>,
-    pub symbol: Option<String>,
-    pub volume: Option<f64>,
+    pub afterHours: f64,
+    pub close: f64,
+    pub from: String,
+    pub high: f64,
+    pub low: f64,
+    pub open: f64,
+    pub preMarket: f64,
+    pub status: String,
+    pub symbol: String,
+    pub volume: f64,
 }
 
-/*impl Daily {
-    pub fn set_parameters(&mut self, api_key: String, ticker: String, date: String, adjusted: Option<bool>) {
+impl Daily {
+    pub fn set_parameters(
+        &mut self,
+        api_key: String,
+        ticker: String,
+        date: String,
+        adjusted: Option<bool>,
+    ) {
         self.daily_parameters = Some(Parameters {
             api_key: api_key,
             ticker: Some(ticker),
@@ -30,9 +33,11 @@ pub struct Daily {
             ..Parameters::default()
         })
     }
-}*/
+}
 
 impl Request for Daily {
+    const VERSION: &'static str = "v1";
+    const CALL: &'static str = "open-close";
     const PARAMETERS: &'static [&'static ParameterRequirment] = &[
         &ParameterRequirment {
             required: true,
@@ -47,39 +52,39 @@ impl Request for Daily {
             parameter: Parameter::Adjusted,
         },
     ];
-    //const BASE_URL: &'static str = "https://api.polygon.io/v1/open-close/";
-    //const VERSION: &'static str = "v1";
-
 
     fn parameters(&self) -> &Parameters {
         match &self.daily_parameters {
             Some(p) => p,
-            None => panic!("There is no parameters set"),
+            None => panic!("There is no parameters set"), //Need to remove panic for error
         }
     }
 
-    fn url(&self) -> String {
+    fn url(&mut self) -> String {
+        self.set_url();
         match &self.daily_url {
-            Some(u) => u,
-            None => panic!("There is no url set"),
+            Some(u) => u.to_string(),
+            None => panic!("There is no url set"), //Need to remove panic for error
         }
     }
 
-    fn set_parameters(&mut self, api_key: String, ticker: String, date: String, adjusted: Option<bool>) {
-        self.daily_parameters = Some(Parameters {
-            api_key: api_key,
-            ticker: Some(ticker),
-            date: Some(date),
-            adjusted: adjusted,
-            ..Parameters::default()
-        })
-    }
-
-    fn set_url(&self) {
+    fn set_url(&mut self) {
         self.check_parameters();
-        self.daily_url = Some(String::from(""));
+        self.daily_url = Some(String::from(format!(
+            "{}/{}/{}/{}/{}?{}apiKey={}",
+            Self::BASE_URL,
+            Self::VERSION,
+            Self::CALL,
+            self.parameters().clone().ticker.unwrap(),
+            self.parameters().clone().date.unwrap(),
+            if let Some(adj) = self.parameters().clone().adjusted {
+                format!("adjusted={}&", adj)
+            } else {
+                "".to_string()
+            },
+            self.parameters().clone().api_key,
+        )));
     }
-
 
     fn request(&mut self) -> Result<(), ErrorCode> {
         let r = match self.get_raw_data() {
