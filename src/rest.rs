@@ -6,7 +6,7 @@ pub mod reference;
 use crate::ErrorCode;
 use crate::{Parameter, ParameterRequirment, Parameters};
 use regex::Regex;
-use serde::{Deserialize, Serialize};
+//use serde::{Deserialize, Serialize};
 
 #[derive(serde::Deserialize)]
 pub enum Rest {
@@ -23,7 +23,7 @@ pub trait Request {
 
     fn url(&mut self) -> String;
 
-    fn set_url(&mut self);
+    fn set_url(&mut self) -> Result<(), ErrorCode>;
 
     fn set_regex(&self, pattern: &str) -> Regex {
         match Regex::new(pattern) {
@@ -132,7 +132,7 @@ pub trait Request {
 
     fn verify_adjusted(&self, required: bool) -> Result<(), ErrorCode> {
         match &self.parameters().adjusted {
-            Some(a) => Ok(()),
+            Some(_) => Ok(()),
             None => {
                 if required {
                     return Err(ErrorCode::AdjusteedNotSet);
@@ -144,7 +144,7 @@ pub trait Request {
 
     fn verify_sort(&self, required: bool) -> Result<(), ErrorCode> {
         match &self.parameters().sort {
-            Some(s) => Ok(()),
+            Some(_) => Ok(()),
             None => {
                 if required {
                     return Err(ErrorCode::SortNotSet);
@@ -156,7 +156,7 @@ pub trait Request {
 
     fn verify_limit(&self, required: bool) -> Result<(), ErrorCode> {
         match &self.parameters().limit {
-            Some(l) => Ok(()),
+            Some(_) => Ok(()),
             None => {
                 if required {
                     return Err(ErrorCode::LimitNotSet);
@@ -168,7 +168,7 @@ pub trait Request {
 
     fn verify_timespan(&self, required: bool) -> Result<(), ErrorCode> {
         match &self.parameters().timespan {
-            Some(t) => Ok(()),
+            Some(_) => Ok(()),
             None => {
                 if required {
                     return Err(ErrorCode::TimespanNotSet);
@@ -180,7 +180,55 @@ pub trait Request {
 
     fn verify_multiplier(&self, required: bool) -> Result<(), ErrorCode> {
         match &self.parameters().multiplier {
-            Some(m) => Ok(()),
+            Some(_) => Ok(()),
+            None => {
+                if required {
+                    return Err(ErrorCode::MultiplierNotSet);
+                };
+                Ok(())
+            }
+        }
+    }
+
+    fn verify_order(&self, required: bool) -> Result<(), ErrorCode> {
+        match &self.parameters().order {
+            Some(_) => Ok(()),
+            None => {
+                if required {
+                    return Err(ErrorCode::OrderNotSet);
+                };
+                Ok(())
+            }
+        }
+    }
+
+    fn verify_sortv3(&self, required: bool) -> Result<(), ErrorCode> {
+        match &self.parameters().sortv3 {
+            Some(_) => Ok(()),
+            None => {
+                if required {
+                    return Err(ErrorCode::SortNotSet);
+                };
+                Ok(())
+            }
+        }
+    }
+
+    fn verify_timestamp(&self, required: bool) -> Result<(), ErrorCode> {
+        match &self.parameters().timestamp {
+            Some(_) => Ok(()),
+            None => {
+                if required {
+                    return Err(ErrorCode::TimestampNotSet);
+                };
+                Ok(())
+            }
+        }
+    }
+
+    fn verify_contract_type(&self, required: bool) -> Result<(), ErrorCode> {
+        match &self.parameters().contract_type {
+            Some(_) => Ok(()),
             None => {
                 if required {
                     return Err(ErrorCode::MultiplierNotSet);
@@ -192,7 +240,7 @@ pub trait Request {
 
     fn verify_include_otc(&self, required: bool) -> Result<(), ErrorCode> {
         match &self.parameters().include_otc {
-            Some(i) => Ok(()),
+            Some(_) => Ok(()),
             None => {
                 if required {
                     return Err(ErrorCode::IncludeOTCNotSet);
@@ -260,6 +308,26 @@ pub trait Request {
                 }
                 Parameter::OptionsTicker => {
                     if let Err(check) = self.verify_options_ticker(parameter.required) {
+                        return Err(check);
+                    }
+                }
+                Parameter::Order => {
+                    if let Err(check) = self.verify_order(parameter.required) {
+                        return Err(check);
+                    }
+                }
+                Parameter::Sortv3 => {
+                    if let Err(check) = self.verify_sortv3(parameter.required) {
+                        return Err(check);
+                    }
+                }
+                Parameter::Timestamp => {
+                    if let Err(check) = self.verify_timestamp(parameter.required) {
+                        return Err(check);
+                    }
+                }
+                Parameter::ContractType => {
+                    if let Err(check) = self.verify_contract_type(parameter.required) {
                         return Err(check);
                     }
                 }

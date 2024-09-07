@@ -1,88 +1,159 @@
-use crate::rest::Parameters;
+use crate::{
+    ErrorCode, Order, Parameter, ParameterRequirment, Parameters, Request, Sortv3, Timespan,
+};
 use serde::{Deserialize, Serialize};
-use std::error::Error;
 
-#[derive(Serialize, Deserialize, Clone, Debug)]
+#[derive(Serialize, Deserialize, Clone, Debug, Default)]
 pub struct Trades {
-    pub next_url: Option<String>,
-    pub request_id: Option<String>,
-    pub results: Option<Vec<Trade>>,
-    pub status: Option<String>,
+    trades_parameters: Option<Parameters>,
+    trades_url: Option<String>,
+    pub next_url: String,
+    pub request_id: String,
+    pub results: Vec<Trade>,
+    pub status: String,
 }
 
 #[derive(Serialize, Deserialize, Clone, Debug)]
 pub struct Trade {
-    pub conditions: Option<Vec<i32>>,
-    pub correction: Option<i32>,
-    pub exchange: Option<i32>,
-    pub price: Option<f64>,
-    pub size: Option<i32>,
-    pub participant_timestamp: Option<i64>,
-    pub sequence_number: Option<i64>,
-    pub sip_timestamp: Option<i64>,
-    pub id: Option<i32>,
+    pub conditions: Vec<i32>,
+    pub exchange: i32,
+    pub id: i32,
+    pub participant_timestamp: i64,
+    pub price: f64,
+    pub sequence_number: i64,
+    pub sip_timestamp: i64,
+    pub size: i32,
+    pub tape: i32,
 }
 
 impl Trades {
-    #[tokio::main]
-    pub async fn trades(p: Parameters) -> Result<Trades, Box<dyn Error>> {
-        let mut url_options = String::from("");
-        match p.ticker {
-            Some(t) => {
-                url_options = format!("{}?", t);
-            }
-            None => panic!("There is no ticker set"),
-        };
-        match p.date {
-            Some(d) => {
-                url_options = format!("{}timestamp={}&", url_options, d);
-            }
-            None => {
-                if p.verbose == Some(true) {
-                    println!("There is no date set, trying from and to.");
-                }
-                match p.from {
-                    Some(f) => {
-                        url_options = format!("{}timestamp.gte={}&", url_options, f);
-                    }
-                    None => { if p.verbose == Some(true) { println!("There is no from set")} },
-                };
-                match p.to {
-                    Some(t) => {
-                        url_options = format!("{}timestamp.lt={}&", url_options, t);
-                    }
-                    None => { if p.verbose == Some(true) { println!("There is no to set")} },
-                };
-            }
-        };
+    pub fn set_parameters(
+        &mut self,
+        api_key: String,
+        ticker: String,
+        timestamp: Option<String>,
+        from: Option<String>,
+        to: Option<String>,
+        sort: Option<Sortv3>,
+        limit: Option<u16>,
+        order: Option<Order>,
+    ) {
+        self.trades_parameters = Some(Parameters {
+            api_key: api_key,
+            ticker: Some(ticker),
+            timestamp: timestamp,
+            from: from,
+            to: to,
+            sortv3: sort,
+            limit: limit,
+            order: order,
+            ..Parameters::default()
+        })
+    }
+}
 
-        match p.sort {
-            Some(s) => {
-                url_options = format!("{}order={:?}&sort=timestamp&", url_options, s);
-            }
-            None => { if p.verbose == Some(true) { println!("There is no sort set")} },
-        };
-        match p.limit {
-            Some(l) => {
-                url_options = format!("{}limit={}&", url_options, l);
-            }
-            None => { if p.verbose == Some(true) { println!("There is no limit set")} },
-        };
+impl Request for Trades {
+    const VERSION: &'static str = "v3";
+    const CALL: &'static str = "trades";
+    const PARAMETERS: &'static [&'static ParameterRequirment] = &[
+        &ParameterRequirment {
+            required: true,
+            parameter: Parameter::Ticker,
+        },
+        &ParameterRequirment {
+            required: false,
+            parameter: Parameter::Timestamp,
+        },
+        &ParameterRequirment {
+            required: false,
+            parameter: Parameter::From,
+        },
+        &ParameterRequirment {
+            required: false,
+            parameter: Parameter::To,
+        },
+        &ParameterRequirment {
+            required: false,
+            parameter: Parameter::Order,
+        },
+        &ParameterRequirment {
+            required: false,
+            parameter: Parameter::Limit,
+        },
+        &ParameterRequirment {
+            required: false,
+            parameter: Parameter::Sortv3,
+        },
+    ];
 
-        let url = format!(
-            "https://api.polygon.io/v3/trades/{}apiKey={}",
-            url_options, p.api_key
-        );
-        let request = match reqwest::get(url).await {
-            Ok(response) => match response.text().await {
-                Ok(text) => text,
-                Err(e) => panic!("The following error occured: {}", e),
-            },
-            Err(e) => panic!("The following error occured: {}", e),
-        };
-        match serde_json::from_str(request.as_str()) {
-            Ok(trades) => Ok(trades),
-            Err(e) => panic!("The following error occured: {}", e),
+    fn parameters(&self) -> &Parameters {
+        match &self.trades_parameters {
+            Some(p) => p,
+            None => panic!("There is no parameters set"),
         }
+    }
+
+    fn url(&mut self) -> String {
+        self.set_url();
+        match &self.trades_url {
+            Some(u) => u.to_string(),
+            None => panic!("There is no url set"),
+        }
+    }
+
+    fn set_url(&mut self) {
+        self.check_parameters();
+        self.trades_url = Some(String::from(format!(
+            "{}/{}/{}/{}?{}{}{}{}{}{}apiKey={}",
+            Self::BASE_URL,
+            Self::VERSION,
+            Self::CALL,
+            self.parameters().clone().ticker.unwrap(),
+            if let Some(t) = self.parameters().clone().timestamp {
+                format!("timestamp={}&", t)
+            } else {
+                "".to_string()
+            },
+            if let Some(tf) = self.parameters().clone().from {
+                format!("timestamp.gte={}&", tf)
+            } else {
+                "".to_string()
+            },
+            if let Some(tt) = self.parameters().clone().to {
+                format!("timestamp.lte={}&", tt)
+            } else {
+                "".to_string()
+            },
+            if let Some(o) = self.parameters().clone().order {
+                format!("order={}&", o)
+            } else {
+                "".to_string()
+            },
+            if let Some(l) = self.parameters().clone().limit {
+                format!("limit={}&", l)
+            } else {
+                "".to_string()
+            },
+            if let Some(s) = self.parameters().clone().sortv3 {
+                format!("sort={}&", s)
+            } else {
+                "".to_string()
+            },
+            self.parameters().clone().api_key,
+        )));
+    }
+
+    fn request(&mut self) -> Result<(), ErrorCode> {
+        let r = match self.get_raw_data() {
+            Ok(response) => response,
+            Err(e) => return Err(e),
+        };
+        let a: Trades = match serde_json::from_str(r.as_str()) {
+            Ok(it) => it,
+            Err(err) => return Err(ErrorCode::FormatError),
+        };
+        *self = a;
+
+        Ok(())
     }
 }

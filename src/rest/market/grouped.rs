@@ -1,6 +1,5 @@
-use crate::{ErrorCode, Parameter, ParameterRequirment, Parameters, Request, Sort, Timespan};
+use crate::{ErrorCode, Parameter, ParameterRequirment, Parameters, Request};
 use serde::{Deserialize, Serialize};
-use std::error::Error;
 
 #[derive(Serialize, Deserialize, Clone, Debug, Default)]
 pub struct Grouped {
@@ -77,8 +76,8 @@ impl Request for Grouped {
         }
     }
 
-    fn set_url(&mut self) {
-        self.check_parameters();
+    fn set_url(&mut self) Result <(), ErrorCode> {
+        if let Err(check) = self.check_parameters() { return Err(check)}
         self.grouped_url = Some(String::from(format!(
             "{}/{}/{}/locale/us/market/stocks/{}?{}{}apiKey={}",
             Self::BASE_URL,

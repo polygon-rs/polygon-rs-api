@@ -1,100 +1,95 @@
-use crate::{Parameters, Sort, Timespan, Request, ParameterRequirment, ErrorCode, Parameter};
+use crate::{
+    ErrorCode, Order, Parameter, ParameterRequirment, Parameters, Request, Sortv3, Timespan,
+};
 use serde::{Deserialize, Serialize};
 
 #[derive(Serialize, Deserialize, Clone, Debug, Default)]
-pub struct Aggregates {
-    aggregates_parameters: Option<Parameters>,
-    aggregates_url: Option<String>,
-    pub adjusted: bool,
+pub struct Quotes {
+    quotes_parameters: Option<Parameters>,
+    quotes_url: Option<String>,
     pub next_url: String,
     pub request_id: String,
-    pub results: Vec<Bar>,
+    pub results: Vec<Quote>,
     pub status: String,
-    pub resultsCount: i32,
-    pub ticker: String,
-    pub query_count: i32,
 }
 
 #[derive(Serialize, Deserialize, Clone, Debug)]
-pub struct Bar {
-    pub c: f64,
-    pub h: f64,
-    pub l: f64,
-    pub n: i32,
-    pub o: f64,
-    pub t: i64,
-    pub v: f64,
-    pub vw: f64,
+pub struct Quote {
+    pub ask_exchange: i32,
+    pub ask_price: f64,
+    pub ask_size: i32,
+    pub bid_exchange: i32,
+    pub bid_price: f64,
+    pub bid_size: i32,
+    pub conditions: Vec<i32>,
+    pub participant_timestamp: i64,
+    pub sequence_number: i64,
+    pub sip_timestamp: i64,
+    pub tape: i32,
 }
 
-impl Aggregates {
+impl Quotes {
     pub fn set_parameters(
         &mut self,
         api_key: String,
         ticker: String,
-        multiplier: u16,
-        timespan: Timespan,
-        from: String,
-        to: String,
-        sort: Option<Sort>,
+        timestamp: Option<String>,
+        from: Option<String>,
+        to: Option<String>,
+        sort: Option<Sortv3>,
         limit: Option<u16>,
-        adjusted: Option<bool>,
+        order: Option<Order>,
     ) {
-        self.aggregates_parameters = Some(Parameters {
+        self.quotes_parameters = Some(Parameters {
             api_key: api_key,
             ticker: Some(ticker),
-            adjusted: adjusted,
-            multiplier: Some(multiplier),
-            timespan: Some(timespan),
-            from: Some(from),
-            to: Some(to),
-            sort: sort,
+            timestamp: timestamp,
+            from: from,
+            to: to,
+            sortv3: sort,
             limit: limit,
+            order: order,
             ..Parameters::default()
         })
     }
 }
 
-impl Request for Aggregates {
-    const VERSION: &'static str = "v2";
-    const CALL: &'static str = "aggs";
+impl Request for Quotes {
+    const VERSION: &'static str = "v3";
+    const CALL: &'static str = "quotes";
     const PARAMETERS: &'static [&'static ParameterRequirment] = &[
         &ParameterRequirment {
             required: true,
             parameter: Parameter::Ticker,
         },
         &ParameterRequirment {
-            required: true,
-            parameter: Parameter::Multiplier,
+            required: false,
+            parameter: Parameter::Timestamp,
         },
         &ParameterRequirment {
-            required: true,
-            parameter: Parameter::Timespan,
-        },
-        &ParameterRequirment {
-            required: true,
+            required: false,
             parameter: Parameter::From,
         },
         &ParameterRequirment {
-            required: true,
+            required: false,
             parameter: Parameter::To,
         },
         &ParameterRequirment {
             required: false,
-            parameter: Parameter::Adjusted,
-        },
-        &ParameterRequirment {
-            required: false,
-            parameter: Parameter::Sort,
+            parameter: Parameter::Order,
         },
         &ParameterRequirment {
             required: false,
             parameter: Parameter::Limit,
         },
+        &ParameterRequirment {
+            required: false,
+            parameter: Parameter::Sortv3,
+        },
     ];
 
     fn parameters(&self) -> &Parameters {
-        match &self.aggregates_parameters {
+        match &self.quotes_parameters {
             Some(p) => p,
             None => panic!("There is no parameters set"),
         }
@@ -102,7 +97,7 @@ impl Request for Aggregates {
 
     fn url(&mut self) -> String {
         self.set_url();
-        match &self.aggregates_url {
+        match &self.quotes_url {
             Some(u) => u.to_string(),
             None => panic!("There is no url set"),
         }
@@ -110,28 +105,39 @@ impl Request for Aggregates {
 
     fn set_url(&mut self) {
         self.check_parameters();
-        self.aggregates_url = Some(String::from(format!(
-            "{}/{}/{}/ticker/{}/range/{}/{}/{}/{}?{}{}{}apiKey={}",
+        self.quotes_url = Some(String::from(format!(
+            "{}/{}/{}/{}?{}{}{}{}{}{}apiKey={}",
             Self::BASE_URL,
             Self::VERSION,
             Self::CALL,
             self.parameters().clone().ticker.unwrap(),
-            self.parameters().clone().multiplier.unwrap(),
-            self.parameters().clone().timespan.unwrap(),
-            self.parameters().clone().from.unwrap(),
-            self.parameters().clone().to.unwrap(),
-            if let Some(adj) = self.parameters().clone().adjusted {
-                format!("adjusted={}&", adj)
+            if let Some(t) = self.parameters().clone().timestamp {
+                format!("timestamp={}&", t)
             } else {
                 "".to_string()
             },
-            if let Some(s) = self.parameters().clone().sort {
-                format!("sort={}&", s)
+            if let Some(tf) = self.parameters().clone().from {
+                format!("timestamp.gte={}&", tf)
+            } else {
+                "".to_string()
+            },
+            if let Some(tt) = self.parameters().clone().to {
+                format!("timestamp.lte={}&", tt)
+            } else {
+                "".to_string()
+            },
+            if let Some(o) = self.parameters().clone().order {
+                format!("order={}&", o)
             } else {
                 "".to_string()
             },
             if let Some(l) = self.parameters().clone().limit {
                 format!("limit={}&", l)
+            } else {
+                "".to_string()
+            },
+            if let Some(s) = self.parameters().clone().sortv3 {
+                format!("sort={}&", s)
             } else {
                 "".to_string()
             },
@@ -144,7 +150,7 @@ impl Request for Aggregates {
             Ok(response) => response,
             Err(e) => return Err(e),
         };
-        let a: Aggregates = match serde_json::from_str(r.as_str()) {
+        let a: Quotes = match serde_json::from_str(r.as_str()) {
             Ok(it) => it,
             Err(err) => return Err(ErrorCode::FormatError),
         };

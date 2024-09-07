@@ -14,6 +14,10 @@ pub enum Parameter {
     Multiplier,
     IncludeOTC,
     OptionsTicker,
+    Order,
+    ContractType,
+    Timestamp,
+    Sortv3,
 }
 
 #[derive(Clone, Debug)]
@@ -32,6 +36,9 @@ pub struct Parameters {
     pub to: Option<String>,
     pub adjusted: Option<bool>,
     pub sort: Option<Sort>,
+    pub order: Option<Order>,
+    pub sortv3: Option<Sortv3>,
+    pub timestamp: Option<String>,
     pub limit: Option<u16>,
     pub date: Option<String>,
     pub verbose: Option<bool>,
@@ -39,24 +46,6 @@ pub struct Parameters {
     pub include_otc: Option<bool>,
 }
 
-/*impl Default for Parameters {
-    fn default() -> Parameters {
-        Parameters {
-            api_key: String::from(""),
-            ticker: None,
-            multiplier: None,
-            timespan: None,
-            from: None,
-            to: None,
-            adjusted: None,
-            sort: None,
-            limit: None,
-            date: None,
-            verbose: None,
-        }
-    }
-}
-*/
 #[derive(Serialize, Deserialize, Clone, Debug)]
 pub enum ContractType {
     Call,
@@ -67,6 +56,15 @@ pub enum ContractType {
 pub enum Sort {
     Asc,
     Desc,
+}
+#[derive(Serialize, Deserialize, Clone, Debug, Display)]
+pub enum Order {
+    Asc,
+    Desc,
+}
+#[derive(Serialize, Deserialize, Clone, Debug, Display)]
+pub enum Sortv3 {
+    Timestamp,
 }
 
 #[derive(Serialize, Deserialize, Clone, Debug, Display)]

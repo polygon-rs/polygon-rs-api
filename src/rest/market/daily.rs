@@ -1,4 +1,4 @@
-use crate::{rest::Rest, ErrorCode, Parameter, ParameterRequirment, Parameters, Request};
+use crate::{ ErrorCode, Parameter, ParameterRequirment, Parameters, Request};
 use serde::{Deserialize, Serialize};
 
 #[derive(Serialize, Deserialize, Clone, Debug, Default)]

@@ -1,6 +1,3 @@
-use std::error;
-use std::error::Error;
-use std::f32::consts::E;
 use std::fmt;
 
 #[derive(Debug)]
@@ -22,6 +19,9 @@ pub enum ErrorCode {
     TimespanNotSet,
     MultiplierNotSet,
     IncludeOTCNotSet,
+    OrderNotSet,
+    TimestampNotSet,
+    ContractTypeNotSet,
 }
 
 impl fmt::Display for ErrorCode {
@@ -44,6 +44,9 @@ impl fmt::Display for ErrorCode {
             ErrorCode::TimespanNotSet => f.write_str("There is no timespan set"),
             ErrorCode::MultiplierNotSet => f.write_str("There is no multiplier set"),
             ErrorCode::IncludeOTCNotSet => f.write_str("There is no include otc set"),
+            ErrorCode::OrderNotSet => f.write_str("There is no order set"),
+            ErrorCode::TimestampNotSet => f.write_str("There is no timestamp set"),
+            ErrorCode::ContractTypeNotSet => f.write_str("There is no contract type set"),
         }
     }
 }

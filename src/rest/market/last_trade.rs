@@ -1,6 +1,5 @@
-use crate::{ErrorCode, Parameter, ParameterRequirment, Parameters, Request, Sort, Timespan};
+use crate::{ErrorCode, Parameter, ParameterRequirment, Parameters, Request};
 use serde::{Deserialize, Serialize};
-use std::error::Error;
 
 #[derive(Serialize, Deserialize, Clone, Debug, Default)]
 pub struct LastTrade {
