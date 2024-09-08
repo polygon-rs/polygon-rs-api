@@ -1,12 +1,10 @@
-use crate::{
-    ErrorCode, Order, Parameter, ParameterRequirment, Parameters, Request, Sortv3, Timespan,
-};
+use crate::{ErrorCode, Order, Parameter, ParameterRequirment, Parameters, Request, Sortv3};
 use serde::{Deserialize, Serialize};
 
 #[derive(Serialize, Deserialize, Clone, Debug, Default)]
 pub struct Quotes {
-    quotes_parameters: Option<Parameters>,
-    quotes_url: Option<String>,
+    quotes_parameters: Parameters,
+    quotes_url: String,
     pub next_url: String,
     pub request_id: String,
     pub results: Vec<Quote>,
@@ -40,7 +38,7 @@ impl Quotes {
         limit: Option<u16>,
         order: Option<Order>,
     ) {
-        self.quotes_parameters = Some(Parameters {
+        self.quotes_parameters = Parameters {
             api_key: api_key,
             ticker: Some(ticker),
             timestamp: timestamp,
@@ -50,7 +48,7 @@ impl Quotes {
             limit: limit,
             order: order,
             ..Parameters::default()
-        })
+        }
     }
 }
 
@@ -89,23 +87,27 @@ impl Request for Quotes {
     ];
 
     fn parameters(&self) -> &Parameters {
-        match &self.quotes_parameters {
+        &self.quotes_parameters
+        /*match &self.quotes_parameters {
             Some(p) => p,
             None => panic!("There is no parameters set"),
-        }
+        }*/
     }
 
-    fn url(&mut self) -> String {
-        self.set_url();
+    fn url(&mut self) -> &String {
+        &self.quotes_url
+        /*self.set_url();
         match &self.quotes_url {
             Some(u) => u.to_string(),
             None => panic!("There is no url set"),
-        }
+        }*/
     }
 
-    fn set_url(&mut self) {
-        self.check_parameters();
-        self.quotes_url = Some(String::from(format!(
+    fn set_url(&mut self) -> Result<(), ErrorCode> {
+        if let Err(check) = self.check_parameters() {
+            return Err(check);
+        }
+        self.quotes_url = String::from(format!(
             "{}/{}/{}/{}?{}{}{}{}{}{}apiKey={}",
             Self::BASE_URL,
             Self::VERSION,
@@ -142,10 +144,14 @@ impl Request for Quotes {
                 "".to_string()
             },
             self.parameters().clone().api_key,
-        )));
+        ));
+        Ok(())
     }
 
     fn request(&mut self) -> Result<(), ErrorCode> {
+        if let Err(check) = self.set_url() {
+            return Err(check);
+        }
         let r = match self.get_raw_data() {
             Ok(response) => response,
             Err(e) => return Err(e),

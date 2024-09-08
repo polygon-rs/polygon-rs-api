@@ -3,8 +3,8 @@ use serde::{Deserialize, Serialize};
 
 #[derive(Serialize, Deserialize, Clone, Debug, Default)]
 pub struct Aggregates {
-    aggregates_parameters: Option<Parameters>,
-    aggregates_url: Option<String>,
+    aggregates_parameters: Parameters,
+    aggregates_url: String,
     pub adjusted: bool,
     pub next_url: String,
     pub request_id: String,
@@ -40,7 +40,7 @@ impl Aggregates {
         limit: Option<u16>,
         adjusted: Option<bool>,
     ) {
-        self.aggregates_parameters = Some(Parameters {
+        self.aggregates_parameters = Parameters {
             api_key: api_key,
             ticker: Some(ticker),
             adjusted: adjusted,
@@ -51,7 +51,7 @@ impl Aggregates {
             sort: sort,
             limit: limit,
             ..Parameters::default()
-        })
+        }
     }
 }
 
@@ -94,23 +94,25 @@ impl Request for Aggregates {
     ];
 
     fn parameters(&self) -> &Parameters {
-        match &self.aggregates_parameters {
+        &self.aggregates_parameters
+        /*match &self.aggregates_parameters {
             Some(p) => p,
             None => panic!("There is no parameters set"),
-        }
+        }*/
     }
 
-    fn url(&mut self) -> String {
-        self.set_url();
-        match &self.aggregates_url {
+    fn url(&mut self) -> &String {
+        &self.aggregates_url
+        //self.set_url();
+        /*match &self.aggregates_url {
             Some(u) => u.to_string(),
             None => panic!("There is no url set"),
-        }
+        }*/
     }
 
-    fn set_url(&mut self) {
-        self.check_parameters();
-        self.aggregates_url = Some(String::from(format!(
+    fn set_url(&mut self) -> Result<(), ErrorCode> {
+        if let Err(check) = self.check_parameters() { return Err(check)}
+        self.aggregates_url = String::from(format!(
             "{}/{}/{}/ticker/{}/range/{}/{}/{}/{}?{}{}{}apiKey={}",
             Self::BASE_URL,
             Self::VERSION,
@@ -136,10 +138,12 @@ impl Request for Aggregates {
                 "".to_string()
             },
             self.parameters().clone().api_key,
-        )));
+        ));
+        Ok(())
     }
 
     fn request(&mut self) -> Result<(), ErrorCode> {
+        if let Err(check) = self.set_url() { return Err(check)}
         let r = match self.get_raw_data() {
             Ok(response) => response,
             Err(e) => return Err(e),

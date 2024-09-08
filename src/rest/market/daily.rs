@@ -1,10 +1,13 @@
 use crate::{ ErrorCode, Parameter, ParameterRequirment, Parameters, Request};
 use serde::{Deserialize, Serialize};
 
+
 #[derive(Serialize, Deserialize, Clone, Debug, Default)]
 pub struct Daily {
-    daily_parameters: Option<Parameters>,
-    daily_url: Option<String>,
+    #[serde(skip)]
+    daily_parameters: Parameters,
+    #[serde(skip)]
+    daily_url: String,
     pub afterHours: f64,
     pub close: f64,
     pub from: String,
@@ -25,13 +28,13 @@ impl Daily {
         date: String,
         adjusted: Option<bool>,
     ) {
-        self.daily_parameters = Some(Parameters {
+        self.daily_parameters = Parameters {
             api_key: api_key,
             ticker: Some(ticker),
             date: Some(date),
             adjusted: adjusted,
             ..Parameters::default()
-        })
+        }
     }
 }
 
@@ -54,23 +57,25 @@ impl Request for Daily {
     ];
 
     fn parameters(&self) -> &Parameters {
-        match &self.daily_parameters {
+        &self.daily_parameters
+        /*match &self.daily_parameters {
             Some(p) => p,
             None => panic!("There is no parameters set"), //Need to remove panic for error
-        }
+        }*/
     }
 
-    fn url(&mut self) -> String {
-        self.set_url();
+    fn url(&mut self) -> &String {
+        &self.daily_url
+        /*self.set_url();
         match &self.daily_url {
             Some(u) => u.to_string(),
             None => panic!("There is no url set"), //Need to remove panic for error
-        }
+        }*/
     }
 
-    fn set_url(&mut self) {
-        self.check_parameters();
-        self.daily_url = Some(String::from(format!(
+    fn set_url(&mut self) -> Result<(), ErrorCode> {
+        if let Err(check) = self.check_parameters() { return Err(check)}
+        self.daily_url = String::from(format!(
             "{}/{}/{}/{}/{}?{}apiKey={}",
             Self::BASE_URL,
             Self::VERSION,
@@ -83,10 +88,12 @@ impl Request for Daily {
                 "".to_string()
             },
             self.parameters().clone().api_key,
-        )));
+        ));
+        Ok(())
     }
 
     fn request(&mut self) -> Result<(), ErrorCode> {
+        if let Err(check) = self.set_url() { return Err(check)}
         let r = match self.get_raw_data() {
             Ok(response) => response,
             Err(e) => return Err(e),

@@ -1,11 +1,10 @@
-use crate::{ErrorCode, Parameter, ParameterRequirment, Parameters, Request, Sort, Timespan};
+use crate::{ErrorCode, Parameter, ParameterRequirment, Parameters, Request};
 use serde::{Deserialize, Serialize};
-use std::error::Error;
 
 #[derive(Serialize, Deserialize, Clone, Debug, Default)]
 pub struct Previous {
-    previous_parameters: Option<Parameters>,
-    previous_url: Option<String>,
+    previous_parameters: Parameters,
+    previous_url: String,
     pub adjusted: bool,
     pub query_count: i32,
     pub request_id: String,
@@ -29,12 +28,12 @@ pub struct Bar {
 
 impl Previous {
     pub fn set_parameters(&mut self, api_key: String, ticker: String, adjusted: Option<bool>) {
-        self.previous_parameters = Some(Parameters {
+        self.previous_parameters = Parameters {
             api_key: api_key,
             ticker: Some(ticker),
             adjusted: adjusted,
             ..Parameters::default()
-        })
+        }
     }
 }
 
@@ -53,23 +52,25 @@ impl Request for Previous {
     ];
 
     fn parameters(&self) -> &Parameters {
-        match &self.previous_parameters {
+        &self.previous_parameters
+        /*match &self.previous_parameters {
             Some(p) => p,
             None => panic!("There is no parameters set"),
-        }
+        }*/
     }
 
-    fn url(&mut self) -> String {
-        self.set_url();
+    fn url(&mut self) -> &String {
+        &self.previous_url
+        /*self.set_url();
         match &self.previous_url {
             Some(u) => u.to_string(),
             None => panic!("There is no url set"),
-        }
+        }*/
     }
 
-    fn set_url(&mut self) {
-        self.check_parameters();
-        self.previous_url = Some(String::from(format!(
+    fn set_url(&mut self) -> Result<(), ErrorCode> {
+        if let Err(check) = self.check_parameters() { return Err(check)}
+        self.previous_url = String::from(format!(
             "{}/{}/{}/ticker/{}/prev?{}apiKey={}",
             Self::BASE_URL,
             Self::VERSION,
@@ -81,10 +82,12 @@ impl Request for Previous {
                 "".to_string()
             },
             self.parameters().clone().api_key,
-        )));
+        ));
+        Ok(())
     }
 
     fn request(&mut self) -> Result<(), ErrorCode> {
+        if let Err(check) = self.set_url() { return Err(check)}
         let r = match self.get_raw_data() {
             Ok(response) => response,
             Err(e) => return Err(e),

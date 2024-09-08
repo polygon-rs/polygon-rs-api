@@ -21,7 +21,7 @@ pub trait Request {
 
     fn parameters(&self) -> &Parameters;
 
-    fn url(&mut self) -> String;
+    fn url(&mut self) -> &String;
 
     fn set_url(&mut self) -> Result<(), ErrorCode>;
 
@@ -47,7 +47,7 @@ pub trait Request {
         match &self.parameters().date {
             Some(d) => {
                 match self
-                    .set_regex(r"(19|20)([0-9]{2})-(1[0-2]|0[1-9])-(3[01]|[12][0-9]|0[1-9]")
+                    .set_regex(r"(19|20)([0-9]{2})-(1[0-2]|0[1-9])-(3[01]|[12][0-9]|0[1-9])")
                     .is_match(d.as_str())
                 {
                     true => Ok(()),
@@ -68,7 +68,7 @@ pub trait Request {
         match &self.parameters().from {
             Some(d) => {
                 match self
-                    .set_regex(r"(19|20)([0-9]{2})-(1[0-2]|0[1-9])-(3[01]|[12][0-9]|0[1-9]")
+                    .set_regex(r"(19|20)([0-9]{2})-(1[0-2]|0[1-9])-(3[01]|[12][0-9]|0[1-9])")
                     .is_match(d.as_str())
                 {
                     true => Ok(()),
@@ -89,7 +89,7 @@ pub trait Request {
         match &self.parameters().to {
             Some(d) => {
                 match self
-                    .set_regex(r"(19|20)([0-9]{2})-(1[0-2]|0[1-9])-(3[01]|[12][0-9]|0[1-9]")
+                    .set_regex(r"(19|20)([0-9]{2})-(1[0-2]|0[1-9])-(3[01]|[12][0-9]|0[1-9])")
                     .is_match(d.as_str())
                 {
                     true => Ok(()),

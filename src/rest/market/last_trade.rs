@@ -3,8 +3,8 @@ use serde::{Deserialize, Serialize};
 
 #[derive(Serialize, Deserialize, Clone, Debug, Default)]
 pub struct LastTrade {
-    last_trade_parameters: Option<Parameters>,
-    last_trade_url: Option<String>,
+    last_trade_parameters: Parameters,
+    last_trade_url: String,
     pub request_id: String,
     pub results: Trade,
     pub status: String,
@@ -28,11 +28,11 @@ pub struct Trade {
 
 impl LastTrade {
     pub fn set_parameters(&mut self, api_key: String, ticker: String) {
-        self.last_trade_parameters = Some(Parameters {
+        self.last_trade_parameters = Parameters {
             api_key: api_key,
             ticker: Some(ticker),
             ..Parameters::default()
-        })
+        }
     }
 }
 
@@ -47,33 +47,37 @@ impl Request for LastTrade {
     ];
 
     fn parameters(&self) -> &Parameters {
-        match &self.last_trade_parameters {
+        /*match &self.last_trade_parameters {
             Some(p) => p,
             None => panic!("There is no parameters set"),
-        }
+        }*/
+        &self.last_trade_parameters
     }
 
-    fn url(&mut self) -> String {
-        self.set_url();
+    fn url(&mut self) -> &String {
+        /*self.set_url();
         match &self.last_trade_url {
             Some(u) => u.to_string(),
             None => panic!("There is no url set"),
-        }
+        }*/
+        &self.last_trade_url
     }
 
-    fn set_url(&mut self) {
-        self.check_parameters();
-        self.last_trade_url = Some(String::from(format!(
+    fn set_url(&mut self) -> Result<(), ErrorCode> {
+        if let Err(check) = self.check_parameters() { return Err(check)}
+        self.last_trade_url = String::from(format!(
             "{}/{}/{}/{}apiKey={}",
             Self::BASE_URL,
             Self::VERSION,
             Self::CALL,
             self.parameters().clone().ticker.unwrap(),
             self.parameters().clone().api_key,
-        )));
+        ));
+        Ok(())
     }
 
     fn request(&mut self) -> Result<(), ErrorCode> {
+        if let Err(check) = self.set_url() { return Err(check)}
         let r = match self.get_raw_data() {
             Ok(response) => response,
             Err(e) => return Err(e),
