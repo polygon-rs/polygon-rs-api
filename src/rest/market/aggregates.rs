@@ -1,7 +1,6 @@
-use crate::{Parameters, Sort, Timespan, Request, ParameterRequirment, ErrorCode, Parameter};
-use serde::{Deserialize, Serialize};
+use crate::{ErrorCode, Parameter, ParameterRequirment, Parameters, Request, Sort, Timespan};
 
-#[derive(Serialize, Deserialize, Clone, Debug, Default)]
+#[derive(serde::Deserialize, Clone, Debug, Default)]
 pub struct Aggregates {
     aggregates_parameters: Parameters,
     aggregates_url: String,
@@ -10,21 +9,22 @@ pub struct Aggregates {
     pub request_id: String,
     pub results: Vec<Bar>,
     pub status: String,
-    pub resultsCount: i32,
+    pub results_count: i64,
     pub ticker: String,
-    pub query_count: i32,
+    pub query_count: i64,
 }
 
-#[derive(Serialize, Deserialize, Clone, Debug)]
+#[derive(serde::Deserialize, Clone, Debug, Default)]
 pub struct Bar {
-    pub c: f64,
-    pub h: f64,
-    pub l: f64,
-    pub n: i32,
-    pub o: f64,
-    pub t: i64,
-    pub v: f64,
-    pub vw: f64,
+    pub close: f64,
+    pub high: f64,
+    pub low: f64,
+    pub transactions: i64,
+    pub open: f64,
+    pub timestamp: i64,
+    pub volume: f64,
+    pub volume_weighted: f64,
+    pub otc: bool,
 }
 
 impl Aggregates {
@@ -95,23 +95,24 @@ impl Request for Aggregates {
 
     fn parameters(&self) -> &Parameters {
         &self.aggregates_parameters
-        /*match &self.aggregates_parameters {
-            Some(p) => p,
-            None => panic!("There is no parameters set"),
-        }*/
     }
 
     fn url(&mut self) -> &String {
         &self.aggregates_url
-        //self.set_url();
-        /*match &self.aggregates_url {
-            Some(u) => u.to_string(),
-            None => panic!("There is no url set"),
-        }*/
     }
 
     fn set_url(&mut self) -> Result<(), ErrorCode> {
-        if let Err(check) = self.check_parameters() { return Err(check)}
+        if let Err(check) = self.check_parameters() {
+            return Err(check);
+        }
+        if self.next_url != "" {
+            self.aggregates_url = format!(
+                "{}&apiKey={}",
+                self.next_url.to_string(),
+                self.parameters().clone().api_key
+            );
+            return Ok(());
+        }
         self.aggregates_url = String::from(format!(
             "{}/{}/{}/ticker/{}/range/{}/{}/{}/{}?{}{}{}apiKey={}",
             Self::BASE_URL,
@@ -143,16 +144,67 @@ impl Request for Aggregates {
     }
 
     fn request(&mut self) -> Result<(), ErrorCode> {
-        if let Err(check) = self.set_url() { return Err(check)}
-        let r = match self.get_raw_data() {
-            Ok(response) => response,
+        match self.polygon_request() {
+            Ok(response) => {
+                if let Some(adjusted) = response["adjusted"].as_bool() {
+                    self.adjusted = adjusted
+                }
+                if let Some(next_url) = response["next_url"].as_str() {
+                    self.next_url = next_url.to_string()
+                } else {
+                    self.next_url = "".to_string()
+                }
+                if let Some(query_count) = response["queryCount"].as_i64() {
+                    self.query_count = query_count
+                }
+                if let Some(request_id) = response["request_id"].as_str() {
+                    self.request_id = request_id.to_string()
+                }
+                if let Some(results_count) = response["resultsCount"].as_i64() {
+                    self.results_count = results_count
+                }
+                if let Some(status) = response["status"].as_str() {
+                    self.status = status.to_string()
+                }
+                if let Some(ticker) = response["ticker"].as_str() {
+                    self.ticker = ticker.to_string()
+                }
+                if let Some(results) = response["results"].as_array() {
+                    for result in results {
+                        let mut bar = Bar::default();
+                        if let Some(close) = result["c"].as_f64() {
+                            bar.close = close
+                        }
+                        if let Some(high) = result["h"].as_f64() {
+                            bar.high = high
+                        }
+                        if let Some(low) = result["l"].as_f64() {
+                            bar.low = low
+                        }
+                        if let Some(transactions) = result["n"].as_i64() {
+                            bar.transactions = transactions
+                        }
+                        if let Some(open) = result["o"].as_f64() {
+                            bar.open = open
+                        }
+                        if let Some(timestamp) = result["t"].as_i64() {
+                            bar.timestamp = timestamp
+                        }
+                        if let Some(volume) = result["v"].as_f64() {
+                            bar.volume = volume
+                        }
+                        if let Some(volume_weighted) = result["vw"].as_f64() {
+                            bar.volume_weighted = volume_weighted
+                        }
+                        if let Some(otc) = result["otc"].as_bool() {
+                            bar.otc = otc
+                        }
+                        self.results.push(bar);
+                    }
+                }
+            }
             Err(e) => return Err(e),
         };
-        let a: Aggregates = match serde_json::from_str(r.as_str()) {
-            Ok(it) => it,
-            Err(err) => return Err(ErrorCode::FormatError),
-        };
-        *self = a;
 
         Ok(())
     }

@@ -1,29 +1,28 @@
 use crate::{ErrorCode, Parameter, ParameterRequirment, Parameters, Request};
-use serde::{Deserialize, Serialize};
 
-#[derive(Serialize, Deserialize, Clone, Debug, Default)]
+#[derive(serde::Deserialize, Clone, Debug, Default)]
 pub struct Previous {
     previous_parameters: Parameters,
     previous_url: String,
     pub adjusted: bool,
-    pub query_count: i32,
+    pub query_count: i64,
     pub request_id: String,
     pub results: Vec<Bar>,
-    pub resultsCount: i32,
+    pub results_count: i64,
     pub status: String,
     pub ticker: String,
 }
 
-#[derive(Serialize, Deserialize, Clone, Debug)]
+#[derive(serde::Deserialize, Clone, Debug, Default)]
 pub struct Bar {
-    pub T: String,
-    pub c: f64,
-    pub h: f64,
-    pub l: f64,
-    pub o: f64,
-    pub t: i64,
-    pub v: f64,
-    pub vw: f64,
+    pub ticker: String,
+    pub close: f64,
+    pub high: f64,
+    pub low: f64,
+    pub open: f64,
+    pub timestamp: i64,
+    pub volume: f64,
+    pub volume_weighted: f64,
 }
 
 impl Previous {
@@ -53,23 +52,16 @@ impl Request for Previous {
 
     fn parameters(&self) -> &Parameters {
         &self.previous_parameters
-        /*match &self.previous_parameters {
-            Some(p) => p,
-            None => panic!("There is no parameters set"),
-        }*/
     }
 
     fn url(&mut self) -> &String {
         &self.previous_url
-        /*self.set_url();
-        match &self.previous_url {
-            Some(u) => u.to_string(),
-            None => panic!("There is no url set"),
-        }*/
     }
 
     fn set_url(&mut self) -> Result<(), ErrorCode> {
-        if let Err(check) = self.check_parameters() { return Err(check)}
+        if let Err(check) = self.check_parameters() {
+            return Err(check);
+        }
         self.previous_url = String::from(format!(
             "{}/{}/{}/ticker/{}/prev?{}apiKey={}",
             Self::BASE_URL,
@@ -87,16 +79,59 @@ impl Request for Previous {
     }
 
     fn request(&mut self) -> Result<(), ErrorCode> {
-        if let Err(check) = self.set_url() { return Err(check)}
-        let r = match self.get_raw_data() {
-            Ok(response) => response,
+        match self.polygon_request() {
+            Ok(response) => {
+                if let Some(adjusted) = response["adjusted"].as_bool() {
+                    self.adjusted = adjusted
+                }
+                if let Some(request_id) = response["request_id"].as_str() {
+                    self.request_id = request_id.to_string()
+                }
+                if let Some(status) = response["status"].as_str() {
+                    self.status = status.to_string()
+                }
+                if let Some(ticker) = response["ticker"].as_str() {
+                    self.ticker = ticker.to_string()
+                }
+                if let Some(query_count) = response["queryCount"].as_i64() {
+                    self.query_count = query_count
+                }
+                if let Some(results_count) = response["resultsCount"].as_i64() {
+                    self.results_count = results_count
+                }
+                if let Some(results) = response["results"].as_array() {
+                    for result in results {
+                        let mut bar = Bar::default();
+                        if let Some(ticker) = result["T"].as_str() {
+                            bar.ticker = ticker.to_string()
+                        }
+                        if let Some(close) = result["c"].as_f64() {
+                            bar.close = close
+                        }
+                        if let Some(high) = result["h"].as_f64() {
+                            bar.high = high
+                        }
+                        if let Some(low) = result["l"].as_f64() {
+                            bar.low = low
+                        }
+                        if let Some(open) = result["o"].as_f64() {
+                            bar.open = open
+                        }
+                        if let Some(timestamp) = result["t"].as_i64() {
+                            bar.timestamp = timestamp
+                        }
+                        if let Some(volume) = result["v"].as_f64() {
+                            bar.volume = volume
+                        }
+                        if let Some(volume_weighted) = result["vw"].as_f64() {
+                            bar.volume_weighted = volume_weighted
+                        }
+                        self.results.push(bar);
+                    }
+                }
+            }
             Err(e) => return Err(e),
         };
-        let a: Previous = match serde_json::from_str(r.as_str()) {
-            Ok(it) => it,
-            Err(err) => return Err(ErrorCode::FormatError),
-        };
-        *self = a;
 
         Ok(())
     }

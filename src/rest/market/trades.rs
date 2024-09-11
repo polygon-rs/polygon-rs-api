@@ -1,8 +1,6 @@
-use crate::{
-    ErrorCode, Order, Parameter, ParameterRequirment, Parameters, Request, Sortv3};
-use serde::{Deserialize, Serialize};
+use crate::{ErrorCode, Order, Parameter, ParameterRequirment, Parameters, Request, Sortv3};
 
-#[derive(Serialize, Deserialize, Clone, Debug, Default)]
+#[derive(serde::Deserialize, Clone, Debug, Default)]
 pub struct Trades {
     trades_parameters: Parameters,
     trades_url: String,
@@ -12,17 +10,20 @@ pub struct Trades {
     pub status: String,
 }
 
-#[derive(Serialize, Deserialize, Clone, Debug)]
+#[derive(serde::Deserialize, Clone, Debug, Default)]
 pub struct Trade {
-    pub conditions: Vec<i32>,
-    pub exchange: i32,
-    pub id: i32,
+    pub conditions: Vec<i64>,
+    pub correction: i64,
+    pub exchange: i64,
+    pub id: i64,
     pub participant_timestamp: i64,
     pub price: f64,
     pub sequence_number: i64,
     pub sip_timestamp: i64,
-    pub size: i32,
-    pub tape: i32,
+    pub size: i64,
+    pub tape: i64,
+    pub trf_timestamp: i64,
+    pub trf_id: i64,
 }
 
 impl Trades {
@@ -87,23 +88,16 @@ impl Request for Trades {
 
     fn parameters(&self) -> &Parameters {
         &self.trades_parameters
-        /*match &self.trades_parameters {
-            Some(p) => p,
-            None => panic!("There is no parameters set"),
-        }*/
     }
 
     fn url(&mut self) -> &String {
         &self.trades_url
-        /*self.set_url();
-        match &self.trades_url {
-            Some(u) => u.to_string(),
-            None => panic!("There is no url set"),
-        }*/
     }
 
     fn set_url(&mut self) -> Result<(), ErrorCode> {
-        if let Err(check) = self.check_parameters() { return Err(check)}
+        if let Err(check) = self.check_parameters() {
+            return Err(check);
+        }
         self.trades_url = String::from(format!(
             "{}/{}/{}/{}?{}{}{}{}{}{}apiKey={}",
             Self::BASE_URL,
@@ -144,19 +138,71 @@ impl Request for Trades {
         ));
         Ok(())
     }
-
     fn request(&mut self) -> Result<(), ErrorCode> {
-        if let Err(check) = self.set_url() { return Err(check)}
-        let r = match self.get_raw_data() {
-            Ok(response) => response,
+        match self.polygon_request() {
+            Ok(response) => {
+                if let Some(request_id) = response["request_id"].as_str() {
+                    self.request_id = request_id.to_string()
+                }
+                if let Some(status) = response["status"].as_str() {
+                    self.status = status.to_string()
+                }
+                if let Some(next_url) = response["next_url"].as_str() {
+                    self.next_url = next_url.to_string()
+                } else {
+                    self.next_url = "".to_string()
+                }
+                if let Some(results) = response["results"].as_array() {
+                    for result in results {
+                        let mut trade = Trade::default();
+                        if let Some(correction) = result["correction"].as_i64() {
+                            trade.correction = correction
+                        }
+                        if let Some(exchange) = result["exchange"].as_i64() {
+                            trade.exchange = exchange
+                        }
+                        if let Some(id) = result["id"].as_i64() {
+                            trade.id = id
+                        }
+                        if let Some(participant_timestamp) =
+                            result["participant_timestamp"].as_i64()
+                        {
+                            trade.participant_timestamp = participant_timestamp
+                        }
+                        if let Some(price) = result["price"].as_f64() {
+                            trade.price = price
+                        }
+                        if let Some(sequence_number) = result["sequence_number"].as_i64() {
+                            trade.sequence_number = sequence_number
+                        }
+                        if let Some(sip_timestamp) = result["sip_timestamp"].as_i64() {
+                            trade.sip_timestamp = sip_timestamp
+                        }
+                        if let Some(size) = result["size"].as_i64() {
+                            trade.size = size
+                        }
+                        if let Some(tape) = result["tape"].as_i64() {
+                            trade.tape = tape
+                        }
+                        if let Some(trf_timestamp) = result["trf_timestamp"].as_i64() {
+                            trade.trf_timestamp = trf_timestamp
+                        }
+                        if let Some(trf_id) = result["trf_id"].as_i64() {
+                            trade.trf_id = trf_id
+                        }
+                        if let Some(conditions) = result["conditions"].as_array() {
+                            for condition in conditions {
+                                if let Some(c) = condition.as_i64() {
+                                    trade.conditions.push(c)
+                                }
+                            }
+                        }
+                        self.results.push(trade);
+                    }
+                }
+            }
             Err(e) => return Err(e),
         };
-        let a: Trades = match serde_json::from_str(r.as_str()) {
-            Ok(it) => it,
-            Err(err) => return Err(ErrorCode::FormatError),
-        };
-        *self = a;
-
         Ok(())
     }
 }

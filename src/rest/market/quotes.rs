@@ -1,7 +1,6 @@
 use crate::{ErrorCode, Order, Parameter, ParameterRequirment, Parameters, Request, Sortv3};
-use serde::{Deserialize, Serialize};
 
-#[derive(Serialize, Deserialize, Clone, Debug, Default)]
+#[derive(serde::Deserialize, Clone, Debug, Default)]
 pub struct Quotes {
     quotes_parameters: Parameters,
     quotes_url: String,
@@ -11,19 +10,21 @@ pub struct Quotes {
     pub status: String,
 }
 
-#[derive(Serialize, Deserialize, Clone, Debug)]
+#[derive(serde::Deserialize, Clone, Debug, Default)]
 pub struct Quote {
-    pub ask_exchange: i32,
+    pub ask_exchange: i64,
     pub ask_price: f64,
-    pub ask_size: i32,
-    pub bid_exchange: i32,
+    pub ask_size: i64,
+    pub bid_exchange: i64,
     pub bid_price: f64,
-    pub bid_size: i32,
-    pub conditions: Vec<i32>,
+    pub bid_size: i64,
+    pub conditions: Vec<i64>,
+    pub indicators: Vec<i64>,
     pub participant_timestamp: i64,
     pub sequence_number: i64,
     pub sip_timestamp: i64,
-    pub tape: i32,
+    pub tape: i64,
+    pub trf_timestamp: i64,
 }
 
 impl Quotes {
@@ -88,19 +89,10 @@ impl Request for Quotes {
 
     fn parameters(&self) -> &Parameters {
         &self.quotes_parameters
-        /*match &self.quotes_parameters {
-            Some(p) => p,
-            None => panic!("There is no parameters set"),
-        }*/
     }
 
     fn url(&mut self) -> &String {
         &self.quotes_url
-        /*self.set_url();
-        match &self.quotes_url {
-            Some(u) => u.to_string(),
-            None => panic!("There is no url set"),
-        }*/
     }
 
     fn set_url(&mut self) -> Result<(), ErrorCode> {
@@ -149,19 +141,77 @@ impl Request for Quotes {
     }
 
     fn request(&mut self) -> Result<(), ErrorCode> {
-        if let Err(check) = self.set_url() {
-            return Err(check);
-        }
-        let r = match self.get_raw_data() {
-            Ok(response) => response,
+        match self.polygon_request() {
+            Ok(response) => {
+                if let Some(request_id) = response["request_id"].as_str() {
+                    self.request_id = request_id.to_string()
+                }
+                if let Some(status) = response["status"].as_str() {
+                    self.status = status.to_string()
+                }
+                if let Some(next_url) = response["next_url"].as_str() {
+                    self.next_url = next_url.to_string()
+                } else {
+                    self.next_url = "".to_string()
+                }
+                if let Some(results) = response["results"].as_array() {
+                    for result in results {
+                        let mut quote = Quote::default();
+                        if let Some(ask_exchange) = result["ask_exchange"].as_i64() {
+                            quote.ask_exchange = ask_exchange
+                        }
+                        if let Some(ask_price) = result["ask_price"].as_f64() {
+                            quote.ask_price = ask_price
+                        }
+                        if let Some(ask_size) = result["ask_size"].as_i64() {
+                            quote.ask_size = ask_size
+                        }
+                        if let Some(bid_exchange) = result["bid_exchange"].as_i64() {
+                            quote.bid_exchange = bid_exchange
+                        }
+                        if let Some(bid_price) = result["bid_price"].as_f64() {
+                            quote.bid_price = bid_price
+                        }
+                        if let Some(bid_size) = result["bid_size"].as_i64() {
+                            quote.bid_size = bid_size
+                        }
+                        if let Some(conditions) = result["conditions"].as_array() {
+                            for condition in conditions {
+                                if let Some(c) = condition.as_i64() {
+                                    quote.conditions.push(c)
+                                }
+                            }
+                        }
+                        if let Some(indicators) = result["indicators"].as_array() {
+                            for indicator in indicators {
+                                if let Some(i) = indicator.as_i64() {
+                                    quote.indicators.push(i)
+                                }
+                            }
+                        }
+                        if let Some(participant_timestamp) =
+                            result["participant_timestamp"].as_i64()
+                        {
+                            quote.participant_timestamp = participant_timestamp
+                        }
+                        if let Some(sequence_number) = result["sequence_number"].as_i64() {
+                            quote.sequence_number = sequence_number
+                        }
+                        if let Some(sip_timestamp) = result["sip_timestamp"].as_i64() {
+                            quote.sip_timestamp = sip_timestamp
+                        }
+                        if let Some(tape) = result["tape"].as_i64() {
+                            quote.tape = tape
+                        }
+                        if let Some(trf_timestamp) = result["trf_timestamp"].as_i64() {
+                            quote.trf_timestamp = trf_timestamp
+                        }
+                        self.results.push(quote);
+                    }
+                }
+            }
             Err(e) => return Err(e),
         };
-        let a: Quotes = match serde_json::from_str(r.as_str()) {
-            Ok(it) => it,
-            Err(err) => return Err(ErrorCode::FormatError),
-        };
-        *self = a;
-
         Ok(())
     }
 }

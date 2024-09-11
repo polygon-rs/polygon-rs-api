@@ -1,28 +1,29 @@
 use crate::{ErrorCode, Parameter, ParameterRequirment, Parameters, Request};
-use serde::{Deserialize, Serialize};
 
-#[derive(Serialize, Deserialize, Clone, Debug, Default)]
+#[derive(serde::Deserialize, Clone, Debug, Default)]
 pub struct LastQuote {
     last_quote_parameters: Parameters,
     last_quote_url: String,
     pub request_id: String,
-    pub results: Trade,
+    pub results: Quote,
     pub status: String,
 }
 
-#[derive(Serialize, Deserialize, Clone, Debug, Default)]
-pub struct Trade {
-    pub P: f64,
-    pub S: i32,
-    pub T: String,
-    pub X: i32,
-    pub p: f64,
-    pub q: i32,
-    pub s: i32,
-    pub t: i64,
-    pub x: i32,
-    pub y: i64,
-    pub z: i32
+#[derive(serde::Deserialize, Clone, Debug, Default)]
+pub struct Quote {
+    pub ask_price: f64,
+    pub ask_size: i64,
+    pub exchange: String,
+    pub exchange_id: i64,
+    pub conditions: Vec<i64>,
+    pub trf_timestamp: i64,
+    pub indicators: Vec<i64>,
+    pub bid_price: f64,
+    pub sequence_number: i64,
+    pub bid_size: i64,
+    pub sip_timestamp: i64,
+    pub participant_timestamp: i64,
+    pub tape: i64,
 }
 
 impl LastQuote {
@@ -38,31 +39,23 @@ impl LastQuote {
 impl Request for LastQuote {
     const VERSION: &'static str = "v2";
     const CALL: &'static str = "last/nbbo";
-    const PARAMETERS: &'static [&'static ParameterRequirment] = &[
-        &ParameterRequirment {
-            required: true,
-            parameter: Parameter::Ticker,
-        },
-    ];
+    const PARAMETERS: &'static [&'static ParameterRequirment] = &[&ParameterRequirment {
+        required: true,
+        parameter: Parameter::Ticker,
+    }];
 
     fn parameters(&self) -> &Parameters {
         &self.last_quote_parameters
-        /*match &self.last_quote_parameters {
-            Some(p) => p,
-            None => panic!("There is no parameters set"),
-        }*/
     }
 
     fn url(&mut self) -> &String {
         &self.last_quote_url
-        /*match &self.last_quote_url {
-            Some(u) => u.to_string(),
-            None => panic!("There is no url set"),
-        }*/
     }
 
     fn set_url(&mut self) -> Result<(), ErrorCode> {
-        if let Err(check) = self.check_parameters() { return Err(check)}
+        if let Err(check) = self.check_parameters() {
+            return Err(check);
+        }
         self.last_quote_url = String::from(format!(
             "{}/{}/{}/{}apiKey={}",
             Self::BASE_URL,
@@ -75,16 +68,66 @@ impl Request for LastQuote {
     }
 
     fn request(&mut self) -> Result<(), ErrorCode> {
-        if let Err(check) = self.set_url() { return Err(check)}
-        let r = match self.get_raw_data() {
-            Ok(response) => response,
+        match self.polygon_request() {
+            Ok(response) => {
+                if let Some(request_id) = response["request_id"].as_str() {
+                    self.request_id = request_id.to_string()
+                }
+                if let Some(status) = response["status"].as_str() {
+                    self.status = status.to_string()
+                }
+                if let Some(result) = response["results"].as_object() {
+                    if let Some(ask_price) = result["P"].as_f64() {
+                        self.results.ask_price = ask_price
+                    }
+                    if let Some(ask_size) = result["S"].as_i64() {
+                        self.results.ask_size = ask_size
+                    }
+                    if let Some(exchange) = result["T"].as_str() {
+                        self.results.exchange = exchange.to_string()
+                    }
+                    if let Some(exchange_id) = result["x"].as_i64() {
+                        self.results.exchange_id = exchange_id
+                    }
+                    if let Some(conditions) = result["c"].as_array() {
+                        for condition in conditions {
+                            if let Some(c) = condition.as_i64() {
+                                self.results.conditions.push(c)
+                            }
+                        }
+                    }
+                    if let Some(trf_timestamp) = result["f"].as_i64() {
+                        self.results.trf_timestamp = trf_timestamp
+                    }
+                    if let Some(indicators) = result["i"].as_array() {
+                        for indicator in indicators {
+                            if let Some(i) = indicator.as_i64() {
+                                self.results.indicators.push(i)
+                            }
+                        }
+                    }
+                    if let Some(bid_price) = result["p"].as_f64() {
+                        self.results.bid_price = bid_price
+                    }
+                    if let Some(sequence_number) = result["q"].as_i64() {
+                        self.results.sequence_number = sequence_number
+                    }
+                    if let Some(bid_size) = result["s"].as_i64() {
+                        self.results.bid_size = bid_size
+                    }
+                    if let Some(sip_timestamp) = result["t"].as_i64() {
+                        self.results.sip_timestamp = sip_timestamp
+                    }
+                    if let Some(participant_timestamp) = result["y"].as_i64() {
+                        self.results.participant_timestamp = participant_timestamp
+                    }
+                    if let Some(tape) = result["z"].as_i64() {
+                        self.results.tape = tape
+                    }
+                }
+            }
             Err(e) => return Err(e),
         };
-        let a: LastQuote = match serde_json::from_str(r.as_str()) {
-            Ok(it) => it,
-            Err(err) => return Err(ErrorCode::FormatError),
-        };
-        *self = a;
 
         Ok(())
     }

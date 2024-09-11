@@ -6,7 +6,8 @@ pub mod reference;
 use crate::ErrorCode;
 use crate::{Parameter, ParameterRequirment, Parameters};
 use regex::Regex;
-//use serde::{Deserialize, Serialize};
+//use reqwest::redirect;
+use serde_json::Value;
 
 #[derive(serde::Deserialize)]
 pub enum Rest {
@@ -25,35 +26,42 @@ pub trait Request {
 
     fn set_url(&mut self) -> Result<(), ErrorCode>;
 
-    fn set_regex(&self, pattern: &str) -> Regex {
+    fn set_regex(&self, pattern: &str) -> Result<Regex, ErrorCode> {
         match Regex::new(pattern) {
-            Ok(r) => r,
-            Err(e) => panic!("The following error occured: {}", ErrorCode::RegexError),
+            Ok(r) => Ok(r),
+            Err(e) => {
+                println!("The following error occured: {}", e);
+                return Err(ErrorCode::RegexError);
+            }
         }
     }
 
     fn verify_api_key(&self) -> Result<(), ErrorCode> {
-        if !self
-            .set_regex(r"\S{32}")
+        let regex_pattern = self.set_regex(r"\S{32}");
+        if let Err(e) = regex_pattern {
+            return Err(e);
+        }
+        if regex_pattern
+            .unwrap()
             .is_match(&self.parameters().api_key.as_str())
         {
             return Err(ErrorCode::APIError);
-        };
+        }
         Ok(())
     }
 
     //Need to adjust Regex check for nano timestamp ^\d{19}$
     fn verify_date(&self, required: bool) -> Result<(), ErrorCode> {
+        let regex_pattern =
+            self.set_regex(r"(19|20)([0-9]{2})-(1[0-2]|0[1-9])-(3[01]|[12][0-9]|0[1-9])");
+        if let Err(e) = regex_pattern {
+            return Err(e);
+        }
         match &self.parameters().date {
-            Some(d) => {
-                match self
-                    .set_regex(r"(19|20)([0-9]{2})-(1[0-2]|0[1-9])-(3[01]|[12][0-9]|0[1-9])")
-                    .is_match(d.as_str())
-                {
-                    true => Ok(()),
-                    false => Err(ErrorCode::DateError),
-                }
-            }
+            Some(d) => match regex_pattern.unwrap().is_match(d.as_str()) {
+                true => Ok(()),
+                false => Err(ErrorCode::DateError),
+            },
             None => {
                 if required {
                     return Err(ErrorCode::DateNotSet);
@@ -65,16 +73,16 @@ pub trait Request {
 
     //Need to adjust Regex check for nano timestamp ^\d{19}$ and verify that the date is less or equal to the to date
     fn verify_from_date(&self, required: bool) -> Result<(), ErrorCode> {
+        let regex_pattern =
+            self.set_regex(r"(19|20)([0-9]{2})-(1[0-2]|0[1-9])-(3[01]|[12][0-9]|0[1-9])");
+        if let Err(e) = regex_pattern {
+            return Err(e);
+        }
         match &self.parameters().from {
-            Some(d) => {
-                match self
-                    .set_regex(r"(19|20)([0-9]{2})-(1[0-2]|0[1-9])-(3[01]|[12][0-9]|0[1-9])")
-                    .is_match(d.as_str())
-                {
-                    true => Ok(()),
-                    false => Err(ErrorCode::DateError),
-                }
-            }
+            Some(d) => match regex_pattern.unwrap().is_match(d.as_str()) {
+                true => Ok(()),
+                false => Err(ErrorCode::DateError),
+            },
             None => {
                 if required {
                     return Err(ErrorCode::DateNotSet);
@@ -86,16 +94,16 @@ pub trait Request {
 
     //Need to adjust Regex check for nano timestamp ^\d{19}$ and verify that the date is greater or equal to the from date
     fn verify_to_date(&self, required: bool) -> Result<(), ErrorCode> {
+        let regex_pattern =
+            self.set_regex(r"(19|20)([0-9]{2})-(1[0-2]|0[1-9])-(3[01]|[12][0-9]|0[1-9])");
+        if let Err(e) = regex_pattern {
+            return Err(e);
+        }
         match &self.parameters().to {
-            Some(d) => {
-                match self
-                    .set_regex(r"(19|20)([0-9]{2})-(1[0-2]|0[1-9])-(3[01]|[12][0-9]|0[1-9])")
-                    .is_match(d.as_str())
-                {
-                    true => Ok(()),
-                    false => Err(ErrorCode::DateError),
-                }
-            }
+            Some(d) => match regex_pattern.unwrap().is_match(d.as_str()) {
+                true => Ok(()),
+                false => Err(ErrorCode::DateError),
+            },
             None => {
                 if required {
                     return Err(ErrorCode::DateNotSet);
@@ -106,27 +114,48 @@ pub trait Request {
     }
 
     fn verify_options_ticker(&self, required: bool) -> Result<(), ErrorCode> {
+        let regex_pattern = self.set_regex(
+            r"(O:)([A-Z]){1,4}([0-9]{2})(1[0-2]|0[1-9])(3[01]|[12][0-9]|0[1-9])([CP]){1}([0-9]){8}",
+        );
+        if let Err(e) = regex_pattern {
+            return Err(e);
+        }
         match &self.parameters().ticker {
-            Some(t) => {
-                match self.set_regex(r"(O:)([A-Z]){1,4}([0-9]{2})(1[0-2]|0[1-9])(3[01]|[12][0-9]|0[1-9])([CP]){1}([0-9]){8}").is_match(t.as_str()) {
-                    true => Ok(()),
-                    false => Err(ErrorCode::TickerError),
-                }
+            Some(t) => match regex_pattern.unwrap().is_match(t.as_str()) {
+                true => Ok(()),
+                false => Err(ErrorCode::OptionsTickerError),
             },
-            None => {if required { return Err(ErrorCode::TickerNotSet)}; Ok(())},
+            None => {
+                if required {
+                    return Err(ErrorCode::TickerNotSet);
+                };
+                Ok(())
+            }
         }
     }
 
     fn verify_ticker(&self, required: bool) -> Result<(), ErrorCode> {
+        let regex_pattern = self.set_regex(r"^O:");
+        if let Err(e) = regex_pattern {
+            return Err(e);
+        }
         match &self.parameters().ticker {
-            Some(t) => match self.set_regex(r"^O:").is_match(t.as_str()) {
-                true => { match self.set_regex(r"(O:)([A-Z]){1,4}([0-9]{2})(1[0-2]|0[1-9])(3[01]|[12][0-9]|0[1-9])([CP]){1}([0-9]){8}").is_match(t.as_str()) {
-                    true => Ok(()),
-                    false => Err(ErrorCode::TickerError),
-                }},
+            Some(t) => match regex_pattern.unwrap().is_match(t.as_str()) {
+                true => match self.verify_options_ticker(required) {
+                    Ok(_) => Ok(()),
+                    Err(e) => {
+                        println!("{}", e);
+                        Err(ErrorCode::TickerError)
+                    }
+                },
                 false => Ok(()),
             },
-            None => {if required { return Err(ErrorCode::TickerNotSet)}; Ok(())},
+            None => {
+                if required {
+                    return Err(ErrorCode::TickerNotSet);
+                };
+                Ok(())
+            }
         }
     }
 
@@ -250,6 +279,18 @@ pub trait Request {
         }
     }
 
+    fn verify_strike_price(&self, required: bool) -> Result<(), ErrorCode> {
+        match &self.parameters().strike_price {
+            Some(_) => Ok(()),
+            None => {
+                if required {
+                    return Err(ErrorCode::StrikePriceNotSet);
+                };
+                Ok(())
+            }
+        }
+    }
+
     fn check_parameters(&self) -> Result<(), ErrorCode> {
         if let Err(check) = self.verify_api_key() {
             return Err(check);
@@ -331,6 +372,12 @@ pub trait Request {
                         return Err(check);
                     }
                 }
+                Parameter::StrikePrice => {
+                    if let Err(check) = self.verify_strike_price(parameter.required) {
+                        return Err(check);
+                    }
+                }
+                
             }
         }
         Ok(())
@@ -341,10 +388,34 @@ pub trait Request {
         match reqwest::get(self.url()).await {
             Ok(response) => match response.text().await {
                 Ok(text) => Ok(text),
-                Err(e) => Err(ErrorCode::RequestError),
+                Err(e) => {
+                    println!("{}", e);
+                    return Err(ErrorCode::RequestError);
+                }
             },
-            Err(e) => return Err(ErrorCode::RequestError),
+            Err(e) => {
+                println!("{}", e);
+                return Err(ErrorCode::RequestError);
+            }
         }
+    }
+
+    fn polygon_request(&mut self) -> Result<Value, ErrorCode> {
+        if let Err(check) = self.set_url() {
+            return Err(check);
+        }
+        let r = match self.get_raw_data() {
+            Ok(response) => response,
+            Err(e) => return Err(e),
+        };
+        let v: Value = match serde_json::from_str(r.as_str()) {
+            Ok(it) => it,
+            Err(err) => {
+                println!("{}", err);
+                return Err(ErrorCode::JSONParseError);
+            }
+        };
+        Ok(v)
     }
 
     fn request(&mut self) -> Result<(), ErrorCode>;

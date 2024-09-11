@@ -22,6 +22,8 @@ pub enum ErrorCode {
     OrderNotSet,
     TimestampNotSet,
     ContractTypeNotSet,
+    JSONParseError,
+    StrikePriceNotSet
 }
 
 impl fmt::Display for ErrorCode {
@@ -47,6 +49,8 @@ impl fmt::Display for ErrorCode {
             ErrorCode::OrderNotSet => f.write_str("There is no order set"),
             ErrorCode::TimestampNotSet => f.write_str("There is no timestamp set"),
             ErrorCode::ContractTypeNotSet => f.write_str("There is no contract type set"),
+            ErrorCode::JSONParseError => f.write_str("There is an issue with parsing the JSON"),
+            ErrorCode::StrikePriceNotSet => f.write_str("There is no strike price set")
         }
     }
 }

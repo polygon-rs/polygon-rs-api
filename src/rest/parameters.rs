@@ -18,6 +18,7 @@ pub enum Parameter {
     ContractType,
     Timestamp,
     Sortv3,
+    StrikePrice,
 }
 
 #[derive(Clone, Debug)]
@@ -44,12 +45,35 @@ pub struct Parameters {
     pub verbose: Option<bool>,
     pub contract_type: Option<ContractType>,
     pub include_otc: Option<bool>,
+    pub strike_price: Option<f64>,
+    pub strike_price_from: Option<f64>,
+    pub strike_price_to: Option<f64>,
 }
 
-#[derive(Serialize, Deserialize, Clone, Debug)]
+#[derive(Serialize, Deserialize, Clone, Debug, Default, Display)]
 pub enum ContractType {
     Call,
     Put,
+    Other,
+    #[default]
+    Unknown,
+}
+
+#[derive(Serialize, Deserialize, Clone, Debug, Default)]
+pub enum ContractStyle {
+    American,
+    European,
+    Bermudan,
+    #[default]
+    Unknown,
+}
+
+#[derive(Serialize, Deserialize, Clone, Debug, Default)]
+pub enum Timeframe {
+    Delayed,
+    RealTime,
+    #[default]
+    Unknown,
 }
 
 #[derive(Serialize, Deserialize, Clone, Debug, Display)]
@@ -65,6 +89,9 @@ pub enum Order {
 #[derive(Serialize, Deserialize, Clone, Debug, Display)]
 pub enum Sortv3 {
     Timestamp,
+    Ticker,
+    ExpirationDate,
+    StrikePrice,
 }
 
 #[derive(Serialize, Deserialize, Clone, Debug, Display)]
