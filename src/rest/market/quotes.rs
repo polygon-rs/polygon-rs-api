@@ -1,6 +1,6 @@
 use crate::{ErrorCode, Order, Parameter, ParameterRequirment, Parameters, Request, Sortv3};
 
-#[derive(serde::Deserialize, Clone, Debug, Default)]
+#[derive(serde::Serialize, serde::Deserialize, Clone, Debug, Default)]
 pub struct Quotes {
     quotes_parameters: Parameters,
     quotes_url: String,
@@ -10,7 +10,7 @@ pub struct Quotes {
     pub status: String,
 }
 
-#[derive(serde::Deserialize, Clone, Debug, Default)]
+#[derive(serde::Serialize, serde::Deserialize, Clone, Debug, Default)]
 pub struct Quote {
     pub ask_exchange: i64,
     pub ask_price: f64,

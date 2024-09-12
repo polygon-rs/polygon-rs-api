@@ -41,7 +41,7 @@ pub trait Request {
         if let Err(e) = regex_pattern {
             return Err(e);
         }
-        if regex_pattern
+        if !regex_pattern
             .unwrap()
             .is_match(&self.parameters().api_key.as_str())
         {
