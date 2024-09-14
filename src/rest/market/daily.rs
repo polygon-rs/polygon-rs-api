@@ -2,7 +2,9 @@ use crate::{ErrorCode, Parameter, ParameterRequirment, Parameters, Request};
 
 #[derive(serde::Serialize, serde::Deserialize,Clone, Debug, Default)]
 pub struct Daily {
+    #[serde(skip_serializing)]
     daily_parameters: Parameters,
+    #[serde(skip_serializing)]
     daily_url: String,
     pub after_hours: f64,
     pub close: f64,
