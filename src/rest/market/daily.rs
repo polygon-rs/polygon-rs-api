@@ -1,6 +1,6 @@
 use crate::{ErrorCode, Parameter, ParameterRequirment, Parameters, Request};
 
-#[derive(serde::Deserialize,Clone, Debug, Default)]
+#[derive(serde::Serialize, serde::Deserialize,Clone, Debug, Default)]
 pub struct Daily {
     daily_parameters: Parameters,
     daily_url: String,
