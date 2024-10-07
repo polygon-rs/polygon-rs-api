@@ -6,7 +6,6 @@ pub mod reference;
 use crate::ErrorCode;
 use crate::{Parameter, ParameterRequirment, Parameters};
 use regex::Regex;
-//use reqwest::redirect;
 use serde_json::Value;
 
 #[derive(serde::Deserialize)]
