@@ -1,6 +1,8 @@
 pub mod conditions;
-pub mod dividends;
+pub mod contract;
+pub mod contracts;
 pub mod details;
+pub mod dividends;
 pub mod events;
 pub mod exchanges;
 pub mod financials;
@@ -11,5 +13,3 @@ pub mod splits;
 pub mod status;
 pub mod tickers;
 pub mod types;
-pub mod contract;
-pub mod contracts;

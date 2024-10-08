@@ -1,5 +1,6 @@
 use crate::{
-    rest::parameters::Sortv3, ContractStyle, ContractType, ErrorCode, Parameter, ParameterRequirment, Parameters, Request, Timeframe, Order
+    rest::parameters::Sortv3, ContractStyle, ContractType, ErrorCode, Order, Parameter,
+    ParameterRequirment, Parameters, Request, Timeframe,
 };
 
 #[derive(serde::Serialize, serde::Deserialize, Clone, Debug, Default)]
@@ -105,7 +106,6 @@ impl Chain {
         order: Option<Order>,
         limit: Option<u16>,
         sort: Option<Sortv3>,
-        
     ) {
         self.chain_parameters = Parameters {
             api_key: api_key,
