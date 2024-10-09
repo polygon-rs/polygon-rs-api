@@ -105,6 +105,9 @@ impl Request for Aggregates {
         if let Err(check) = self.check_parameters() {
             return Err(check);
         }
+        if let Err(check) = self.verify_to_from() {
+            return Err(check);
+        }
         if self.next_url != "" {
             self.aggregates_url = format!(
                 "{}&apiKey={}",
