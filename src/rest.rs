@@ -4,11 +4,13 @@ pub mod parameters;
 pub mod reference;
 
 use crate::ErrorCode;
+use crate::RegexPatterns;
 use crate::{Parameter, ParameterRequirment, Parameters};
-use regex::Regex;
 use serde_json::Value;
+use std::string::ToString;
+use chrono::DateTime;
 
-#[derive(serde::Deserialize)]
+//#[derive(serde::Deserialize)]
 pub enum Rest {
     Market(market::Market),
 }
@@ -25,102 +27,88 @@ pub trait Request {
 
     fn set_url(&mut self) -> Result<(), ErrorCode>;
 
-    fn set_regex(&self, pattern: &str) -> Result<Regex, ErrorCode> {
-        match Regex::new(pattern) {
-            Ok(r) => Ok(r),
-            Err(e) => {
-                println!("The following error occured: {}", e);
-                return Err(ErrorCode::RegexError);
-            }
+    fn date_error(&self, date_type: &Parameter) -> ErrorCode {
+        match date_type {
+            Parameter::From => ErrorCode::DateFromError,
+            Parameter::To => ErrorCode::DateToError,
+            Parameter::Date => ErrorCode::DateError,
+            _ => ErrorCode::WrongParameterType,
         }
     }
 
-    fn verify_api_key(&self) -> Result<(), ErrorCode> {
-        let regex_pattern = self.set_regex(r"\S{32}");
-        if let Err(e) = regex_pattern {
-            return Err(e);
+    fn verify_to_from(&mut self) -> Result<(), ErrorCode> {
+        if self.parameters().to.is_none() || self.parameters().from.is_none() {
+            return Ok(())
         }
-        if !regex_pattern
-            .unwrap()
-            .is_match(&self.parameters().api_key.as_str())
-        {
+        let to_string = match &self.parameters().to {
+            Some(t) => t,
+            None => return Err(ErrorCode::ToNotSet),
+        };
+        let from_string = match &self.parameters().from {
+            Some(f) => f,
+            None => return Err(ErrorCode::FromNotSet),
+        };
+        let from = match DateTime::parse_from_str(from_string.as_str(), "%Y-%m-%dT%H:%M:%S"){
+            Ok(d) => d,
+            Err(_) => match from_string.parse::<i64>() {
+                Ok(n) => DateTime::from_timestamp_nanos(n).fixed_offset(),
+                Err(_) => return Err(ErrorCode::DateFromError),
+            },
+        };
+        let to = match DateTime::parse_from_str(to_string.as_str(), "%Y-%m-%dT%H:%M:%S"){
+            Ok(d) => d,
+            Err(_) => match to_string.parse::<i64>() {
+                Ok(n) => DateTime::from_timestamp_nanos(n).fixed_offset(),
+                Err(_) => return Err(ErrorCode::DateToError),
+            },
+        };
+        if to < from {
+            return Err(ErrorCode::DateToError);
+        }
+
+        Ok(())
+    }
+
+    fn verify_api_key(&self) -> Result<(), ErrorCode> {
+        if !RegexPatterns::api_key().is_match(&self.parameters().api_key.as_str()) {
             return Err(ErrorCode::APIError);
         }
         Ok(())
     }
 
-    //Need to adjust Regex check for nano timestamp ^\d{19}$
-    fn verify_date(&self, required: bool) -> Result<(), ErrorCode> {
-        let regex_pattern =
-            self.set_regex(r"(19|20)([0-9]{2})-(1[0-2]|0[1-9])-(3[01]|[12][0-9]|0[1-9])");
-        if let Err(e) = regex_pattern {
-            return Err(e);
-        }
-        match &self.parameters().date {
-            Some(d) => match regex_pattern.unwrap().is_match(d.as_str()) {
-                true => Ok(()),
-                false => Err(ErrorCode::DateError),
-            },
-            None => {
-                if required {
-                    return Err(ErrorCode::DateNotSet);
-                };
-                Ok(())
-            }
+    fn verify_timestamp<T: ToString>(
+        &self,
+        date_value: &T,
+        date_type: &Parameter,
+    ) -> Result<(), ErrorCode> {
+        let date = date_value.to_string();
+        match RegexPatterns::epoch_nano_date().is_match(date.as_str()) {
+            true => Ok(()),
+            false => Err(self.date_error(date_type)),
         }
     }
 
-    //Need to adjust Regex check for nano timestamp ^\d{19}$ and verify that the date is less or equal to the to date
-    fn verify_from_date(&self, required: bool) -> Result<(), ErrorCode> {
-        let regex_pattern =
-            self.set_regex(r"(19|20)([0-9]{2})-(1[0-2]|0[1-9])-(3[01]|[12][0-9]|0[1-9])");
-        if let Err(e) = regex_pattern {
-            return Err(e);
-        }
-        match &self.parameters().from {
-            Some(d) => match regex_pattern.unwrap().is_match(d.as_str()) {
-                true => Ok(()),
-                false => Err(ErrorCode::DateError),
-            },
-            None => {
-                if required {
-                    return Err(ErrorCode::DateNotSet);
-                };
-                Ok(())
+    fn verify_date<T: ToString>(
+        &self,
+        date_value: &T,
+        date_type: &Parameter,
+    ) -> Result<(), ErrorCode> {
+        let date = date_value.to_string();
+        if date.parse::<i64>().is_ok() {
+            match self.verify_timestamp(date_value, date_type) {
+                Ok(_) => return Ok(()),
+                Err(e) => return Err(e),
             }
-        }
-    }
-
-    //Need to adjust Regex check for nano timestamp ^\d{19}$ and verify that the date is greater or equal to the from date
-    fn verify_to_date(&self, required: bool) -> Result<(), ErrorCode> {
-        let regex_pattern =
-            self.set_regex(r"(19|20)([0-9]{2})-(1[0-2]|0[1-9])-(3[01]|[12][0-9]|0[1-9])");
-        if let Err(e) = regex_pattern {
-            return Err(e);
-        }
-        match &self.parameters().to {
-            Some(d) => match regex_pattern.unwrap().is_match(d.as_str()) {
-                true => Ok(()),
-                false => Err(ErrorCode::DateError),
-            },
-            None => {
-                if required {
-                    return Err(ErrorCode::DateNotSet);
-                };
-                Ok(())
-            }
+        };
+        match RegexPatterns::string_date().is_match(date.as_str()) {
+            true => Ok(()),
+            false => Err(self.date_error(date_type)),
         }
     }
 
     fn verify_options_ticker(&self, required: bool) -> Result<(), ErrorCode> {
-        let regex_pattern = self.set_regex(
-            r"(O:)([A-Z]){1,4}([0-9]{2})(1[0-2]|0[1-9])(3[01]|[12][0-9]|0[1-9])([CP]){1}([0-9]){8}",
-        );
-        if let Err(e) = regex_pattern {
-            return Err(e);
-        }
         match &self.parameters().ticker {
-            Some(t) => match regex_pattern.unwrap().is_match(t.as_str()) {
+            Some(t) => match RegexPatterns::options_ticker().is_match(t.as_str()) {
                 true => Ok(()),
                 false => Err(ErrorCode::OptionsTickerError),
             },
@@ -134,12 +122,8 @@ pub trait Request {
     }
 
     fn verify_ticker(&self, required: bool) -> Result<(), ErrorCode> {
-        let regex_pattern = self.set_regex(r"^O:");
-        if let Err(e) = regex_pattern {
-            return Err(e);
-        }
         match &self.parameters().ticker {
-            Some(t) => match regex_pattern.unwrap().is_match(t.as_str()) {
+            Some(t) => match RegexPatterns::ticker().is_match(t.as_str()) {
                 true => match self.verify_options_ticker(required) {
                     Ok(_) => Ok(()),
                     Err(e) => {
@@ -158,132 +142,37 @@ pub trait Request {
         }
     }
 
-    fn verify_adjusted(&self, required: bool) -> Result<(), ErrorCode> {
-        match &self.parameters().adjusted {
-            Some(_) => Ok(()),
+    fn verify<T: ToString>(
+        &self,
+        required: bool,
+        parameter_value: &Option<T>,
+        parameter_type: &Parameter,
+    ) -> Result<(), ErrorCode> {
+        match parameter_value {
+            Some(p) => match parameter_type {
+                Parameter::Ticker => self.verify_ticker(required),
+                Parameter::Date => self.verify_date(p, parameter_type),
+                Parameter::To => self.verify_date(p, parameter_type),
+                Parameter::From => self.verify_date(p, parameter_type),
+                Parameter::Timestamp => self.verify_timestamp(p, parameter_type),
+                _ => Ok(()),
+            },
             None => {
                 if required {
-                    return Err(ErrorCode::AdjusteedNotSet);
-                };
-                Ok(())
-            }
-        }
-    }
-
-    fn verify_sort(&self, required: bool) -> Result<(), ErrorCode> {
-        match &self.parameters().sort {
-            Some(_) => Ok(()),
-            None => {
-                if required {
-                    return Err(ErrorCode::SortNotSet);
-                };
-                Ok(())
-            }
-        }
-    }
-
-    fn verify_limit(&self, required: bool) -> Result<(), ErrorCode> {
-        match &self.parameters().limit {
-            Some(_) => Ok(()),
-            None => {
-                if required {
-                    return Err(ErrorCode::LimitNotSet);
-                };
-                Ok(())
-            }
-        }
-    }
-
-    fn verify_timespan(&self, required: bool) -> Result<(), ErrorCode> {
-        match &self.parameters().timespan {
-            Some(_) => Ok(()),
-            None => {
-                if required {
-                    return Err(ErrorCode::TimespanNotSet);
-                };
-                Ok(())
-            }
-        }
-    }
-
-    fn verify_multiplier(&self, required: bool) -> Result<(), ErrorCode> {
-        match &self.parameters().multiplier {
-            Some(_) => Ok(()),
-            None => {
-                if required {
-                    return Err(ErrorCode::MultiplierNotSet);
-                };
-                Ok(())
-            }
-        }
-    }
-
-    fn verify_order(&self, required: bool) -> Result<(), ErrorCode> {
-        match &self.parameters().order {
-            Some(_) => Ok(()),
-            None => {
-                if required {
-                    return Err(ErrorCode::OrderNotSet);
-                };
-                Ok(())
-            }
-        }
-    }
-
-    fn verify_sortv3(&self, required: bool) -> Result<(), ErrorCode> {
-        match &self.parameters().sortv3 {
-            Some(_) => Ok(()),
-            None => {
-                if required {
-                    return Err(ErrorCode::SortNotSet);
-                };
-                Ok(())
-            }
-        }
-    }
-
-    fn verify_timestamp(&self, required: bool) -> Result<(), ErrorCode> {
-        match &self.parameters().timestamp {
-            Some(_) => Ok(()),
-            None => {
-                if required {
-                    return Err(ErrorCode::TimestampNotSet);
-                };
-                Ok(())
-            }
-        }
-    }
-
-    fn verify_contract_type(&self, required: bool) -> Result<(), ErrorCode> {
-        match &self.parameters().contract_type {
-            Some(_) => Ok(()),
-            None => {
-                if required {
-                    return Err(ErrorCode::MultiplierNotSet);
-                };
-                Ok(())
-            }
-        }
-    }
-
-    fn verify_include_otc(&self, required: bool) -> Result<(), ErrorCode> {
-        match &self.parameters().include_otc {
-            Some(_) => Ok(()),
-            None => {
-                if required {
-                    return Err(ErrorCode::IncludeOTCNotSet);
-                };
-                Ok(())
-            }
-        }
-    }
-
-    fn verify_strike_price(&self, required: bool) -> Result<(), ErrorCode> {
-        match &self.parameters().strike_price {
-            Some(_) => Ok(()),
-            None => {
-                if required {
-                    return Err(ErrorCode::StrikePriceNotSet);
+                    match parameter_type {
+                        Parameter::Adjusted => return Err(ErrorCode::AdjusteedNotSet),
+                        Parameter::Sort => return Err(ErrorCode::SortNotSet),
+                        Parameter::Limit => return Err(ErrorCode::LimitNotSet),
+                        Parameter::Timespan => return Err(ErrorCode::TimespanNotSet),
+                        Parameter::Multiplier => return Err(ErrorCode::MultiplierNotSet),
+                        Parameter::IncludeOTC => return Err(ErrorCode::IncludeOTCNotSet),
+                        Parameter::Order => return Err(ErrorCode::OrderNotSet),
+                        Parameter::Sortv3 => return Err(ErrorCode::SortNotSet),
+                        Parameter::Timestamp => return Err(ErrorCode::TimestampNotSet),
+                        Parameter::ContractType => return Err(ErrorCode::ContractTypeNotSet),
+                        Parameter::StrikePrice => return Err(ErrorCode::StrikePriceNotSet),
+                        _ => return Err(ErrorCode::WrongParameterType),
+                    }
                 };
                 Ok(())
             }
@@ -297,52 +186,92 @@ pub trait Request {
         for parameter in Self::PARAMETERS {
             match parameter.parameter {
                 Parameter::Ticker => {
-                    if let Err(check) = self.verify_ticker(parameter.required) {
+                    if let Err(check) = self.verify(
+                        parameter.required,
+                        &self.parameters().ticker,
+                        &parameter.parameter,
+                    ) {
                         return Err(check);
                     }
                 }
                 Parameter::Date => {
-                    if let Err(check) = self.verify_date(parameter.required) {
+                    if let Err(check) = self.verify(
+                        parameter.required,
+                        &self.parameters().date,
+                        &parameter.parameter,
+                    ) {
                         return Err(check);
                     }
                 }
                 Parameter::Adjusted => {
-                    if let Err(check) = self.verify_adjusted(parameter.required) {
+                    if let Err(check) = self.verify(
+                        parameter.required,
+                        &self.parameters().adjusted,
+                        &parameter.parameter,
+                    ) {
                         return Err(check);
                     }
                 }
                 Parameter::Sort => {
-                    if let Err(check) = self.verify_sort(parameter.required) {
+                    if let Err(check) = self.verify(
+                        parameter.required,
+                        &self.parameters().sort,
+                        &parameter.parameter,
+                    ) {
                         return Err(check);
                     }
                 }
                 Parameter::Limit => {
-                    if let Err(check) = self.verify_limit(parameter.required) {
+                    if let Err(check) = self.verify(
+                        parameter.required,
+                        &self.parameters().adjusted,
+                        &parameter.parameter,
+                    ) {
                         return Err(check);
                     }
                 }
                 Parameter::Timespan => {
-                    if let Err(check) = self.verify_timespan(parameter.required) {
+                    if let Err(check) = self.verify(
+                        parameter.required,
+                        &self.parameters().timespan,
+                        &parameter.parameter,
+                    ) {
                         return Err(check);
                     }
                 }
                 Parameter::From => {
-                    if let Err(check) = self.verify_from_date(parameter.required) {
+                    if let Err(check) = self.verify(
+                        parameter.required,
+                        &self.parameters().from,
+                        &parameter.parameter,
+                    ) {
                         return Err(check);
                     }
                 }
                 Parameter::To => {
-                    if let Err(check) = self.verify_to_date(parameter.required) {
+                    if let Err(check) = self.verify(
+                        parameter.required,
+                        &self.parameters().to,
+                        &parameter.parameter,
+                    ) {
                         return Err(check);
                     }
                 }
                 Parameter::Multiplier => {
-                    if let Err(check) = self.verify_multiplier(parameter.required) {
+                    if let Err(check) = self.verify(
+                        parameter.required,
+                        &self.parameters().multiplier,
+                        &parameter.parameter,
+                    ) {
                         return Err(check);
                     }
                 }
                 Parameter::IncludeOTC => {
-                    if let Err(check) = self.verify_include_otc(parameter.required) {
+                    if let Err(check) = self.verify(
+                        parameter.required,
+                        &self.parameters().include_otc,
+                        &parameter.parameter,
+                    ) {
                         return Err(check);
                     }
                 }
@@ -352,31 +281,68 @@ pub trait Request {
                     }
                 }
                 Parameter::Order => {
-                    if let Err(check) = self.verify_order(parameter.required) {
+                    if let Err(check) = self.verify(
+                        parameter.required,
+                        &self.parameters().order,
+                        &parameter.parameter,
+                    ) {
                         return Err(check);
                     }
                 }
                 Parameter::Sortv3 => {
-                    if let Err(check) = self.verify_sortv3(parameter.required) {
+                    if let Err(check) = self.verify(
+                        parameter.required,
+                        &self.parameters().sortv3,
+                        &parameter.parameter,
+                    ) {
                         return Err(check);
                     }
                 }
                 Parameter::Timestamp => {
-                    if let Err(check) = self.verify_timestamp(parameter.required) {
+                    if let Err(check) = self.verify(
+                        parameter.required,
+                        &self.parameters().timestamp,
+                        &parameter.parameter,
+                    ) {
                         return Err(check);
                     }
                 }
                 Parameter::ContractType => {
-                    if let Err(check) = self.verify_contract_type(parameter.required) {
+                    if let Err(check) = self.verify(
+                        parameter.required,
+                        &self.parameters().contract_type,
+                        &parameter.parameter,
+                    ) {
                         return Err(check);
                     }
                 }
                 Parameter::StrikePrice => {
-                    if let Err(check) = self.verify_strike_price(parameter.required) {
+                    if let Err(check) = self.verify(
+                        parameter.required,
+                        &self.parameters().strike_price,
+                        &parameter.parameter,
+                    ) {
                         return Err(check);
                     }
                 }
-                
+                Parameter::StrikePriceFrom => {
+                    if let Err(check) = self.verify(
+                        parameter.required,
+                        &self.parameters().strike_price_from,
+                        &parameter.parameter,
+                    ) {
+                        return Err(check);
+                    }
+                }
+                Parameter::StrikePriceTo => {
+                    if let Err(check) = self.verify(
+                        parameter.required,
+                        &self.parameters().strike_price_to,
+                        &parameter.parameter,
+                    ) {
+                        return Err(check);
+                    }
+                }
             }
         }
         Ok(())

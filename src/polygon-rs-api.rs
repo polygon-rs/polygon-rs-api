@@ -1,8 +1,14 @@
 pub mod rest;
 pub mod web_socket;
+pub mod tools;
 
 use crate::rest::{
     error::ErrorCode,
-    parameters::{Order, Parameter, ParameterRequirment, Parameters, Sort, Sortv3, Timespan, ContractType, ContractStyle, Timeframe},
+    parameters::{
+        ContractStyle, ContractType, Order, Parameter, ParameterRequirment, Parameters, Sort,
+        Sortv3, Timeframe, Timespan,
+    },
     Request,
 };
+
+use crate::tools::regex_patterns::RegexPatterns;

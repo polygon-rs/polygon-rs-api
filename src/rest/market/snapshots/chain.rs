@@ -1,5 +1,6 @@
 use crate::{
-    rest::parameters::Sortv3, ContractStyle, ContractType, ErrorCode, Parameter, ParameterRequirment, Parameters, Request, Timeframe, Order
+    rest::parameters::Sortv3, ContractStyle, ContractType, ErrorCode, Order, Parameter,
+    ParameterRequirment, Parameters, Request, Timeframe,
 };
 
 #[derive(serde::Serialize, serde::Deserialize, Clone, Debug, Default)]
@@ -105,12 +106,16 @@ impl Chain {
         order: Option<Order>,
         limit: Option<u16>,
         sort: Option<Sortv3>,
-        
     ) {
+        let ts = if to.is_some() || from.is_some() {
+            None
+        } else {
+            date
+        };
         self.chain_parameters = Parameters {
             api_key: api_key,
             ticker: ticker,
-            date: date,
+            date: ts,
             from: from,
             to: to,
             contract_type: contract_type,
@@ -177,6 +182,9 @@ impl Request for Chain {
 
     fn set_url(&mut self) -> Result<(), ErrorCode> {
         if let Err(check) = self.check_parameters() {
+            return Err(check);
+        }
+        if let Err(check) = self.verify_to_from() {
             return Err(check);
         }
         self.chain_url = String::from(format!(

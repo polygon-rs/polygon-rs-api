@@ -10,6 +10,10 @@ pub enum ErrorCode {
     FormatError,
     DateError,
     DateNotSet,
+    DateToError,
+    DateToNotSet,
+    DateFromError,
+    DateFromNotSet,
     RegexError,
     ToNotSet,
     FromNotSet,
@@ -23,7 +27,8 @@ pub enum ErrorCode {
     TimestampNotSet,
     ContractTypeNotSet,
     JSONParseError,
-    StrikePriceNotSet
+    StrikePriceNotSet,
+    WrongParameterType,
 }
 
 impl fmt::Display for ErrorCode {
@@ -50,7 +55,13 @@ impl fmt::Display for ErrorCode {
             ErrorCode::TimestampNotSet => f.write_str("There is no timestamp set"),
             ErrorCode::ContractTypeNotSet => f.write_str("There is no contract type set"),
             ErrorCode::JSONParseError => f.write_str("There is an issue with parsing the JSON"),
-            ErrorCode::StrikePriceNotSet => f.write_str("There is no strike price set")
+            ErrorCode::StrikePriceNotSet => f.write_str("There is no strike price set"),
+            ErrorCode::DateToNotSet => f.write_str("There is no to date set"),
+            ErrorCode::DateFromNotSet => f.write_str("There is no from date set"),
+            ErrorCode::DateToError => f.write_str("There is an issue with the to date"),
+            ErrorCode::DateFromError => f.write_str("There is an issue with the from date"),
+            ErrorCode::WrongParameterType => f.write_str("There is an issue with the parameter type"),
         }
     }
 }
+

@@ -39,10 +39,16 @@ impl Quotes {
         limit: Option<u16>,
         order: Option<Order>,
     ) {
+        
+        let ts = if to.is_some() || from.is_some() {
+            None
+        } else {
+            timestamp
+        };
         self.quotes_parameters = Parameters {
             api_key: api_key,
             ticker: Some(ticker),
-            timestamp: timestamp,
+            timestamp: ts,
             from: from,
             to: to,
             sortv3: sort,
@@ -97,6 +103,9 @@ impl Request for Quotes {
 
     fn set_url(&mut self) -> Result<(), ErrorCode> {
         if let Err(check) = self.check_parameters() {
+            return Err(check);
+        }
+        if let Err(check) = self.verify_to_from() {
             return Err(check);
         }
         self.quotes_url = String::from(format!(

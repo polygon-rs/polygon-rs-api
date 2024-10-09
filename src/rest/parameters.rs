@@ -1,7 +1,7 @@
 use serde::{Deserialize, Serialize};
 use strum_macros::Display;
 
-#[derive(Clone, Debug)]
+#[derive(Serialize, Deserialize, Clone, Debug)]
 pub enum Parameter {
     Ticker,
     Date,
@@ -19,6 +19,8 @@ pub enum Parameter {
     Timestamp,
     Sortv3,
     StrikePrice,
+    StrikePriceFrom,
+    StrikePriceTo,
 }
 
 #[derive(Clone, Debug)]
