@@ -1,4 +1,4 @@
-use crate::{ErrorCode, Order, Parameter, ParameterRequirment, Parameters, Request, Sortv3};
+use crate::{rest::parameters::TickerTypes, ErrorCode, Order, Parameter, ParameterRequirment, Parameters, Request, Sortv3};
 
 #[derive(serde::Deserialize, Clone, Debug, Default)]
 pub struct BBO {
@@ -93,10 +93,7 @@ impl Request for BBO {
     }
 
     fn set_url(&mut self) -> Result<(), ErrorCode> {
-        if let Err(check) = self.check_parameters() {
-            return Err(check);
-        }
-        if let Err(check) = self.verify_to_from() {
+        if let Err(check) = self.check_parameters(&TickerTypes::forex()) {
             return Err(check);
         }
         self.bbo_url = String::from(format!(

@@ -1,5 +1,5 @@
 use crate::{
-    rest::parameters::Sortv3, ContractStyle, ContractType, ErrorCode, Order, Parameter,
+    rest::parameters::{Sortv3, TickerTypes}, ContractStyle, ContractType, ErrorCode, Order, Parameter,
     ParameterRequirment, Parameters, Request, Timeframe,
 };
 
@@ -181,10 +181,7 @@ impl Request for Chain {
     }
 
     fn set_url(&mut self) -> Result<(), ErrorCode> {
-        if let Err(check) = self.check_parameters() {
-            return Err(check);
-        }
-        if let Err(check) = self.verify_to_from() {
+        if let Err(check) = self.check_parameters(&TickerTypes::options()) {
             return Err(check);
         }
         self.chain_url = String::from(format!(

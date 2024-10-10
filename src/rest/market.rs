@@ -1,6 +1,7 @@
 pub mod aggregates;
 pub mod bbo;
-pub mod currency_quote;
+pub mod pair_quote;
+pub mod pair_trade;
 pub mod daily;
 pub mod grouped;
 pub mod last_quote;
@@ -27,6 +28,6 @@ pub enum Market {
     TechnicalIndicators(technical_indicators::TechnicalIndicators),
     //Rtc(rtc::Rtc),
     //CurrencyQuote(currency_quote::CurrencyQuote),
-    //Bbo(bbo::Bbo),
+    BBO(bbo::BBO),                      //Done
     //Ltc(ltc::Ltc),
 }

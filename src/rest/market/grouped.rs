@@ -1,4 +1,4 @@
-use crate::{ErrorCode, Parameter, ParameterRequirment, Parameters, Request};
+use crate::{rest::parameters::TickerTypes, ErrorCode, Parameter, ParameterRequirment, Parameters, Request};
 use serde::{Deserialize, Serialize};
 
 #[derive(Serialize, Deserialize, Clone, Debug, Default)]
@@ -80,7 +80,7 @@ impl Request for Grouped {
     }
 
     fn set_url(&mut self) -> Result<(), ErrorCode> {
-        if let Err(check) = self.check_parameters() {
+        if let Err(check) = self.check_parameters(&TickerTypes::set(true,false,false,true,true)) {
             return Err(check);
         }
         self.grouped_url = String::from(format!(
@@ -161,20 +161,4 @@ impl Request for Grouped {
 
         Ok(())
     }
-    /*fn request(&mut self) -> Result<(), ErrorCode> {
-        if let Err(check) = self.set_url() {
-            return Err(check);
-        }
-        let r = match self.get_raw_data() {
-            Ok(response) => response,
-            Err(e) => return Err(e),
-        };
-        let a: Grouped = match serde_json::from_str(r.as_str()) {
-            Ok(it) => it,
-            Err(err) => return Err(ErrorCode::FormatError),
-        };
-        *self = a;
-
-        Ok(())
-    }*/
 }

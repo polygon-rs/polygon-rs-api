@@ -6,7 +6,7 @@ use crate::rest::{
     error::ErrorCode,
     parameters::{
         ContractStyle, ContractType, Order, Parameter, ParameterRequirment, Parameters, Sort,
-        Sortv3, Timeframe, Timespan,
+        Sortv3, Timeframe, Timespan, TickerTypes
     },
     Request,
 };

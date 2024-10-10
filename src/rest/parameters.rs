@@ -1,6 +1,95 @@
 use serde::{Deserialize, Serialize};
 use strum_macros::Display;
 
+
+pub enum TickerType {
+    Stocks,
+    Options,
+    Indicies,
+    Forex,
+    Crypto,
+}
+
+pub struct TickerTypes {
+    pub stocks: bool,
+    pub options: bool,
+    pub indicies: bool,
+    pub forex: bool,
+    pub crypto: bool,
+}
+
+impl TickerTypes {
+    pub fn set(stocks: bool, options: bool, indicies: bool, forex: bool, crypto: bool) -> Self {
+        Self {
+            stocks: stocks,
+            options: options,
+            indicies: indicies,
+            forex: forex,
+            crypto: crypto,
+        }
+    }
+
+    pub fn stocks() -> Self {
+        Self {
+            stocks: true,
+            options: false,
+            indicies: false,
+            forex: false,
+            crypto: false,
+        }
+    }
+
+    pub fn options() -> Self {
+        Self {
+            stocks: false,
+            options: true,
+            indicies: false,
+            forex: false,
+            crypto: false,
+        }
+    }
+
+    pub fn indicies() -> Self {
+        Self {
+            stocks: false,
+            options: false,
+            indicies: true,
+            forex: false,
+            crypto: false,
+        }
+    }
+
+    pub fn forex() -> Self {
+        Self {
+            stocks: false,
+            options: false,
+            indicies: false,
+            forex: true,
+            crypto: false,
+        }
+    }
+
+    pub fn crypto() -> Self {
+        Self {
+            stocks: false,
+            options: false,
+            indicies: false,
+            forex: false,
+            crypto: true,
+        }
+    }
+
+    pub fn all() -> Self {
+        Self {
+            stocks: true,
+            options: true,
+            indicies: true,
+            forex: true,
+            crypto: true,
+        }
+    }
+}
+
 #[derive(Serialize, Deserialize, Clone, Debug)]
 pub enum Parameter {
     Ticker,
