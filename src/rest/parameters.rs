@@ -110,6 +110,8 @@ pub enum Parameter {
     StrikePrice,
     StrikePriceFrom,
     StrikePriceTo,
+    Amount,
+    Precision
 }
 
 #[derive(Clone, Debug)]
@@ -139,6 +141,8 @@ pub struct Parameters {
     pub strike_price: Option<f64>,
     pub strike_price_from: Option<f64>,
     pub strike_price_to: Option<f64>,
+    pub amount: Option<f64>,
+    pub precision: Option<u8>,
 }
 
 #[derive(Serialize, Deserialize, Clone, Debug, Default, Display)]

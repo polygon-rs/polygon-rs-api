@@ -64,19 +64,10 @@ impl Request for Grouped {
 
     fn parameters(&self) -> &Parameters {
         &self.grouped_parameters
-        /*match &self.grouped_parameters {
-            Some(p) => p,
-            None => panic!("There is no parameters set"),
-        }*/
     }
 
     fn url(&mut self) -> &String {
         &self.grouped_url
-        /*self.set_url();
-        match &self.grouped_url {
-            Some(u) => u.to_string(),
-            None => panic!("There is no url set"),
-        }*/
     }
 
     fn set_url(&mut self) -> Result<(), ErrorCode> {

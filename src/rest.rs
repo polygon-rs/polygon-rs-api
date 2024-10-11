@@ -443,6 +443,24 @@ pub trait Request {
                         return Err(check);
                     }
                 }
+                Parameter::Amount => {
+                    if let Err(check) = self.verify(
+                        parameter.required,
+                        &self.parameters().amount,
+                        &parameter.parameter,
+                    ) {
+                        return Err(check);
+                    }
+                }
+                Parameter::Precision => {
+                    if let Err(check) = self.verify(
+                        parameter.required,
+                        &self.parameters().precision,
+                        &parameter.parameter,
+                    ) {
+                        return Err(check);
+                    }
+                }
             }
         }
         if let Err(check) = self.verify_to_from() {

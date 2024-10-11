@@ -1,49 +1,62 @@
 use crate::{rest::parameters::TickerTypes, ErrorCode, Parameter, ParameterRequirment, Parameters, Request};
 
 #[derive(serde::Deserialize, Clone, Debug, Default)]
-pub struct PairTrade {
+pub struct CurrencyConversion {
     bbo_parameters: Parameters,
     bbo_url: String,
-    to: String,
-    from: String,
+    pub to: String,
+    pub from: String,
     pub request_id: String,
-    pub trade: Trade,
+    pub quote: Quote,
     pub status: String,
     pub symbol: String,
+    pub initial_amount: f64,
+    pub converted: f64,
 }
 
 #[derive(serde::Deserialize, Clone, Debug, Default)]
-pub struct Trade {
-    pub conditions: Vec<i64>,
-    pub price: f64,
-    pub size: f64,
+pub struct Quote {
+    pub ask_price: f64,
+    pub bid_price: f64,
     pub timestamp: i64,
     pub exchange: i64
 }
 
-impl PairTrade {
+impl CurrencyConversion {
     pub fn set_parameters(
         &mut self,
         api_key: String,
         ticker: String,
+        amount: Option<f64>,
+        precision: Option<u8>
     ) {
         self.to = ticker.clone();
         self.from = ticker.clone();
         self.bbo_parameters = Parameters {
             api_key: api_key,
             ticker: Some(ticker),
+            amount: amount,
+            precision: precision,
             ..Parameters::default()
         }
     }
 }
 
-impl Request for PairTrade {
+impl Request for CurrencyConversion {
     const VERSION: &'static str = "v1";
-    const CALL: &'static str = "last/crypto";
+    const CALL: &'static str = "conversion";
     const PARAMETERS: &'static [&'static ParameterRequirment] = &[
         &ParameterRequirment {
             required: true,
             parameter: Parameter::Ticker,
+        },
+        &ParameterRequirment {
+            required: false,
+            parameter: Parameter::Amount,
+        },
+        &ParameterRequirment {
+            required: false,
+            parameter: Parameter::Precision,
         }
     ];
 
@@ -56,19 +69,28 @@ impl Request for PairTrade {
     }
 
     fn set_url(&mut self) -> Result<(), ErrorCode> {
-        if let Err(check) = self.check_parameters(&&TickerTypes::crypto()) {
+        if let Err(check) = self.check_parameters(&TickerTypes::forex()) {
             return Err(check);
         }
-        //Need a different method to extract to and from as Crypto can be different lengths
         let from = self.from[2..4].to_string();
         let to = self.to[5..7].to_string();
         self.bbo_url = String::from(format!(
-            "{}/{}/{}/{}/{}?apiKey={}",
+            "{}/{}/{}/{}/{}?{}{}apiKey={}",
             Self::BASE_URL,
             Self::VERSION,
             Self::CALL,
             from,
             to,
+            if let Some(s) = self.parameters().clone().amount {
+                format!("amount={}&", s)
+            } else {
+                "".to_string()
+            },
+            if let Some(s) = self.parameters().clone().precision {
+                format!("precision={}&", s)
+            } else {
+                "".to_string()
+            },
             self.parameters().clone().api_key,
         ));
         Ok(())
@@ -86,26 +108,31 @@ impl Request for PairTrade {
                 if let Some(symbol) = response["symbol"].as_str() {
                     self.symbol = symbol.to_string()
                 }
+                if let Some(to) = response["to"].as_str() {
+                    self.to = to.to_string()
+                }
+                if let Some(from) = response["from"].as_str() {
+                    self.symbol = from.to_string()
+                }
+                if let Some(converted) = response["converted"].as_f64() {
+                    self.converted = converted
+                }
+                if let Some(initial_amount) = response["initial_amount"].as_f64() {
+                    self.initial_amount = initial_amount
+                }
                 if let Some(last) = response["last"].as_object() {
      
-                    if let Some(conditions) = last["conditions"].as_array() {
-                        for condition in conditions {
-                            if let Some(c) = condition.as_i64() {
-                                self.trade.conditions.push(c)
-                            }
-                        }
-                    }
                     if let Some(ask_exchange) = last["exchange"].as_i64() {
-                        self.trade.exchange = ask_exchange
+                        self.quote.exchange = ask_exchange
                     }
-                    if let Some(ask_price) = last["price"].as_f64() {
-                        self.trade.price = ask_price
+                    if let Some(ask_price) = last["ask"].as_f64() {
+                        self.quote.ask_price = ask_price
                     }
-                    if let Some(bid_price) = last["size"].as_f64() {
-                        self.trade.size = bid_price
+                    if let Some(bid_price) = last["bid"].as_f64() {
+                        self.quote.bid_price = bid_price
                     }
                     if let Some(participant_timestamp) = last["timestamp"].as_i64() {
-                        self.trade.timestamp = participant_timestamp
+                        self.quote.timestamp = participant_timestamp
                     }
                 }
             }
@@ -115,4 +142,5 @@ impl Request for PairTrade {
         Ok(())
     }
 }
+
 
