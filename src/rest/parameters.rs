@@ -1,8 +1,9 @@
 use serde::{Deserialize, Serialize};
 use strum_macros::Display;
 
-
+#[derive(Serialize, Deserialize, Clone, Debug, Default, Display)]
 pub enum TickerType {
+    #[default]
     Stocks,
     Options,
     Indicies,
@@ -111,7 +112,8 @@ pub enum Parameter {
     StrikePriceFrom,
     StrikePriceTo,
     Amount,
-    Precision
+    Precision,
+    Direction,
 }
 
 #[derive(Clone, Debug)]
@@ -143,6 +145,7 @@ pub struct Parameters {
     pub strike_price_to: Option<f64>,
     pub amount: Option<f64>,
     pub precision: Option<u8>,
+    pub direction: Option<Direction>,
 }
 
 #[derive(Serialize, Deserialize, Clone, Debug, Default, Display)]
@@ -200,3 +203,11 @@ pub enum Timespan {
     Quater,
     Year,
 }
+
+#[derive(Serialize, Deserialize, Clone, Debug, Display)]
+pub enum Direction {
+    Gainers,
+    Losers,
+}
+
+
