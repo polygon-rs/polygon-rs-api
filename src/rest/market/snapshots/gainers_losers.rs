@@ -16,6 +16,7 @@ pub struct GainersLosers {
 pub struct Ticker {
     pub day: Day,
     pub last_trade: LastTrade,
+    pub last_quote: LastQuote,
     pub min: Min,
     pub previous_day: Day,
     pub ticker: String,
@@ -46,7 +47,18 @@ pub struct LastTrade {
 }
 
 #[derive(serde::Deserialize, Clone, Debug, Default)]
+pub struct LastQuote {
+    pub ask_price: f64,
+    pub bid_price: f64,
+    pub ask_size: i64,
+    pub bid_size: i64,
+    pub timestamp: i64,
+    pub exchange_id: i64,
+}
+
+#[derive(serde::Deserialize, Clone, Debug, Default)]
 pub struct Min {
+    pub accumulated_volume: i64,
     pub open: f64,
     pub high: f64,
     pub low: f64,
@@ -188,7 +200,36 @@ impl Request for GainersLosers {
                                 t.last_trade.exchange_id = exchange_id
                             }
                         }
+                        if let Some(last_quote) = ticker["lastQuote"].as_object() {
+                            if let Some(ask_price) = last_quote["a"].as_f64() {
+                                t.last_quote.ask_price = ask_price
+                            }
+                            if let Some(bid_price) = last_quote["b"].as_f64() {
+                                t.last_quote.bid_price = bid_price
+                            }
+                            if let Some(bid_price) = last_quote["p"].as_f64() {
+                                t.last_quote.bid_price = bid_price
+                            }
+                            if let Some(ask_price) = last_quote["P"].as_f64() {
+                                t.last_quote.ask_price = ask_price
+                            }
+                            if let Some(bid_size) = last_quote["a"].as_i64() {
+                                t.last_quote.bid_size = bid_size
+                            }
+                            if let Some(ask_size) = last_quote["A"].as_i64() {
+                                t.last_quote.ask_size = ask_size
+                            }
+                            if let Some(timestamp) = last_quote["t"].as_i64() {
+                                t.last_quote.timestamp = timestamp
+                            }
+                            if let Some(exchange_id) = last_quote["x"].as_i64() {
+                                t.last_quote.exchange_id = exchange_id
+                            }
+                        }
                         if let Some(min) = ticker["min"].as_object() {
+                            if let Some(accumulated_volume) = min["av"].as_i64() {
+                                t.min.accumulated_volume = accumulated_volume
+                            }
                             if let Some(open) = min["o"].as_f64() {
                                 t.min.open = open
                             }

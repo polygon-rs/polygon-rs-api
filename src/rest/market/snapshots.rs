@@ -9,11 +9,11 @@ pub mod universal;
 
 #[derive(serde::Deserialize)]
 pub enum Snapshots {
-    Chain(chain::Chain),
+    Chain(chain::Chain),                            //Done
     Ticker,
     Tickers,
     Universal,
-    GainersLosers,
+    GainersLosers(gainers_losers::GainersLosers),   //Done
     Contract,
     Indices,
     L2,
