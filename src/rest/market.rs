@@ -1,14 +1,14 @@
 pub mod aggregates;
 pub mod bbo;
-pub mod pair_quote;
-pub mod pair_trade;
+pub mod currency_conversion;
 pub mod daily;
 pub mod grouped;
 pub mod last_quote;
 pub mod last_trade;
+pub mod pair_quote;
+pub mod pair_trade;
 pub mod previous;
 pub mod quotes;
-pub mod currency_conversion;
 pub mod snapshots;
 pub mod technical_indicators;
 pub mod trades;
@@ -26,7 +26,7 @@ pub enum Market {
     Snapshots(snapshots::Snapshots),
     TechnicalIndicators(technical_indicators::TechnicalIndicators),
     CurrencyConversion(currency_conversion::CurrencyConversion), //Done
-    PairQuote(pair_quote::PairQuote),   //Done
-    BBO(bbo::BBO),                      //Done
-    PairTrade(pair_trade::PairTrade),   //Done
+    PairQuote(pair_quote::PairQuote),                            //Done
+    BBO(bbo::BBO),                                               //Done
+    PairTrade(pair_trade::PairTrade),                            //Done
 }

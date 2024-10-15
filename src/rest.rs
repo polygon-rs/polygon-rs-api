@@ -107,12 +107,16 @@ pub trait Request {
         }
     }
 
+    fn verify_stock_ticker(&self, ticker: String) -> Result<(), ErrorCode> {
+        if !RegexPatterns::stocks_ticker().is_match(ticker.as_str()) {
+            return Err(ErrorCode::TickerError);
+        }
+        Ok(())
+    }
+
     fn verify_stocks_ticker(&self, required: bool) -> Result<(), ErrorCode> {
         match &self.parameters().ticker {
-            Some(t) => match RegexPatterns::stocks_ticker().is_match(t.as_str()) {
-                true => Ok(()),
-                false => Err(ErrorCode::OptionsTickerError),
-            },
+            Some(t) => self.verify_stock_ticker(t.to_string()),
             None => {
                 if required {
                     return Err(ErrorCode::TickerNotSet);
@@ -120,14 +124,18 @@ pub trait Request {
                 Ok(())
             }
         }
+    }
+
+    fn verify_option_ticker(&self, ticker: String) -> Result<(), ErrorCode> {
+        if !RegexPatterns::options_ticker().is_match(&ticker.as_str()) {
+            return Err(ErrorCode::TickerError);
+        }
+        Ok(())
     }
 
     fn verify_options_ticker(&self, required: bool) -> Result<(), ErrorCode> {
         match &self.parameters().ticker {
-            Some(t) => match RegexPatterns::options_ticker().is_match(t.as_str()) {
-                true => Ok(()),
-                false => Err(ErrorCode::OptionsTickerError),
-            },
+            Some(t) => self.verify_option_ticker(t.to_string()),
             None => {
                 if required {
                     return Err(ErrorCode::TickerNotSet);
@@ -135,14 +143,18 @@ pub trait Request {
                 Ok(())
             }
         }
+    }
+
+    fn verify_indicie_ticker(&self, ticker: String) -> Result<(), ErrorCode> {
+        if !RegexPatterns::indicies_ticker().is_match(ticker.as_str()) {
+            return Err(ErrorCode::TickerError);
+        }
+        Ok(())
     }
 
     fn verify_indices_ticker(&self, required: bool) -> Result<(), ErrorCode> {
         match &self.parameters().ticker {
-            Some(t) => match RegexPatterns::indicies_ticker().is_match(t.as_str()) {
-                true => Ok(()),
-                false => Err(ErrorCode::OptionsTickerError),
-            },
+            Some(t) => self.verify_indicie_ticker(t.to_string()),
             None => {
                 if required {
                     return Err(ErrorCode::TickerNotSet);
@@ -152,12 +164,16 @@ pub trait Request {
         }
     }
 
-    fn verify_forex_ticker(&self, required: bool) -> Result<(), ErrorCode> {
+    fn verify_forex_ticker(&self, ticker: String) -> Result<(), ErrorCode> {
+        if !RegexPatterns::forex_ticker().is_match(&ticker.as_str()) {
+            return Err(ErrorCode::TickerError);
+        }
+        Ok(())
+    }
+
+    fn verify_forex_tickers(&self, required: bool) -> Result<(), ErrorCode> {
         match &self.parameters().ticker {
-            Some(t) => match RegexPatterns::forex_ticker().is_match(t.as_str()) {
-                true => Ok(()),
-                false => Err(ErrorCode::TickerError),
-            },
+            Some(t) => self.verify_forex_ticker(t.to_string()),
             None => {
                 if required {
                     return Err(ErrorCode::TickerNotSet);
@@ -167,12 +183,16 @@ pub trait Request {
         }
     }
 
-    fn verify_crypto_ticker(&self, required: bool) -> Result<(), ErrorCode> {
+    fn verify_crypto_ticker(&self, ticker: String) -> Result<(), ErrorCode> {
+        if !RegexPatterns::forex_ticker().is_match(ticker.as_str()) {
+            return Err(ErrorCode::TickerError);
+        }
+        Ok(())
+    }
+
+    fn verify_crypto_tickers(&self, required: bool) -> Result<(), ErrorCode> {
         match &self.parameters().ticker {
-            Some(t) => match RegexPatterns::crypto_ticker().is_match(t.as_str()) {
-                true => Ok(()),
-                false => Err(ErrorCode::OptionsTickerError),
-            },
+            Some(t) => self.verify_crypto_ticker(t.to_string()),
             None => {
                 if required {
                     return Err(ErrorCode::TickerNotSet);
@@ -227,13 +247,13 @@ pub trait Request {
                         if !ticker_types.forex {
                             return Err(ErrorCode::TickerNotValidForAPICall);
                         }
-                        self.verify_forex_ticker(required)
+                        self.verify_forex_tickers(required)
                     }
                     TickerType::Crypto => {
                         if !ticker_types.crypto {
                             return Err(ErrorCode::TickerNotValidForAPICall);
                         }
-                        self.verify_crypto_ticker(required)
+                        self.verify_crypto_tickers(required)
                     }
                 },
                 Err(e) => return Err(e),
@@ -241,6 +261,58 @@ pub trait Request {
             None => {
                 if required {
                     return Err(ErrorCode::TickerNotSet);
+                };
+                Ok(())
+            }
+        }
+    }
+
+    fn verify_tickers(&self, required: bool, ticker_types: &TickerTypes) -> Result<(), ErrorCode> {
+        match &self.parameters().tickers {
+            Some(t) => {
+                for ticker in t {
+                    match self.get_ticker_type(ticker) {
+                        Ok(t) => match t {
+                            //Better Error Message
+                            TickerType::Stocks => {
+                                if !ticker_types.stocks {
+                                    return Err(ErrorCode::TickerNotValidForAPICall);
+                                };
+                                self.verify_stock_ticker(ticker.to_string())?
+                            }
+                            TickerType::Options => {
+                                if !ticker_types.options {
+                                    return Err(ErrorCode::TickerNotValidForAPICall);
+                                };
+                                self.verify_option_ticker(ticker.to_string())?
+                            }
+                            TickerType::Indicies => {
+                                if !ticker_types.indicies {
+                                    return Err(ErrorCode::TickerNotValidForAPICall);
+                                };
+                                self.verify_indicie_ticker(ticker.to_string())?
+                            }
+                            TickerType::Forex => {
+                                if !ticker_types.forex {
+                                    return Err(ErrorCode::TickerNotValidForAPICall);
+                                };
+                                self.verify_forex_ticker(ticker.to_string())?
+                            }
+                            TickerType::Crypto => {
+                                if !ticker_types.crypto {
+                                    return Err(ErrorCode::TickerNotValidForAPICall);
+                                };
+                                self.verify_crypto_ticker(ticker.to_string())?
+                            }
+                        },
+                        Err(e) => return Err(e),
+                    }
+                }
+                Ok(())
+            }
+            None => {
+                if required {
+                    return Err(ErrorCode::TickersNotSet);
                 };
                 Ok(())
             }
@@ -291,6 +363,11 @@ pub trait Request {
             match parameter.parameter {
                 Parameter::Ticker => {
                     if let Err(check) = self.verify_ticker(parameter.required, ticker_types) {
+                        return Err(check);
+                    }
+                }
+                Parameter::Tickers => {
+                    if let Err(check) = self.verify_tickers(parameter.required, ticker_types) {
                         return Err(check);
                     }
                 }
@@ -456,6 +533,15 @@ pub trait Request {
                     if let Err(check) = self.verify(
                         parameter.required,
                         &self.parameters().precision,
+                        &parameter.parameter,
+                    ) {
+                        return Err(check);
+                    }
+                }
+                Parameter::Direction => {
+                    if let Err(check) = self.verify(
+                        parameter.required,
+                        &self.parameters().direction,
                         &parameter.parameter,
                     ) {
                         return Err(check);

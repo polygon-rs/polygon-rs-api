@@ -1,4 +1,6 @@
-use crate::{rest::parameters::TickerTypes, ErrorCode, Parameter, ParameterRequirment, Parameters, Request};
+use crate::{
+    rest::parameters::TickerTypes, ErrorCode, Parameter, ParameterRequirment, Parameters, Request,
+};
 
 #[derive(serde::Deserialize, Clone, Debug, Default)]
 pub struct PairTrade {
@@ -18,15 +20,11 @@ pub struct Trade {
     pub price: f64,
     pub size: f64,
     pub timestamp: i64,
-    pub exchange: i64
+    pub exchange: i64,
 }
 
 impl PairTrade {
-    pub fn set_parameters(
-        &mut self,
-        api_key: String,
-        ticker: String,
-    ) {
+    pub fn set_parameters(&mut self, api_key: String, ticker: String) {
         self.to = ticker.clone();
         self.from = ticker.clone();
         self.bbo_parameters = Parameters {
@@ -40,12 +38,10 @@ impl PairTrade {
 impl Request for PairTrade {
     const VERSION: &'static str = "v1";
     const CALL: &'static str = "last/crypto";
-    const PARAMETERS: &'static [&'static ParameterRequirment] = &[
-        &ParameterRequirment {
-            required: true,
-            parameter: Parameter::Ticker,
-        }
-    ];
+    const PARAMETERS: &'static [&'static ParameterRequirment] = &[&ParameterRequirment {
+        required: true,
+        parameter: Parameter::Ticker,
+    }];
 
     fn parameters(&self) -> &Parameters {
         &self.bbo_parameters
@@ -87,7 +83,6 @@ impl Request for PairTrade {
                     self.symbol = symbol.to_string()
                 }
                 if let Some(last) = response["last"].as_object() {
-     
                     if let Some(conditions) = last["conditions"].as_array() {
                         for condition in conditions {
                             if let Some(c) = condition.as_i64() {
@@ -115,4 +110,3 @@ impl Request for PairTrade {
         Ok(())
     }
 }
-

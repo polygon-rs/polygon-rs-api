@@ -1,4 +1,7 @@
-use crate::{rest::parameters::TickerTypes, ErrorCode, Order, Parameter, ParameterRequirment, Parameters, Request, Sortv3};
+use crate::{
+    rest::parameters::TickerTypes, ErrorCode, Order, Parameter, ParameterRequirment, Parameters,
+    Request, Sortv3,
+};
 
 #[derive(serde::Deserialize, Clone, Debug, Default)]
 pub struct BBO {
@@ -151,7 +154,7 @@ impl Request for BBO {
                 } else {
                     self.next_url = "".to_string()
                 }
-                
+
                 if let Some(results) = response["results"].as_array() {
                     for result in results {
                         let mut quote = Quote::default();
@@ -167,11 +170,13 @@ impl Request for BBO {
                         if let Some(bid_price) = result["bid_price"].as_f64() {
                             quote.bid_price = bid_price
                         }
-                        if let Some(participant_timestamp) = result["participant_timestamp"].as_i64() {
+                        if let Some(participant_timestamp) =
+                            result["participant_timestamp"].as_i64()
+                        {
                             quote.participant_timestamp = participant_timestamp
                         }
                         self.results.push(quote);
-                    } 
+                    }
                 }
             }
             Err(e) => return Err(e),

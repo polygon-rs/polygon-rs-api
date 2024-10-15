@@ -1,4 +1,6 @@
-use crate::{ErrorCode, Parameter, ParameterRequirment, Parameters, Request, Sort, Timespan, TickerTypes};
+use crate::{
+    ErrorCode, Parameter, ParameterRequirment, Parameters, Request, Sort, TickerTypes, Timespan,
+};
 
 #[derive(serde::Deserialize, Clone, Debug, Default)]
 pub struct Aggregates {

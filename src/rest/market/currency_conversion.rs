@@ -1,4 +1,6 @@
-use crate::{rest::parameters::TickerTypes, ErrorCode, Parameter, ParameterRequirment, Parameters, Request};
+use crate::{
+    rest::parameters::TickerTypes, ErrorCode, Parameter, ParameterRequirment, Parameters, Request,
+};
 
 #[derive(serde::Deserialize, Clone, Debug, Default)]
 pub struct CurrencyConversion {
@@ -19,7 +21,7 @@ pub struct Quote {
     pub ask_price: f64,
     pub bid_price: f64,
     pub timestamp: i64,
-    pub exchange: i64
+    pub exchange: i64,
 }
 
 impl CurrencyConversion {
@@ -28,7 +30,7 @@ impl CurrencyConversion {
         api_key: String,
         ticker: String,
         amount: Option<f64>,
-        precision: Option<u8>
+        precision: Option<u8>,
     ) {
         self.to = ticker.clone();
         self.from = ticker.clone();
@@ -57,7 +59,7 @@ impl Request for CurrencyConversion {
         &ParameterRequirment {
             required: false,
             parameter: Parameter::Precision,
-        }
+        },
     ];
 
     fn parameters(&self) -> &Parameters {
@@ -121,7 +123,6 @@ impl Request for CurrencyConversion {
                     self.initial_amount = initial_amount
                 }
                 if let Some(last) = response["last"].as_object() {
-     
                     if let Some(ask_exchange) = last["exchange"].as_i64() {
                         self.quote.exchange = ask_exchange
                     }
@@ -142,5 +143,3 @@ impl Request for CurrencyConversion {
         Ok(())
     }
 }
-
-

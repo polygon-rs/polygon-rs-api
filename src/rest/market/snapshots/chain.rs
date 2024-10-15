@@ -1,6 +1,7 @@
 use crate::{
-    rest::parameters::{Sortv3, TickerTypes}, ContractStyle, ContractType, ErrorCode, Order, Parameter,
-    ParameterRequirment, Parameters, Request, Timeframe,
+    rest::parameters::{Sortv3, TickerTypes},
+    ContractStyle, ContractType, ErrorCode, Order, Parameter, ParameterRequirment, Parameters,
+    Request, Timeframe,
 };
 
 #[derive(serde::Serialize, serde::Deserialize, Clone, Debug, Default)]

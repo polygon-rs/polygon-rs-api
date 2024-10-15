@@ -1,6 +1,5 @@
-use regex::Regex;
 use crate::ErrorCode;
-
+use regex::Regex;
 
 pub struct RegexPatterns {}
 
@@ -17,7 +16,8 @@ impl RegexPatterns {
     const FOREX_TICKER: &'static str = r"C:([A-Z]){6}$";
     const CRYPTO_CHECK: &'static str = r"^X:";
     const CRYPTO_TICKER: &'static str = r"^X:[A-Z0-9]+$";
-    const STRING_DATE: &'static str = r"^(19|20)([0-9]{2})-(1[0-2]|0[1-9])-(3[01]|[12][0-9]|0[1-9])$";
+    const STRING_DATE: &'static str =
+        r"^(19|20)([0-9]{2})-(1[0-2]|0[1-9])-(3[01]|[12][0-9]|0[1-9])$";
     const EPOCH_NANO_DATE: &'static str = r"^\d{19}$";
 
     pub fn api_key() -> Regex {

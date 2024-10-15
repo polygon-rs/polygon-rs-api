@@ -1,7 +1,7 @@
 use serde::{Deserialize, Serialize};
 use strum_macros::Display;
 
-#[derive(Serialize, Deserialize, Clone, Debug, Default, Display)]
+#[derive(Serialize, Deserialize, Clone, Debug, Default, Display, Copy)]
 pub enum TickerType {
     #[default]
     Stocks,
@@ -94,6 +94,7 @@ impl TickerTypes {
 #[derive(Serialize, Deserialize, Clone, Debug)]
 pub enum Parameter {
     Ticker,
+    Tickers,
     Date,
     Adjusted,
     Sort,
@@ -126,6 +127,7 @@ pub struct ParameterRequirment {
 pub struct Parameters {
     pub api_key: String,
     pub ticker: Option<String>,
+    pub tickers: Option<Vec<String>>,
     pub multiplier: Option<u16>,
     pub timespan: Option<Timespan>,
     pub from: Option<String>,
@@ -209,5 +211,3 @@ pub enum Direction {
     Gainers,
     Losers,
 }
-
-

@@ -1,4 +1,6 @@
-use crate::{rest::parameters::TickerTypes, ErrorCode, Parameter, ParameterRequirment, Parameters, Request};
+use crate::{
+    rest::parameters::TickerTypes, ErrorCode, Parameter, ParameterRequirment, Parameters, Request,
+};
 
 #[derive(serde::Deserialize, Clone, Debug, Default)]
 pub struct LastQuote {

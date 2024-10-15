@@ -30,7 +30,8 @@ pub enum ErrorCode {
     StrikePriceNotSet,
     WrongParameterType,
     TickerNotValidForAPICall,
-    TickerTypeeNotValidForAPICall
+    TickerTypeeNotValidForAPICall,
+    TickersNotSet,
 }
 
 impl fmt::Display for ErrorCode {
@@ -64,8 +65,8 @@ impl fmt::Display for ErrorCode {
             ErrorCode::DateFromError => f.write_str("There is an issue with the from date"),
             ErrorCode::WrongParameterType => f.write_str("There is an issue with the parameter type"),
             ErrorCode::TickerNotValidForAPICall => f.write_str("This Ticker can not be used for this API Call"),
-            ErrorCode::TickerTypeeNotValidForAPICall => f.write_str("This Ticker Type can not be used for this API Call")
+            ErrorCode::TickerTypeeNotValidForAPICall => f.write_str("This Ticker Type can not be used for this API Call"),
+            ErrorCode::TickersNotSet => f.write_str("There is no tickers set")
         }
     }
 }
-

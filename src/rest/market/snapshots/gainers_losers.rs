@@ -114,6 +114,10 @@ impl Request for GainersLosers {
     }
 
     fn set_url(&mut self) -> Result<(), ErrorCode> {
+        if let Err(check) = self.check_parameters(&TickerTypes::set(true, false, false, true, true))
+        {
+            return Err(check);
+        }
         let locale = match self.ticker_type {
             TickerType::Options | TickerType::Indicies => {
                 return Err(ErrorCode::TickerTypeeNotValidForAPICall)
@@ -121,11 +125,6 @@ impl Request for GainersLosers {
             TickerType::Stocks => String::from("us"),
             TickerType::Forex | TickerType::Crypto => String::from("global"),
         };
-        if let Err(check) = self.check_parameters(&TickerTypes::set(true, false, false, true, true))
-        {
-            return Err(check);
-        }
-
         self.gainer_loser_url = String::from(format!(
             "{}/{}/{}/{}/markets/{}/{}{}?apiKey={}",
             Self::BASE_URL,

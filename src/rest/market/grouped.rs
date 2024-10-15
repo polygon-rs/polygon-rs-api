@@ -1,4 +1,6 @@
-use crate::{rest::parameters::TickerTypes, ErrorCode, Parameter, ParameterRequirment, Parameters, Request};
+use crate::{
+    rest::parameters::TickerTypes, ErrorCode, Parameter, ParameterRequirment, Parameters, Request,
+};
 use serde::{Deserialize, Serialize};
 
 #[derive(Serialize, Deserialize, Clone, Debug, Default)]
@@ -71,7 +73,8 @@ impl Request for Grouped {
     }
 
     fn set_url(&mut self) -> Result<(), ErrorCode> {
-        if let Err(check) = self.check_parameters(&TickerTypes::set(true,false,false,true,true)) {
+        if let Err(check) = self.check_parameters(&TickerTypes::set(true, false, false, true, true))
+        {
             return Err(check);
         }
         self.grouped_url = String::from(format!(

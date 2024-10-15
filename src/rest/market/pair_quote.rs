@@ -1,4 +1,6 @@
-use crate::{rest::parameters::TickerTypes, ErrorCode, Parameter, ParameterRequirment, Parameters, Request};
+use crate::{
+    rest::parameters::TickerTypes, ErrorCode, Parameter, ParameterRequirment, Parameters, Request,
+};
 
 #[derive(serde::Deserialize, Clone, Debug, Default)]
 pub struct PairQuote {
@@ -17,15 +19,11 @@ pub struct Quote {
     pub ask_price: f64,
     pub bid_price: f64,
     pub timestamp: i64,
-    pub exchange: i64
+    pub exchange: i64,
 }
 
 impl PairQuote {
-    pub fn set_parameters(
-        &mut self,
-        api_key: String,
-        ticker: String,
-    ) {
+    pub fn set_parameters(&mut self, api_key: String, ticker: String) {
         self.to = ticker.clone();
         self.from = ticker.clone();
         self.bbo_parameters = Parameters {
@@ -39,12 +37,10 @@ impl PairQuote {
 impl Request for PairQuote {
     const VERSION: &'static str = "v1";
     const CALL: &'static str = "lastquote/currencies";
-    const PARAMETERS: &'static [&'static ParameterRequirment] = &[
-        &ParameterRequirment {
-            required: true,
-            parameter: Parameter::Ticker,
-        }
-    ];
+    const PARAMETERS: &'static [&'static ParameterRequirment] = &[&ParameterRequirment {
+        required: true,
+        parameter: Parameter::Ticker,
+    }];
 
     fn parameters(&self) -> &Parameters {
         &self.bbo_parameters
@@ -85,7 +81,6 @@ impl Request for PairQuote {
                     self.symbol = symbol.to_string()
                 }
                 if let Some(last) = response["last"].as_object() {
-     
                     if let Some(ask_exchange) = last["exchange"].as_i64() {
                         self.quote.exchange = ask_exchange
                     }
@@ -106,4 +101,3 @@ impl Request for PairQuote {
         Ok(())
     }
 }
-

@@ -63,7 +63,8 @@ impl Request for Daily {
     }
 
     fn set_url(&mut self) -> Result<(), ErrorCode> {
-        if let Err(check) = self.check_parameters(&TickerTypes::set(true,true,false,false,true)) {
+        if let Err(check) = self.check_parameters(&TickerTypes::set(true, true, false, false, true))
+        {
             return Err(check);
         }
         self.daily_url = String::from(format!(
