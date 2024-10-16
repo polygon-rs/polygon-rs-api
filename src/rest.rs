@@ -89,6 +89,10 @@ pub trait Request {
         Ok(())
     }
 
+    fn verify_to_from_ticker(&self) -> Result<(), ErrorCode> {
+        Ok(())
+    }
+
     fn verify_api_key(&self) -> Result<(), ErrorCode> {
         if !RegexPatterns::api_key().is_match(&self.parameters().api_key.as_str()) {
             return Err(ErrorCode::APIError);
@@ -425,7 +429,13 @@ pub trait Request {
                         return Err(check);
                     }
                 }
-                Parameter::UnderlyingAsset => {}
+                Parameter::UnderlyingAsset => {
+                    if let Err(check) = self.verify_underlying_asset(parameter.required) {
+                        return Err(check);
+                    }
+                }
+                Parameter::TickerFrom => {}
+                Parameter::TickerTo => {}
                 Parameter::Date => {
                     if let Err(check) = self.verify(
                         parameter.required,
@@ -504,11 +514,6 @@ pub trait Request {
                         &self.parameters().include_otc,
                         &parameter.parameter,
                     ) {
-                        return Err(check);
-                    }
-                }
-                Parameter::OptionsTicker => {
-                    if let Err(check) = self.verify_options_ticker(parameter.required) {
                         return Err(check);
                     }
                 }
@@ -608,6 +613,9 @@ pub trait Request {
             return Err(check);
         }
         if let Err(check) = self.verify_to_from_strike_price() {
+            return Err(check);
+        }
+        if let Err(check) = self.verify_to_from_ticker() {
             return Err(check);
         }
         Ok(())

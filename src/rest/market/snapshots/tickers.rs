@@ -133,7 +133,13 @@ impl Request for TickersSnapshot {
         };
         let tickers = {
             let mut t = String::new();
+            let mut first = true;
             for ticker in self.parameters().tickers.as_ref().unwrap() {
+                if first {
+                    t = ticker.to_string();
+                    first = false;
+                    continue
+                }
                 t = t.replace('?', ",");
                 t = format!("{},{}?", t, ticker);
             }

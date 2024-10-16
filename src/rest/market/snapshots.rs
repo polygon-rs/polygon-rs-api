@@ -9,12 +9,12 @@ pub mod universal;
 
 #[derive(serde::Deserialize)]
 pub enum Snapshots {
-    Chain(chain::Chain),               //Done
-    Ticker(ticker::TickerSnapshot),    //Done
-    Tickers(tickers::TickersSnapshot), //Done
+    Chain(chain::Chain),                          //Done
+    Ticker(ticker::TickerSnapshot),               //Done
+    Tickers(tickers::TickersSnapshot),            //Done
     Universal,
     GainersLosers(gainers_losers::GainersLosers), //Done
-    Contract,
+    Contract(contract::Contract),                 //Done
     Indices,
     L2,
 }
