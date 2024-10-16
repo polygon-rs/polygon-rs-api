@@ -70,6 +70,25 @@ pub trait Request {
         Ok(())
     }
 
+    fn verify_to_from_strike_price(&self) -> Result<(), ErrorCode> {
+        if self.parameters().to.is_none() || self.parameters().from.is_none() {
+            return Ok(());
+        }
+        let to_strike_price = match &self.parameters().strike_price_to {
+            Some(t) => t,
+            None => return Err(ErrorCode::ToNotSet),
+        };
+        let from_strike_price = match &self.parameters().strike_price_from {
+            Some(f) => f,
+            None => return Err(ErrorCode::FromNotSet),
+        };
+        if to_strike_price < from_strike_price {
+            return Err(ErrorCode::StrikePriceToError);
+        }
+
+        Ok(())
+    }
+
     fn verify_api_key(&self) -> Result<(), ErrorCode> {
         if !RegexPatterns::api_key().is_match(&self.parameters().api_key.as_str()) {
             return Err(ErrorCode::APIError);
@@ -269,10 +288,10 @@ pub trait Request {
 
     fn verify_tickers(&self, required: bool, ticker_types: &TickerTypes) -> Result<(), ErrorCode> {
         match &self.parameters().tickers {
-            Some(t) => {
-                for ticker in t {
+            Some(tickers) => {
+                for ticker in tickers {
                     match self.get_ticker_type(ticker) {
-                        Ok(t) => match t {
+                        Ok(ticker_type) => match ticker_type {
                             //Better Error Message
                             TickerType::Stocks => {
                                 if !ticker_types.stocks {
@@ -313,6 +332,41 @@ pub trait Request {
             None => {
                 if required {
                     return Err(ErrorCode::TickersNotSet);
+                };
+                Ok(())
+            }
+        }
+    }
+
+    fn verify_underlying_asset(&self, required: bool) -> Result<(), ErrorCode> {
+        match &self.parameters().underlying_asset {
+            Some(underlying_asset) => {
+                match self.get_ticker_type(underlying_asset) {
+                    Ok(ticker_type) => match ticker_type {
+                        //Better Error Message
+                        TickerType::Stocks => {
+                            self.verify_stock_ticker(underlying_asset.to_string())?
+                        }
+                        TickerType::Options => {
+                            self.verify_option_ticker(underlying_asset.to_string())?
+                        }
+                        TickerType::Indicies => {
+                            self.verify_indicie_ticker(underlying_asset.to_string())?
+                        }
+                        TickerType::Forex => {
+                            self.verify_forex_ticker(underlying_asset.to_string())?
+                        }
+                        TickerType::Crypto => {
+                            self.verify_crypto_ticker(underlying_asset.to_string())?
+                        }
+                    },
+                    Err(e) => return Err(e),
+                }
+                Ok(())
+            }
+            None => {
+                if required {
+                    return Err(ErrorCode::UnderlyingAssetNotSet);
                 };
                 Ok(())
             }
@@ -371,6 +425,7 @@ pub trait Request {
                         return Err(check);
                     }
                 }
+                Parameter::UnderlyingAsset => {}
                 Parameter::Date => {
                     if let Err(check) = self.verify(
                         parameter.required,
@@ -550,6 +605,9 @@ pub trait Request {
             }
         }
         if let Err(check) = self.verify_to_from() {
+            return Err(check);
+        }
+        if let Err(check) = self.verify_to_from_strike_price() {
             return Err(check);
         }
         Ok(())

@@ -115,6 +115,7 @@ pub enum Parameter {
     Amount,
     Precision,
     Direction,
+    UnderlyingAsset,
 }
 
 #[derive(Clone, Debug)]
@@ -148,6 +149,7 @@ pub struct Parameters {
     pub amount: Option<f64>,
     pub precision: Option<u8>,
     pub direction: Option<Direction>,
+    pub underlying_asset: Option<String>,
 }
 
 #[derive(Serialize, Deserialize, Clone, Debug, Default, Display)]
