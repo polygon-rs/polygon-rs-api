@@ -1,7 +1,7 @@
 pub mod chain;
 pub mod contract;
 pub mod gainers_losers;
-pub mod indices;
+pub mod indicies;
 pub mod l2;
 pub mod ticker;
 pub mod tickers;
@@ -15,6 +15,6 @@ pub enum Snapshots {
     Universal,
     GainersLosers(gainers_losers::GainersLosers), //Done
     Contract(contract::Contract),                 //Done
-    Indices,
-    L2,
+    Indices(indicies::Indicies),                  //Done but need to compleate from verifications
+    L2(l2::L2),                                   //Done
 }

@@ -59,7 +59,7 @@ impl Request for LastQuote {
             return Err(check);
         }
         self.last_quote_url = String::from(format!(
-            "{}/{}/{}/{}apiKey={}",
+            "{}/{}/{}/{}?apiKey={}",
             Self::BASE_URL,
             Self::VERSION,
             Self::CALL,
