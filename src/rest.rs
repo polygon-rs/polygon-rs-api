@@ -638,7 +638,7 @@ pub trait Request {
         }
     }
 
-    fn polygon_request(&mut self) -> Result<Value, ErrorCode> {
+    fn polygon_request(&mut self) -> Result<serde_json::Map<String, Value>, ErrorCode> {
         if let Err(check) = self.set_url() {
             return Err(check);
         }
@@ -646,7 +646,7 @@ pub trait Request {
             Ok(response) => response,
             Err(e) => return Err(e),
         };
-        let v: Value = match serde_json::from_str(r.as_str()) {
+        let v: serde_json::Map<String, Value> = match serde_json::from_str(r.as_str()) {
             Ok(it) => it,
             Err(err) => {
                 println!("{}", err);

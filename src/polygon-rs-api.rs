@@ -1,6 +1,8 @@
 pub mod rest;
 pub mod tools;
 pub mod web_socket;
+pub mod data_types;
+
 
 use crate::rest::{
     error::ErrorCode,
@@ -12,3 +14,4 @@ use crate::rest::{
 };
 
 use crate::tools::regex_patterns::RegexPatterns;
+

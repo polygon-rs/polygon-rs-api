@@ -7,7 +7,7 @@ use crate::rest::{
 };
 
 #[derive(serde::Serialize, serde::Deserialize, Clone, Debug, Default)]
-pub struct Chain {
+pub struct Options Chain {
     chain_parameters: Parameters,
     chain_url: String,
     pub request_id: Option<String>,
@@ -59,6 +59,7 @@ impl Chain {
         }
     }
 }
+
 
 impl Parse for Chain{
     fn parse(map: &serde_json::Map<String, serde_json::Value>) -> Self {

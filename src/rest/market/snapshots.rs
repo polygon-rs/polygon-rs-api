@@ -1,3 +1,7 @@
+
+use crate::rest::error::ErrorCode;
+use crate::rest::parameters::Parameters;
+
 pub mod chain;
 pub mod contract;
 pub mod gainers_losers;
@@ -17,4 +21,15 @@ pub enum Snapshots {
     Contract(contract::Contract),                 //Done
     Indices(indicies::Indicies),                  //Done but need to compleate from verifications
     L2(l2::L2),                                   //Done
+}
+
+pub struct Snapshot {
+    parameters: Parameters,
+    url: String,
+}
+
+impl Snapshot {
+    pub fn get_options_chain() ->  Result<OptionsChain, ErrorCode>{
+        Ok(OptionsChain{})
+    }
 }
