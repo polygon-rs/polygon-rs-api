@@ -34,6 +34,12 @@ pub enum ErrorCode {
     TickersNotSet,
     UnderlyingAssetNotSet,
     StrikePriceToError,
+    StrikePriceFromNotSet,
+    StrikePriceToNotSet,
+    AmountNotSet,
+    PrecisionNotSet,
+    DirectionNotSet,
+    TickerTypeNotSet,
 }
 
 impl fmt::Display for ErrorCode {
@@ -71,6 +77,12 @@ impl fmt::Display for ErrorCode {
             ErrorCode::TickersNotSet => f.write_str("There is no tickers set"),
             ErrorCode::UnderlyingAssetNotSet => f.write_str("There is no underlying asset set"),
             ErrorCode::StrikePriceToError => f.write_str("There is an issue with the strike price to"),
+            ErrorCode::StrikePriceFromNotSet => f.write_str("There is no Strike Price From Set"),
+            ErrorCode::StrikePriceToNotSet => f.write_str("There is no Strike Price To Set"),
+            ErrorCode::AmountNotSet => f.write_str("There is no amount set"),
+            ErrorCode::PrecisionNotSet => f.write_str("There is no precision set"),
+            ErrorCode::DirectionNotSet => f.write_str("There is no direction set"),
+            ErrorCode::TickerTypeNotSet => f.write_str("There is no ticker type set"),
         }
     }
 }

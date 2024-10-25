@@ -97,6 +97,7 @@ pub enum Parameter {
     Tickers,
     TickerFrom,
     TickerTo,
+    TickerType,
     Date,
     Adjusted,
     Sort,
@@ -117,6 +118,7 @@ pub enum Parameter {
     Precision,
     Direction,
     UnderlyingAsset,
+
 }
 
 #[derive(Clone, Debug)]
@@ -153,6 +155,7 @@ pub struct Parameters {
     pub precision: Option<u8>,
     pub direction: Option<Direction>,
     pub underlying_asset: Option<String>,
+    pub ticker_type: Option<TickerType>,
 }
 
 #[derive(Serialize, Deserialize, Clone, Debug, Default, Display)]

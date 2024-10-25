@@ -1,4 +1,4 @@
-use crate::ErrorCode;
+use crate::rest::error::ErrorCode;
 use regex::Regex;
 
 pub struct RegexPatterns {}
