@@ -1,7 +1,7 @@
 use crate::{
     data_types::{bar::Bar, Parse},
     rest::{error::ErrorCode,parameters::{Parameter, ParameterRequirment, Parameters, Sort, TickerTypes, Timespan}},
-    tools::{request::Request, verification::Verification},
+    tools::{request::{Next, Request}, verification::Verification},
 };
 use serde::{Deserialize, Serialize};
 
@@ -15,21 +15,6 @@ pub struct Aggregates {
     pub results_count: Option<i64>,
     pub ticker: Option<String>,
     pub query_count: Option<i64>,
-}
-
-impl Aggregates {
-    fn next(&mut self, api_key: String, request: &impl Request) -> Result<(), ErrorCode> {
-        if self.next_url.is_none() {
-            return Err(ErrorCode::NoNextURL);
-        }
-        let next_url = if let Some(next_url) = &self.next_url {
-            format!("{}&apiKey={}",next_url, api_key)
-        } else { return Err(ErrorCode::NoNextURL); };
-        match request.request(next_url) {
-            Ok(mut map) => {*self = Aggregates::parse(&mut map); Ok(())},
-            Err(e) => return Err(e),
-        }
-    }
 }
 
 impl AggregatesRequest for Aggregates {}
@@ -76,6 +61,8 @@ impl Parse for Aggregates {
         }
     }
 }
+
+impl Next for Aggregates {}
 
 pub trait AggregatesRequest {
     fn get_aggregates (

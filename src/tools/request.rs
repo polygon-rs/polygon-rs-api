@@ -1,4 +1,4 @@
-use crate::rest::error::ErrorCode;
+use crate::{data_types, rest::error::ErrorCode};
 use serde_json::Value;
 
 pub trait Request {
@@ -23,6 +23,23 @@ pub trait Request {
                 println!("{}", err);
                 return Err(ErrorCode::JSONParseError);
             }
+        }
+    }
+
+
+}
+
+pub trait Next {
+    fn next<T: data_types::Parse>(url: Option<String>, api_key: String, request: &impl Request) -> Result<T, ErrorCode> {
+        if url.is_none() {
+            return Err(ErrorCode::NoNextURL);
+        }
+        let next_url = if let Some(next_url) = url {
+            format!("{}&apiKey={}",next_url, api_key)
+        } else { return Err(ErrorCode::NoNextURL); };
+        match request.request(next_url) {
+            Ok(mut map) =>  Ok(T::parse(&mut map)),
+            Err(e) => return Err(e),
         }
     }
 }

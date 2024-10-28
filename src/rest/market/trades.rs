@@ -2,9 +2,12 @@ use crate::{
     data_types::{trade::Trade, Parse},
     rest::{
         error::ErrorCode,
-        parameters::{Parameter, ParameterRequirment, Parameters, TickerTypes, Sortv3, Order},
+        parameters::{Order, Parameter, ParameterRequirment, Parameters, Sortv3, TickerTypes},
     },
-    tools::{request::Request, verification::Verification},
+    tools::{
+        request::{Next, Request},
+        verification::Verification,
+    },
 };
 use serde::{Deserialize, Serialize};
 
@@ -14,21 +17,6 @@ pub struct Trades {
     pub request_id: Option<String>,
     pub trades: Option<Vec<Trade>>,
     pub status: Option<String>,
-}
-
-impl Trades {
-    fn next(&mut self, api_key: String, request: &impl Request) -> Result<(), ErrorCode> {
-        if self.next_url.is_none() {
-            return Err(ErrorCode::NoNextURL);
-        }
-        let next_url = if let Some(next_url) = &self.next_url {
-            format!("{}&apiKey={}",next_url, api_key)
-        } else { return Err(ErrorCode::NoNextURL); };
-        match request.request(next_url) {
-            Ok(mut map) => {*self = Trades::parse(&mut map); Ok(())},
-            Err(e) => return Err(e),
-        }
-    }
 }
 
 impl TradesRequest for Trades {}
@@ -43,10 +31,11 @@ impl Parse for Trades {
             .get("next_url")
             .and_then(|v| v.as_str())
             .map(|v| v.to_string());
-        let trades = map
-            .get("results")
-            .and_then(|v| v.as_array())
-            .map(|v| v.iter().map(|v| Trade::parse(v.clone().as_object_mut().unwrap())).collect());
+        let trades = map.get("results").and_then(|v| v.as_array()).map(|v| {
+            v.iter()
+                .map(|v| Trade::parse(v.clone().as_object_mut().unwrap()))
+                .collect()
+        });
         let status = map
             .get("status")
             .and_then(|v| v.as_str())
@@ -60,6 +49,8 @@ impl Parse for Trades {
         }
     }
 }
+
+impl Next for Trades {}
 
 pub trait TradesRequest {
     fn get_trades(
@@ -90,8 +81,11 @@ pub trait TradesRequest {
             order: order,
             ..Parameters::default()
         };
-        if let Err(check) = verification.check_parameters(&TickerTypes::set(true, true, false, false, true), PARAMETERS, &trades_parameters)
-        {
+        if let Err(check) = verification.check_parameters(
+            &TickerTypes::set(true, true, false, false, true),
+            PARAMETERS,
+            &trades_parameters,
+        ) {
             return Err(check);
         }
         let url = url(&trades_parameters);
@@ -103,71 +97,70 @@ pub trait TradesRequest {
 }
 
 const PARAMETERS: &'static [&'static ParameterRequirment] = &[
-        &ParameterRequirment {
-            required: true,
-            parameter: Parameter::Ticker,
-        },
-        &ParameterRequirment {
-            required: false,
-            parameter: Parameter::Timestamp,
-        },
-        &ParameterRequirment {
-            required: false,
-            parameter: Parameter::From,
-        },
-        &ParameterRequirment {
-            required: false,
-            parameter: Parameter::To,
-        },
-        &ParameterRequirment {
-            required: false,
-            parameter: Parameter::Order,
-        },
-        &ParameterRequirment {
-            required: false,
-            parameter: Parameter::Limit,
-        },
-        &ParameterRequirment {
-            required: false,
-            parameter: Parameter::Sortv3,
-        },
-    ];
+    &ParameterRequirment {
+        required: true,
+        parameter: Parameter::Ticker,
+    },
+    &ParameterRequirment {
+        required: false,
+        parameter: Parameter::Timestamp,
+    },
+    &ParameterRequirment {
+        required: false,
+        parameter: Parameter::From,
+    },
+    &ParameterRequirment {
+        required: false,
+        parameter: Parameter::To,
+    },
+    &ParameterRequirment {
+        required: false,
+        parameter: Parameter::Order,
+    },
+    &ParameterRequirment {
+        required: false,
+        parameter: Parameter::Limit,
+    },
+    &ParameterRequirment {
+        required: false,
+        parameter: Parameter::Sortv3,
+    },
+];
 
-    fn url(parametes: &Parameters) -> String {
-        
-        String::from(format!(
-            "https://api.polygon.io/v3/trades/{}?{}{}{}{}{}{}apiKey={}",
-            parametes.ticker.clone().unwrap(),
-            if let Some(t) = parametes.clone().timestamp {
-                format!("timestamp={}&", t)
-            } else {
-                "".to_string()
-            },
-            if let Some(tf) = parametes.clone().from {
-                format!("timestamp.gte={}&", tf)
-            } else {
-                "".to_string()
-            },
-            if let Some(tt) = parametes.clone().to {
-                format!("timestamp.lte={}&", tt)
-            } else {
-                "".to_string()
-            },
-            if let Some(o) = parametes.clone().order {
-                format!("order={}&", o)
-            } else {
-                "".to_string()
-            },
-            if let Some(l) = parametes.clone().limit {
-                format!("limit={}&", l)
-            } else {
-                "".to_string()
-            },
-            if let Some(s) = parametes.clone().sortv3 {
-                format!("sort={}&", s)
-            } else {
-                "".to_string()
-            },
-            parametes.api_key,
-        ))
-    }
+fn url(parametes: &Parameters) -> String {
+    String::from(format!(
+        "https://api.polygon.io/v3/trades/{}?{}{}{}{}{}{}apiKey={}",
+        parametes.ticker.clone().unwrap(),
+        if let Some(t) = parametes.clone().timestamp {
+            format!("timestamp={}&", t)
+        } else {
+            "".to_string()
+        },
+        if let Some(tf) = parametes.clone().from {
+            format!("timestamp.gte={}&", tf)
+        } else {
+            "".to_string()
+        },
+        if let Some(tt) = parametes.clone().to {
+            format!("timestamp.lte={}&", tt)
+        } else {
+            "".to_string()
+        },
+        if let Some(o) = parametes.clone().order {
+            format!("order={}&", o)
+        } else {
+            "".to_string()
+        },
+        if let Some(l) = parametes.clone().limit {
+            format!("limit={}&", l)
+        } else {
+            "".to_string()
+        },
+        if let Some(s) = parametes.clone().sortv3 {
+            format!("sort={}&", s)
+        } else {
+            "".to_string()
+        },
+        parametes.api_key,
+    ))
+}

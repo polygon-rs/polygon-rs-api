@@ -5,7 +5,7 @@ use crate::rest::{
     },
     error::ErrorCode,
 };
-use crate::tools::{request::Request, verification::Verification};
+use crate::tools::{request::{Next, Request}, verification::Verification};
 
 #[derive(serde::Serialize, serde::Deserialize, Clone, Debug)]
 pub struct OptionsChain {
@@ -13,21 +13,6 @@ pub struct OptionsChain {
     pub next_url: Option<String>,
     pub chain: Option<Vec<Contract>>,
     pub status: Option<String>,
-}
-
-impl OptionsChain {
-    fn next(&mut self, api_key: String, request: &impl Request) -> Result<(), ErrorCode> {
-        if self.next_url.is_none() {
-            return Err(ErrorCode::NoNextURL);
-        }
-        let next_url = if let Some(next_url) = &self.next_url {
-            format!("{}&apiKey={}",next_url, api_key)
-        } else { return Err(ErrorCode::NoNextURL); };
-        match request.request(next_url) {
-            Ok(mut map) => {*self = OptionsChain::parse(&mut map); Ok(())},
-            Err(e) => return Err(e),
-        }
-    }
 }
 
 impl OptionsChainRequest for OptionsChain {}
@@ -66,6 +51,8 @@ impl Parse for OptionsChain {
         }
     }
 }
+
+impl Next for OptionsChain {}
 
 pub trait OptionsChainRequest {
     fn get_options_chain(

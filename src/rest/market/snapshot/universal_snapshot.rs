@@ -3,7 +3,7 @@ use crate::rest::{
     parameters::{Order, Parameter, ParameterRequirment, Parameters, Sortv3, TickerType, TickerTypes},
     error::ErrorCode,
 };
-use crate::tools::{request::Request, verification::Verification};
+use crate::tools::{request::{Next, Request}, verification::Verification};
 use serde::{Deserialize, Serialize};
 
 #[derive(Serialize, Deserialize, Clone, Debug)]
@@ -12,21 +12,6 @@ pub struct UniversalSnapshot {
     pub universal: Option<Vec<Universal>>,
     pub request_id: Option<String>,
     pub next_url: Option<String>,
-}
-
-impl UniversalSnapshot {
-    fn next(&mut self, api_key: String, request: &impl Request) -> Result<(), ErrorCode> {
-        if self.next_url.is_none() {
-            return Err(ErrorCode::NoNextURL);
-        }
-        let next_url = if let Some(next_url) = &self.next_url {
-            format!("{}&apiKey={}",next_url, api_key)
-        } else { return Err(ErrorCode::NoNextURL); };
-        match request.request(next_url) {
-            Ok(mut map) => {*self = UniversalSnapshot::parse(&mut map); Ok(())},
-            Err(e) => return Err(e),
-        }
-    }
 }
 
 impl UniversalSnapshotRequest for UniversalSnapshot {}
@@ -62,6 +47,8 @@ impl Parse for UniversalSnapshot {
         }
     }
 }
+
+impl Next for UniversalSnapshot {}
 
 pub trait UniversalSnapshotRequest {
     fn get_universal_snapshot(
