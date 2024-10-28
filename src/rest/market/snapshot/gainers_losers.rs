@@ -25,7 +25,7 @@ impl Parse for GainersLosers {
             .and_then(|v| v.as_array()).map(|v| {
                 let mut tickers = Vec::new();
                 for ticker in v {
-                    if let Some(t) = ticker.as_object_mut().map(|v| Ticker::parse(v)) {
+                    if let Some(t) = ticker.clone().as_object_mut().map(|v| Ticker::parse(v)) {
                         tickers.push(t);
                     }
             }
@@ -99,7 +99,7 @@ fn url(parameters: &Parameters, locale: String, ticker_type: TickerType) -> Stri
         "https://api.polygon.io/v2/snapshot/locale/{}/markets/{}/{}?{}apiKey={}",
         locale,
         ticker_type.to_string().to_lowercase(),
-        if let Some(s) = parameters.direction {
+        if let Some(s) = parameters.clone().direction {
             format!("direction={}&", s.to_string().to_lowercase())
         } else {
             "".to_string()

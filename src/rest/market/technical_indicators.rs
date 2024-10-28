@@ -3,7 +3,9 @@ pub mod macd;
 pub mod rsi;
 pub mod sma;
 
-#[derive(serde::Deserialize)]
+use serde::{Deserialize, Serialize};
+
+#[derive(Serialize, Deserialize)]
 pub enum TechnicalIndicators {
     EMA,
     MACD,

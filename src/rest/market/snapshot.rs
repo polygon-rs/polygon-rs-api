@@ -31,18 +31,18 @@ pub enum Snapshot {
 
 pub trait SnapshotRequest {}
 
-impl<T: SnapshotRequest> GainersLosersRequest for T {}
+impl GainersLosersRequest for dyn SnapshotRequest {}
 
-impl<T: SnapshotRequest> IndiciesSnapshotRequest for T {}
+impl IndiciesSnapshotRequest for dyn SnapshotRequest {}
 
-impl<T: SnapshotRequest> L2SnapshotRequest for T {}
+impl L2SnapshotRequest for dyn SnapshotRequest {}
 
-impl<T: SnapshotRequest> OptionsChainRequest for T {}
+impl OptionsChainRequest for dyn SnapshotRequest {}
 
-impl<T: SnapshotRequest> OptionsContractRequest for T {}
+impl OptionsContractRequest for dyn SnapshotRequest {}
 
-impl<T: SnapshotRequest> TickerSnapshotRequest for T {}
+impl TickerSnapshotRequest for dyn SnapshotRequest {}
 
-impl<T: SnapshotRequest> TickersSnapshotRequest for T {}
+impl TickersSnapshotRequest for dyn SnapshotRequest {}
 
-impl<T: SnapshotRequest> UniversalSnapshotRequest for T {}
+impl UniversalSnapshotRequest for dyn SnapshotRequest {}

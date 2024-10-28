@@ -1,112 +1,90 @@
 use crate::{
-    rest::parameters::TickerTypes, ErrorCode, Parameter, ParameterRequirment, Parameters, Request,
+    data_types::{trade::Trade, Parse},
+    rest::{
+        error::ErrorCode,
+        parameters::{Parameter, ParameterRequirment, Parameters, TickerTypes},
+    },
+    tools::{request::Request, verification::Verification},
 };
+use serde::{Deserialize, Serialize};
 
-#[derive(serde::Deserialize, Clone, Debug, Default)]
+#[derive(Serialize, Deserialize, Clone, Debug)]
 pub struct PairTrade {
-    bbo_parameters: Parameters,
-    bbo_url: String,
-    to: String,
-    from: String,
-    pub request_id: String,
-    pub trade: Trade,
-    pub status: String,
-    pub symbol: String,
+    pub request_id: Option<String>,
+    pub pair_trade: Option<Trade>,
+    pub status: Option<String>,
+    pub symbol: Option<String>,
 }
 
-#[derive(serde::Deserialize, Clone, Debug, Default)]
-pub struct Trade {
-    pub conditions: Vec<i64>,
-    pub price: f64,
-    pub size: f64,
-    pub timestamp: i64,
-    pub exchange: i64,
+impl PairTradeRequest for PairTrade {}
+
+impl Parse for PairTrade {
+    fn parse(map: &mut serde_json::Map<String, serde_json::Value>) -> Self {
+        let request_id = map
+            .get("request_id")
+            .and_then(|v| v.as_str())
+            .map(|v| v.to_string());
+        let pair_trade = map
+            .get_mut("last")
+            .and_then(|v| v.as_object_mut())
+            .map(|v| Trade::parse(v));
+        let status = map
+            .get("status")
+            .and_then(|v| v.as_str())
+            .map(|v| v.to_string());
+        let symbol = map
+            .get("symbol")
+            .and_then(|v| v.as_str())
+            .map(|v| v.to_string());
+        PairTrade {
+            request_id,
+            pair_trade,
+            status,
+            symbol,
+        }
+    }
 }
 
-impl PairTrade {
-    pub fn set_parameters(&mut self, api_key: String, ticker: String) {
-        self.to = ticker.clone();
-        self.from = ticker.clone();
-        self.bbo_parameters = Parameters {
+pub trait PairTradeRequest {
+    fn set_parameters(
+        api_key: String,
+        ticker: String,
+        request: &impl Request,
+        verification: &impl Verification,
+    ) -> Result<PairTrade, ErrorCode> {
+        let pair_trade_parameters = Parameters {
             api_key: api_key,
             ticker: Some(ticker),
             ..Parameters::default()
+        };
+        if let Err(check) = verification.check_parameters(
+            &&TickerTypes::crypto(),
+            PARAMETERS,
+            &pair_trade_parameters,
+        ) {
+            return Err(check);
+        }
+        let url = url(&pair_trade_parameters);
+        match request.request(url) {
+            Ok(mut map) => Ok(PairTrade::parse(&mut map)),
+            Err(e) => return Err(e),
         }
     }
 }
 
-impl Request for PairTrade {
-    const VERSION: &'static str = "v1";
-    const CALL: &'static str = "last/crypto";
-    const PARAMETERS: &'static [&'static ParameterRequirment] = &[&ParameterRequirment {
-        required: true,
-        parameter: Parameter::Ticker,
-    }];
+const PARAMETERS: &'static [&'static ParameterRequirment] = &[&ParameterRequirment {
+    required: true,
+    parameter: Parameter::Ticker,
+}];
 
-    fn parameters(&self) -> &Parameters {
-        &self.bbo_parameters
-    }
-
-    fn url(&mut self) -> &String {
-        &self.bbo_url
-    }
-
-    fn set_url(&mut self) -> Result<(), ErrorCode> {
-        if let Err(check) = self.check_parameters(&&TickerTypes::crypto()) {
-            return Err(check);
-        }
-        //Need a different method to extract to and from as Crypto can be different lengths
-        let from = self.from[2..4].to_string();
-        let to = self.to[5..7].to_string();
-        self.bbo_url = String::from(format!(
-            "{}/{}/{}/{}/{}?apiKey={}",
-            Self::BASE_URL,
-            Self::VERSION,
-            Self::CALL,
-            from,
-            to,
-            self.parameters().clone().api_key,
-        ));
-        Ok(())
-    }
-
-    fn request(&mut self) -> Result<(), ErrorCode> {
-        match self.polygon_request() {
-            Ok(response) => {
-                if let Some(request_id) = response["request_id"].as_str() {
-                    self.request_id = request_id.to_string()
-                }
-                if let Some(status) = response["status"].as_str() {
-                    self.status = status.to_string()
-                }
-                if let Some(symbol) = response["symbol"].as_str() {
-                    self.symbol = symbol.to_string()
-                }
-                if let Some(last) = response["last"].as_object() {
-                    if let Some(conditions) = last["conditions"].as_array() {
-                        for condition in conditions {
-                            if let Some(c) = condition.as_i64() {
-                                self.trade.conditions.push(c)
-                            }
-                        }
-                    }
-                    if let Some(ask_exchange) = last["exchange"].as_i64() {
-                        self.trade.exchange = ask_exchange
-                    }
-                    if let Some(ask_price) = last["price"].as_f64() {
-                        self.trade.price = ask_price
-                    }
-                    if let Some(bid_price) = last["size"].as_f64() {
-                        self.trade.size = bid_price
-                    }
-                    if let Some(participant_timestamp) = last["timestamp"].as_i64() {
-                        self.trade.timestamp = participant_timestamp
-                    }
-                }
-            }
-            Err(e) => return Err(e),
-        };
-
-        Ok(())
-    }
+fn url(parameters: &Parameters) -> String {
+    //Need a different method to extract to and from as Crypto can be different lengths
+    let from = parameters.ticker.clone().unwrap()[2..4].to_string();
+    let to = parameters.ticker.clone().unwrap()[5..7].to_string();
+    String::from(format!(
+        "https://api.polygon.io/v1/last/crypto/{}/{}?apiKey={}",
+        from,
+        to,
+        parameters.clone().api_key,
+    ))
 }

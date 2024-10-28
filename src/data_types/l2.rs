@@ -17,14 +17,14 @@ impl Parse for L2{
         let bids = map.get("bids").and_then(|v| v.as_array()).map(|v| {
             let mut bids = Vec::new();
             for bid in v {
-                bids.push(Bid::parse(bid));
+                bids.push(Bid::parse(bid.clone().as_object_mut().unwrap()));
             }
             bids
         });
         let asks = map.get("asks").and_then(|v| v.as_array()).map(|v| {
             let mut asks = Vec::new();
             for ask in v {
-                asks.push(Ask::parse(ask));
+                asks.push(Ask::parse(ask.clone().as_object_mut().unwrap()));
             }
             asks
         });

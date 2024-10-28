@@ -23,7 +23,7 @@ impl Parse for L2Snapshot {
         let l2 = map.get_mut("data").and_then(|v| v.as_array()).map(|v| {
             let mut l2s = Vec::new();
             for l in v {
-                if let Some(i) = l.as_object_mut().map(|v| L2::parse(v)) {
+                if let Some(i) = l.clone().as_object_mut().map(|v| L2::parse(v)) {
                     l2s.push(i);
                 }
             }
@@ -71,7 +71,7 @@ const PARAMETERS: &'static [&'static ParameterRequirment] = &[&ParameterRequirme
 fn url(parameters: &Parameters) -> String {
     String::from(format!(
         "https://api.polygon.io/v2/snapshot/locale/global/markets/crypto/tickers/{}/book?apiKey={}",
-        if let Some(s) = parameters.ticker {
+        if let Some(s) = parameters.clone().ticker {
            s
         } else {
             "".to_string()

@@ -80,7 +80,7 @@ fn url(parameters: &Parameters, locale: String, ticker_type: TickerType) -> Stri
         "https://api.polygon.io/v2/snapshot/locale/{}/markets/{}/tickers/{}?apiKey={}",
         locale,
         ticker_type.to_string().to_lowercase(),
-        parameters.ticker.unwrap(),
+        parameters.ticker.clone().unwrap(),
         parameters.api_key,
     ))
 }

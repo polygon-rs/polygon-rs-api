@@ -1,4 +1,5 @@
 pub mod ask;
+pub mod bar;
 pub mod bid;
 pub mod contract;
 pub mod day;

@@ -29,11 +29,11 @@ impl Parse for TickersSnapshot {
             .and_then(|v| v.as_array()).map(|v| {
                 let mut tickers = Vec::new();
                 for ticker in v {
-                    if let Some(t) = ticker.as_object_mut().map(|v| Ticker::parse(v)) {
+                if let Some(t) = ticker.clone().as_object_mut().map(|v| Ticker::parse(v)) {
                         tickers.push(t);
                     }
             }
-            tickers
+            tickers.clone()
         });
         TickersSnapshot {
             status,
@@ -64,7 +64,7 @@ pub trait TickersSnapshotRequest {
         };
         let tickers_snapshot_parameters = Parameters {
             api_key: api_key,
-            tickers: Some(tickers),
+            tickers: tickers,
             include_otc: includeotc,
             ..Parameters::default()
         };
@@ -102,7 +102,7 @@ const PARAMETERS: &'static [&'static ParameterRequirment] = &[
 fn url(parameters: &Parameters, locale: String, ticker_type: TickerType) -> String {
     let tickers = {
         let mut tickers_flattened = String::new();
-        if let Some(tickers) =parameters.tickers{
+        if let Some(tickers) =parameters.clone().tickers{
             for ticker in tickers {
                 tickers_flattened = tickers_flattened.replace('&', ",");
                 tickers_flattened = format!("{}{}&", tickers_flattened, ticker);

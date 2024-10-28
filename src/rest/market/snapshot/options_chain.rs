@@ -15,6 +15,21 @@ pub struct OptionsChain {
     pub status: Option<String>,
 }
 
+impl OptionsChain {
+    fn next(&mut self, api_key: String, request: &impl Request) -> Result<(), ErrorCode> {
+        if self.next_url.is_none() {
+            return Err(ErrorCode::NoNextURL);
+        }
+        let next_url = if let Some(next_url) = &self.next_url {
+            format!("{}&apiKey={}",next_url, api_key)
+        } else { return Err(ErrorCode::NoNextURL); };
+        match request.request(next_url) {
+            Ok(mut map) => {*self = OptionsChain::parse(&mut map); Ok(())},
+            Err(e) => return Err(e),
+        }
+    }
+}
+
 impl OptionsChainRequest for OptionsChain {}
 
 impl Parse for OptionsChain {

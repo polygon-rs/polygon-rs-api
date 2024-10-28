@@ -40,6 +40,7 @@ pub enum ErrorCode {
     PrecisionNotSet,
     DirectionNotSet,
     TickerTypeNotSet,
+    NoNextURL,
 }
 
 impl fmt::Display for ErrorCode {
@@ -83,6 +84,7 @@ impl fmt::Display for ErrorCode {
             ErrorCode::PrecisionNotSet => f.write_str("There is no precision set"),
             ErrorCode::DirectionNotSet => f.write_str("There is no direction set"),
             ErrorCode::TickerTypeNotSet => f.write_str("There is no ticker type set"),
+            ErrorCode::NoNextURL => f.write_str("The is no next URL"),
         }
     }
 }

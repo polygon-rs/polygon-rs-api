@@ -1,126 +1,118 @@
-use crate::{ErrorCode, Parameter, ParameterRequirment, Parameters, Request, TickerTypes};
+use crate::{
+    data_types::Parse,
+    rest::{
+        error::ErrorCode,
+        parameters::{Parameter, ParameterRequirment, Parameters, TickerTypes},
+    },
+    tools::{request::Request, verification::Verification},
+};
+use serde::{Deserialize, Serialize};
 
-#[derive(serde::Serialize, serde::Deserialize, Clone, Debug, Default)]
+#[derive(Serialize, Deserialize, Clone, Debug)]
 pub struct Daily {
-    #[serde(skip_serializing)]
-    daily_parameters: Parameters,
-    #[serde(skip_serializing)]
-    daily_url: String,
-    pub after_hours: f64,
-    pub close: f64,
-    pub from: String,
-    pub high: f64,
-    pub low: f64,
-    pub open: f64,
-    pub pre_market: f64,
-    pub status: String,
-    pub symbol: String,
-    pub volume: f64,
+    pub after_hours: Option<f64>,
+    pub close: Option<f64>,
+    pub from: Option<String>,
+    pub high: Option<f64>,
+    pub low: Option<f64>,
+    pub open: Option<f64>,
+    pub pre_market: Option<f64>,
+    pub status: Option<String>,
+    pub symbol: Option<String>,
+    pub volume: Option<f64>,
 }
 
-impl Daily {
-    pub fn set_parameters(
+impl DailyRequest for Daily {}
+
+impl Parse for Daily {
+    fn parse(map: &mut serde_json::Map<String, serde_json::Value>) -> Self {
+        let after_hours = map.get("afterHours").and_then(|v| v.as_f64());
+        let close = map.get("close").and_then(|v| v.as_f64());
+        let from = map
+            .get("from")
+            .and_then(|v| v.as_str().map(|s| s.to_string()));
+        let high = map.get("high").and_then(|v| v.as_f64());
+        let low = map.get("low").and_then(|v| v.as_f64());
+        let open = map.get("open").and_then(|v| v.as_f64());
+        let pre_market = map.get("preMarket").and_then(|v| v.as_f64());
+        let status = map
+            .get("status")
+            .and_then(|v| v.as_str().map(|s| s.to_string()));
+        let symbol = map
+            .get("symbol")
+            .and_then(|v| v.as_str().map(|s| s.to_string()));
+        let volume = map.get("volume").and_then(|v| v.as_f64());
+        Daily {
+            after_hours,
+            close,
+            from,
+            high,
+            low,
+            open,
+            pre_market,
+            status,
+            symbol,
+            volume,
+        }
+    }
+}
+
+pub trait DailyRequest {
+    fn get_daily(
         &mut self,
         api_key: String,
         ticker: String,
         date: String,
         adjusted: Option<bool>,
-    ) {
-        self.daily_parameters = Parameters {
+        request: &impl Request,
+        verification: &impl Verification,
+    ) -> Result<Daily, ErrorCode> {
+        let daily_parameters = Parameters {
             api_key: api_key,
             ticker: Some(ticker),
             date: Some(date),
             adjusted: adjusted,
             ..Parameters::default()
+        };
+        if let Err(check) = verification.check_parameters(
+            &TickerTypes::set(true, true, false, false, true),
+            PARAMETERS,
+            &daily_parameters,
+        ) {
+            return Err(check);
+        }
+        let url = url(&daily_parameters);
+        match request.request(url) {
+            Ok(mut map) => Ok(Daily::parse(&mut map)),
+            Err(e) => return Err(e),
         }
     }
 }
 
-impl Request for Daily {
-    const VERSION: &'static str = "v1";
-    const CALL: &'static str = "open-close";
-    const PARAMETERS: &'static [&'static ParameterRequirment] = &[
-        &ParameterRequirment {
-            required: true,
-            parameter: Parameter::Ticker,
+const PARAMETERS: &'static [&'static ParameterRequirment] = &[
+    &ParameterRequirment {
+        required: true,
+        parameter: Parameter::Ticker,
+    },
+    &ParameterRequirment {
+        required: true,
+        parameter: Parameter::Date,
+    },
+    &ParameterRequirment {
+        required: false,
+        parameter: Parameter::Adjusted,
+    },
+];
+fn url(parameters: &Parameters) -> String {
+    String::from(format!(
+        "https://api.polygon.io/v1/open-close/{}/{}?{}apiKey={}",
+        parameters.ticker.clone().unwrap(),
+        parameters.date.clone().unwrap(),
+        if let Some(adj) = parameters.adjusted {
+            format!("adjusted={}&", adj)
+        } else {
+            "".to_string()
         },
-        &ParameterRequirment {
-            required: true,
-            parameter: Parameter::Date,
-        },
-        &ParameterRequirment {
-            required: false,
-            parameter: Parameter::Adjusted,
-        },
-    ];
-
-    fn parameters(&self) -> &Parameters {
-        &self.daily_parameters
-    }
-
-    fn url(&mut self) -> &String {
-        &self.daily_url
-    }
-
-    fn set_url(&mut self) -> Result<(), ErrorCode> {
-        if let Err(check) = self.check_parameters(&TickerTypes::set(true, true, false, false, true))
-        {
-            return Err(check);
-        }
-        self.daily_url = String::from(format!(
-            "{}/{}/{}/{}/{}?{}apiKey={}",
-            Self::BASE_URL,
-            Self::VERSION,
-            Self::CALL,
-            self.parameters().clone().ticker.unwrap(),
-            self.parameters().clone().date.unwrap(),
-            if let Some(adj) = self.parameters().clone().adjusted {
-                format!("adjusted={}&", adj)
-            } else {
-                "".to_string()
-            },
-            self.parameters().clone().api_key,
-        ));
-        Ok(())
-    }
-
-    fn request(&mut self) -> Result<(), ErrorCode> {
-        match self.polygon_request() {
-            Ok(response) => {
-                if let Some(after_hours) = response["afterHours"].as_f64() {
-                    self.after_hours = after_hours
-                }
-                if let Some(close) = response["close"].as_f64() {
-                    self.close = close
-                }
-                if let Some(from) = response["from"].as_str() {
-                    self.from = from.to_string()
-                }
-                if let Some(high) = response["high"].as_f64() {
-                    self.high = high
-                }
-                if let Some(low) = response["low"].as_f64() {
-                    self.low = low
-                }
-                if let Some(open) = response["open"].as_f64() {
-                    self.open = open
-                }
-                if let Some(pre_market) = response["preMarket"].as_f64() {
-                    self.pre_market = pre_market
-                }
-                if let Some(status) = response["status"].as_str() {
-                    self.status = status.to_string()
-                }
-                if let Some(symbol) = response["symbol"].as_str() {
-                    self.symbol = symbol.to_string()
-                }
-                if let Some(volume) = response["volume"].as_f64() {
-                    self.volume = volume
-                }
-            }
-            Err(e) => return Err(e),
-        };
-
-        Ok(())
-    }
+        parameters.api_key,
+    ))
 }

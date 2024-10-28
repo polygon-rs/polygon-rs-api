@@ -14,6 +14,21 @@ pub struct IndiciesSnapshot {
     pub next_url: Option<String>,
 }
 
+impl IndiciesSnapshot {
+    fn next(&mut self, api_key: String, request: &impl Request) -> Result<(), ErrorCode> {
+        if self.next_url.is_none() {
+            return Err(ErrorCode::NoNextURL);
+        }
+        let next_url = if let Some(next_url) = &self.next_url {
+            format!("{}&apiKey={}",next_url, api_key)
+        } else { return Err(ErrorCode::NoNextURL); };
+        match request.request(next_url) {
+            Ok(mut map) => {*self = IndiciesSnapshot::parse(&mut map); Ok(())},
+            Err(e) => return Err(e),
+        }
+    }
+}
+
 impl IndiciesSnapshotRequest for IndiciesSnapshot {}
 
 impl Parse for IndiciesSnapshot {
@@ -33,7 +48,7 @@ impl Parse for IndiciesSnapshot {
         let indicies = map.get_mut("results").and_then(|v| v.as_array()).map(|v| {
             let mut indicies = Vec::new();
             for indicie in v {
-                if let Some(i) = indicie.as_object_mut().map(|v| Indicie::parse(v)) {
+                if let Some(i) = indicie.clone().as_object_mut().map(|v| Indicie::parse(v)) {
                     indicies.push(i);
                 }
             }
@@ -120,7 +135,7 @@ const PARAMETERS: &'static [&'static ParameterRequirment] = &[
 fn url(parameters: &Parameters) -> String {
     let tickers = {
         let mut tickers_flattened = String::new();
-        if let Some(tickers) = parameters.tickers {
+        if let Some(tickers) = parameters.clone().tickers {
             for ticker in tickers {
                 tickers_flattened = tickers_flattened.replace('&', ",");
                 tickers_flattened = format!("{}{}&", tickers_flattened, ticker);
@@ -132,27 +147,27 @@ fn url(parameters: &Parameters) -> String {
     String::from(format!(
         "https://api.polygon.io/v3/snapshot/indicies?{}{}{}{}{}{}apiKey={}",
         tickers,
-        if let Some(tf) = parameters.ticker_from {
+        if let Some(tf) = parameters.clone().ticker_from {
             format!("ticker.gte={}&", tf)
         } else {
             "".to_string()
         },
-        if let Some(tt) = parameters.ticker_to {
+        if let Some(tt) = parameters.clone().ticker_to {
             format!("ticker.lte={}&", tt)
         } else {
             "".to_string()
         },
-        if let Some(o) = parameters.order {
+        if let Some(o) = parameters.clone().order {
             format!("order={}&", o)
         } else {
             "".to_string()
         },
-        if let Some(l) = parameters.limit {
+        if let Some(l) = parameters.clone().limit {
             format!("limit={}&", l)
         } else {
             "".to_string()
         },
-        if let Some(s) = parameters.sortv3 {
+        if let Some(s) = parameters.clone().sortv3 {
             format!("sort={}&", s)
         } else {
             "".to_string()

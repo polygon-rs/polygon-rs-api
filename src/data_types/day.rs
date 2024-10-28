@@ -21,31 +21,31 @@ impl Parse for Day {
         let change = map.get("change").and_then(|v| v.as_f64());
         let change_percent = map.get("change_percent").and_then(|v| v.as_f64());
         if let Some(close) = map.get("c") {
-            map.insert(String::from("close"), close);
+            map.insert(String::from("close"), close.clone());
         };
         let close = map.get("close").and_then(|v| v.as_f64());
         if let Some(high) = map.get("h") {
-            map.insert(String::from("high"), high);
+            map.insert(String::from("high"), high.clone());
         };
         let high = map.get("high").and_then(|v| v.as_f64());
         let last_updated = map.get("last_updated").and_then(|v| v.as_i64());
         if let Some(low) = map.get("l") {
-            map.insert(String::from("low"), low);
+            map.insert(String::from("low"), low.clone());
         };
         let low = map.get("low").and_then(|v| v.as_f64());
         if let Some(open) = map.get("o") {
-            map.insert(String::from("open"), open);
+            map.insert(String::from("open"), open.clone());
         };
         let open = map.get("open").and_then(|v| v.as_f64());
         let previous_close = map.get("previous_close").and_then(|v| v.as_f64());
         if let Some(volume) = map.get("v") {
-            map.insert(String::from("volume"), volume);
+            map.insert(String::from("volume"), volume.clone());
         };
         let volume = map.get("volume").and_then(|v| v.as_i64());
         if let Some(volume_weighted_average_price) = map.get("vw") {
             map.insert(
                 String::from("volume_weighted_average_price"),
-                volume_weighted_average_price,
+                volume_weighted_average_price.clone(),
             );
         };
         let volume_weighted_average_price = map

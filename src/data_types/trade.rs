@@ -9,8 +9,15 @@ pub struct Trade {
     pub price: Option<f64>,
     pub sip_timestamp: Option<i64>,
     pub size: Option<i64>,
-    pub id: Option<String>,
+    pub trade_id: Option<String>,
     pub timeframe: Option<Timeframe>,
+    pub exchange: Option<String>,
+    pub trade_correction: Option<i64>,
+    pub trf_timestamp: Option<i64>,
+    pub sequence_number: Option<i64>,
+    pub trf_id: Option<i64>,
+    pub participant_timestamp: Option<i64>,
+    pub tape: Option<i64>,
 }
 
 impl Parse for Trade {
@@ -28,6 +35,9 @@ impl Parse for Trade {
             }
             conditions
         });
+        if let Some(exchange_id) = map.get("exchange") {
+            map.insert(String::from("exchange_id"), exchange_id.clone());
+        };
         if let Some(exchange_id) = map.get("x") {
             map.insert(String::from("exchange_id"), exchange_id.clone());
         };
@@ -36,6 +46,9 @@ impl Parse for Trade {
             map.insert(String::from("price"), price.clone());
         };
         let price = map.get("price").and_then(|v| v.as_f64());
+        if let Some(sip_timestamp) = map.get("timestamp") {
+            map.insert(String::from("sip_timestamp"), sip_timestamp.clone());
+        };
         if let Some(sip_timestamp) = map.get("t") {
             map.insert(String::from("sip_timestamp"), sip_timestamp.clone());
         };
@@ -44,7 +57,10 @@ impl Parse for Trade {
             map.insert(String::from("size"), size.clone());
         };
         let size = map.get("size").and_then(|v| v.as_i64());
-        let id = map.get("i").and_then(|v| v.as_str()).map(|v|{
+        if let Some(trade_id) = map.get("i") {
+            map.insert(String::from("id"), trade_id.clone());
+        };
+        let trade_id = map.get("id").and_then(|v| v.as_str()).map(|v|{
             String::from(v)
         });
         let timeframe = map
@@ -55,14 +71,49 @@ impl Parse for Trade {
                 "REAL-TIME" => Timeframe::RealTime,
                 _ => Timeframe::Unknown,
             });
+        let exchange = map
+            .get("T")
+            .and_then(|v| v.as_str())
+            .map(|v| v.to_string());
+        if let Some(trade_correction) = map.get("e") {
+            map.insert(String::from("correction"), trade_correction.clone());
+        };
+        let trade_correction = map.get("correction").and_then(|v| v.as_i64());
+        if let Some(trf_timestamp) = map.get("f") {
+            map.insert(String::from("trf_timestamp"), trf_timestamp.clone());
+        };
+        let trf_timestamp = map.get("trf_timestamp").and_then(|v| v.as_i64());
+        if let Some(sequence_number) = map.get("q") {
+            map.insert(String::from("sequence_number"), sequence_number.clone());
+        };
+        let sequence_number = map.get("sequence_number").and_then(|v| v.as_i64());
+        if let Some(trf_id) = map.get("r") {
+            map.insert(String::from("trf_id"), trf_id.clone());
+        };
+        let trf_id = map.get("trf_id").and_then(|v| v.as_i64());
+        if let Some(participant_timestamp) = map.get("y") {
+            map.insert(String::from("participant_timestamp"), participant_timestamp.clone());
+        };
+        let participant_timestamp = map.get("participant_timestamp").and_then(|v| v.as_i64());
+        if let Some(tape) = map.get("z") {
+            map.insert(String::from("tape"), tape.clone());
+        };
+        let tape = map.get("tape").and_then(|v| v.as_i64());
         Trade {
             conditions,
             exchange_id,
             price,
             sip_timestamp,
             size,
-            id,
+            trade_id,
             timeframe,
+            exchange,
+            trade_correction,
+            trf_timestamp,
+            sequence_number,
+            trf_id,
+            participant_timestamp,
+            tape,
         }
     }
 }
