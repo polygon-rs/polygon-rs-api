@@ -40,4 +40,4 @@ impl Parse for Bar {
             otc,
         }
     }
-}                       
+}

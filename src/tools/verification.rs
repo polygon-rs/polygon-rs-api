@@ -600,6 +600,33 @@ pub trait Verification{
                         return Err(check);
                     }
                 }
+                Parameter::ExpandUnderlying => {
+                    if let Err(check) = self.verify(
+                        parameter.required,
+                        &parameters.expand_underlying,
+                        &parameter.parameter,
+                    ) {
+                        return Err(check);
+                    }
+                }
+                Parameter::SeriesType => {
+                    if let Err(check) = self.verify(
+                        parameter.required,
+                        &parameters.series_type,
+                        &parameter.parameter,
+                    ) {
+                        return Err(check);
+                    }
+                }
+                Parameter::Window => {
+                    if let Err(check) = self.verify(
+                        parameter.required,
+                        &parameters.window,
+                        &parameter.parameter,
+                    ) {
+                        return Err(check);
+                    }
+                }
             }
         }
         if let Err(check) = self.verify_to_from(parameters) {

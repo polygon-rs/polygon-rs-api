@@ -118,7 +118,9 @@ pub enum Parameter {
     Precision,
     Direction,
     UnderlyingAsset,
-
+    Window,
+    SeriesType,
+    ExpandUnderlying,
 }
 
 #[derive(Clone, Debug)]
@@ -156,6 +158,9 @@ pub struct Parameters {
     pub direction: Option<Direction>,
     pub underlying_asset: Option<String>,
     pub ticker_type: Option<TickerType>,
+    pub window: Option<i64>,
+    pub series_type: Option<SeriesType>,
+    pub expand_underlying: Option<bool>,
 }
 
 #[derive(Serialize, Deserialize, Clone, Debug, Default, Display)]
@@ -218,4 +223,12 @@ pub enum Timespan {
 pub enum Direction {
     Gainers,
     Losers,
+}
+
+#[derive(Serialize, Deserialize, Clone, Debug, Display)]
+pub enum SeriesType {
+    Open,
+    High,
+    Low,
+    Close,
 }
