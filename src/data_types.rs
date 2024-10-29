@@ -7,6 +7,7 @@ pub mod details;
 pub mod greeks;
 pub mod indicie;
 pub mod l2;
+pub mod macd;
 pub mod min;
 pub mod moving_average;
 pub mod quote;

@@ -627,6 +627,33 @@ pub trait Verification{
                         return Err(check);
                     }
                 }
+                Parameter::LongWindow => {
+                    if let Err(check) = self.verify(
+                        parameter.required,
+                        &parameters.long_window,
+                        &parameter.parameter,
+                    ) {
+                        return Err(check);
+                    }
+                }
+                Parameter::ShortWindow => {
+                    if let Err(check) = self.verify(
+                        parameter.required,
+                        &parameters.short_window,
+                        &parameter.parameter,
+                    ) {
+                        return Err(check);
+                    }
+                }
+                Parameter::SignalWindow => {
+                    if let Err(check) = self.verify(
+                        parameter.required,
+                        &parameters.signal_window,
+                        &parameter.parameter,
+                    ) {
+                        return Err(check);
+                    }
+                }
             }
         }
         if let Err(check) = self.verify_to_from(parameters) {

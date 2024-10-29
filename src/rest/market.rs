@@ -26,6 +26,7 @@ use previous::PreviousRequest;
 use quotes::QuotesRequest;
 use serde::{Deserialize, Serialize};
 use snapshot::SnapshotRequest;
+use technical_indicators::TechnicalIndicatorsRequest;
 use trades::TradesRequest;
 
 #[derive(Serialize, Deserialize)]
@@ -42,7 +43,7 @@ pub enum Market {
     Previous(previous::Previous),
     Quotes(quotes::Quotes),
     Snapshots(snapshot::Snapshot),
-    TechnicalIndicators(technical_indicators::TechnicalIndicators), //Not Done
+    TechnicalIndicators(technical_indicators::TechnicalIndicators),
     Trades(trades::Trades),
 }
 
@@ -71,5 +72,7 @@ impl PairTradeRequest for dyn MarketRequest {}
 impl PreviousRequest for dyn MarketRequest {}
 
 impl QuotesRequest for dyn MarketRequest {}
+
+impl TechnicalIndicatorsRequest for dyn MarketRequest {}
 
 impl TradesRequest for dyn MarketRequest {}

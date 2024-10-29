@@ -121,6 +121,9 @@ pub enum Parameter {
     Window,
     SeriesType,
     ExpandUnderlying,
+    LongWindow,
+    ShortWindow,
+    SignalWindow,
 }
 
 #[derive(Clone, Debug)]
@@ -159,6 +162,9 @@ pub struct Parameters {
     pub underlying_asset: Option<String>,
     pub ticker_type: Option<TickerType>,
     pub window: Option<i64>,
+    pub long_window: Option<i64>,
+    pub short_window: Option<i64>,
+    pub signal_window: Option<i64>,
     pub series_type: Option<SeriesType>,
     pub expand_underlying: Option<bool>,
 }

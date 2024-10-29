@@ -1,5 +1,5 @@
 use crate::{
-    data_types::{bar::Bar, relative_strength::RelativeStrength, Parse},
+    data_types::{bar::Bar, macd::MACD, Parse},
     rest::{
         error::ErrorCode,
         parameters::{
@@ -14,18 +14,18 @@ use crate::{
 use serde::{Deserialize, Serialize};
 
 #[derive(Serialize, Deserialize, Clone, Debug)]
-pub struct RelativeStrengthIndex {
+pub struct MovingAverageConvergenceDivergence {
     pub next_url: Option<String>,
     pub request_id: Option<String>,
     pub status: Option<String>,
     pub bars: Option<Vec<Bar>>,
     pub bars_url: Option<String>,
-    pub relative_strength: Option<Vec<RelativeStrength>>,
+    pub macd: Option<Vec<MACD>>,
 }
 
-impl RelativeStrengthIndexRequest for RelativeStrengthIndex {}
+impl MovingAverageConvergenceDivergenceRequest for MovingAverageConvergenceDivergence {}
 
-impl Parse for RelativeStrengthIndex {
+impl Parse for MovingAverageConvergenceDivergence {
     fn parse(map: &mut serde_json::Map<String, serde_json::Value>) -> Self {
         let next_url = map
             .get("next_url")
@@ -58,29 +58,29 @@ impl Parse for RelativeStrengthIndex {
                 .map(|v| v.to_string()),
             None => None,
         };
-        let relative_strength = map.get("results").and_then(|v| {
+        let macd = map.get("results").and_then(|v| {
             v.as_object();
             v.get("values").and_then(|v| v.as_array()).map(|v| {
                 v.iter()
-                    .map(|v| RelativeStrength::parse(v.clone().as_object_mut().unwrap()))
+                    .map(|v| MACD::parse(v.clone().as_object_mut().unwrap()))
                     .collect()
             })
         });
 
-        RelativeStrengthIndex {
+        MovingAverageConvergenceDivergence {
             next_url,
             request_id,
             status,
             bars,
             bars_url,
-            relative_strength,
+            macd,
         }
     }
 }
 
-impl Next for RelativeStrengthIndex {}
+impl Next for MovingAverageConvergenceDivergence {}
 
-pub trait RelativeStrengthIndexRequest {
+pub trait MovingAverageConvergenceDivergenceRequest {
     fn get_relatvie_strength(
         api_key: String,
         ticker: String,
@@ -89,20 +89,22 @@ pub trait RelativeStrengthIndexRequest {
         to: Option<String>,
         timespan: Option<Timespan>,
         adjusted: Option<bool>,
-        window: Option<i64>,
+        long_window: Option<i64>,
+        short_window: Option<i64>,
+        signal_window: Option<i64>,
         series_type: Option<SeriesType>,
         expand_underlying: Option<bool>,
         order: Option<Order>,
         limit: Option<u16>,
         request: &impl Request,
         verification: &impl Verification,
-    ) -> Result<RelativeStrengthIndex, ErrorCode> {
+    ) -> Result<MovingAverageConvergenceDivergence, ErrorCode> {
         let ts = if to.is_some() || from.is_some() {
             None
         } else {
             timestamp
         };
-        let relatvie_strength_index_parameters = Parameters {
+        let moving_average_convergence_divergence_parameters = Parameters {
             api_key: api_key,
             ticker: Some(ticker),
             timestamp: ts,
@@ -110,7 +112,9 @@ pub trait RelativeStrengthIndexRequest {
             to: to,
             timespan: timespan,
             adjusted: adjusted,
-            window: window,
+            long_window: long_window,
+            short_window: short_window,
+            signal_window: signal_window,
             series_type: series_type,
             expand_underlying: expand_underlying,
             order: order,
@@ -120,13 +124,13 @@ pub trait RelativeStrengthIndexRequest {
         if let Err(check) = verification.check_parameters(
             &TickerTypes::all(),
             PARAMETERS,
-            &relatvie_strength_index_parameters,
+            &moving_average_convergence_divergence_parameters,
         ) {
             return Err(check);
         }
-        let url = url(&relatvie_strength_index_parameters);
+        let url = url(&moving_average_convergence_divergence_parameters);
         match request.request(url) {
-            Ok(mut map) => Ok(RelativeStrengthIndex::parse(&mut map)),
+            Ok(mut map) => Ok(MovingAverageConvergenceDivergence::parse(&mut map)),
             Err(e) => return Err(e),
         }
     }
@@ -159,7 +163,15 @@ const PARAMETERS: &'static [&'static ParameterRequirment] = &[
     },
     &ParameterRequirment {
         required: false,
-        parameter: Parameter::Window,
+        parameter: Parameter::LongWindow,
+    },
+    &ParameterRequirment {
+        required: false,
+        parameter: Parameter::ShortWindow,
+    },
+    &ParameterRequirment {
+        required: false,
+        parameter: Parameter::SignalWindow,
     },
     &ParameterRequirment {
         required: false,
@@ -181,7 +193,7 @@ const PARAMETERS: &'static [&'static ParameterRequirment] = &[
 
 fn url(parameters: &Parameters) -> String {
     String::from(format!(
-        "https://api.polygon.io/v1/indicators/rsi/{}?{}{}{}{}{}{}{}{}{}{}apiKey={}",
+        "https://api.polygon.io/v1/indicators/macd/{}?{}{}{}{}{}{}{}{}{}{}{}{}apiKey={}",
         parameters.ticker.clone().unwrap(),
         if let Some(t) = parameters.clone().timestamp {
             format!("timestamp={}&", t)
@@ -208,8 +220,18 @@ fn url(parameters: &Parameters) -> String {
         } else {
             "".to_string()
         },
-        if let Some(w) = parameters.clone().window {
-            format!("window={}&", w)
+        if let Some(w) = parameters.clone().long_window {
+            format!("long_window={}&", w)
+        } else {
+            "".to_string()
+        },
+        if let Some(w) = parameters.clone().short_window {
+            format!("short_window={}&", w)
+        } else {
+            "".to_string()
+        },
+        if let Some(w) = parameters.clone().signal_window {
+            format!("signal_window={}&", w)
         } else {
             "".to_string()
         },
