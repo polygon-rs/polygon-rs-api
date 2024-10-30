@@ -1,7 +1,7 @@
 use crate::data_types::{ticker::Ticker, Parse};
 use crate::rest::{
-    parameters::{Parameter, ParameterRequirment, Parameters, TickerType, TickerTypes},
     error::ErrorCode,
+    parameters::{Parameter, ParameterRequirment, Parameters, TickerType, TickerTypes},
 };
 use crate::tools::{request::Request, verification::Verification};
 use serde::{Deserialize, Serialize};
@@ -21,17 +21,13 @@ impl Parse for TickersSnapshot {
             .get("status")
             .and_then(|v| v.as_str())
             .map(|v| v.to_string());
-        let count = map
-            .get("count")
-            .and_then(|v| v.as_i64());
-        let tickers = map
-            .get_mut("tickers")
-            .and_then(|v| v.as_array()).map(|v| {
-                let mut tickers = Vec::new();
-                for ticker in v {
+        let count = map.get("count").and_then(|v| v.as_i64());
+        let tickers = map.get_mut("tickers").and_then(|v| v.as_array()).map(|v| {
+            let mut tickers = Vec::new();
+            for ticker in v {
                 if let Some(t) = ticker.clone().as_object_mut().map(|v| Ticker::parse(v)) {
-                        tickers.push(t);
-                    }
+                    tickers.push(t);
+                }
             }
             tickers.clone()
         });
@@ -68,11 +64,9 @@ pub trait TickersSnapshotRequest {
             include_otc: includeotc,
             ..Parameters::default()
         };
-        if let Err(check) = verification.check_parameters(
-            &ticker_types,
-            PARAMETERS,
-            &tickers_snapshot_parameters,
-        ) {
+        if let Err(check) =
+            verification.check_parameters(&ticker_types, PARAMETERS, &tickers_snapshot_parameters)
+        {
             return Err(check);
         }
         let locale = match ticker_type {
@@ -89,20 +83,20 @@ pub trait TickersSnapshotRequest {
 }
 
 const PARAMETERS: &'static [&'static ParameterRequirment] = &[
-        &ParameterRequirment {
-            required: false,
-            parameter: Parameter::Tickers,
-        },
-        &ParameterRequirment {
-            required: false,
-            parameter: Parameter::IncludeOTC,
-        },
-    ];
+    &ParameterRequirment {
+        required: false,
+        parameter: Parameter::Tickers,
+    },
+    &ParameterRequirment {
+        required: false,
+        parameter: Parameter::IncludeOTC,
+    },
+];
 
 fn url(parameters: &Parameters, locale: String, ticker_type: TickerType) -> String {
     let tickers = {
         let mut tickers_flattened = String::new();
-        if let Some(tickers) =parameters.clone().tickers{
+        if let Some(tickers) = parameters.clone().tickers {
             for ticker in tickers {
                 tickers_flattened = tickers_flattened.replace('&', ",");
                 tickers_flattened = format!("{}{}&", tickers_flattened, ticker);

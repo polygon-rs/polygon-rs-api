@@ -1,11 +1,14 @@
 use crate::data_types::{contract::Contract, Parse};
 use crate::rest::{
+    error::ErrorCode,
     parameters::{
         ContractType, Order, Parameter, ParameterRequirment, Parameters, Sortv3, TickerTypes,
     },
-    error::ErrorCode,
 };
-use crate::tools::{request::{Next, Request}, verification::Verification};
+use crate::tools::{
+    request::{Next, Request},
+    verification::Verification,
+};
 
 #[derive(serde::Serialize, serde::Deserialize, Clone, Debug)]
 pub struct OptionsChain {

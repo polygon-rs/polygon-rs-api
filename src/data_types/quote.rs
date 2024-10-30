@@ -118,7 +118,10 @@ impl Parse for Quote {
         };
         let sequence_number = map.get("sequence_number").and_then(|v| v.as_i64());
         if let Some(participant_timestamp) = map.get("y") {
-            map.insert(String::from("participant_timestamp"), participant_timestamp.clone());
+            map.insert(
+                String::from("participant_timestamp"),
+                participant_timestamp.clone(),
+            );
         };
         let participant_timestamp = map.get("participant_timestamp").and_then(|v| v.as_i64());
         if let Some(tape) = map.get("z") {

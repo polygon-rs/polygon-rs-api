@@ -75,6 +75,7 @@ const PARAMETERS: &'static [&'static ParameterRequirment] = &[&ParameterRequirme
 fn url(parameters: &Parameters) -> String {
     String::from(format!(
         "https://api.polygon.io/v2/last/nbbo/{}?apiKey={}",
-        parameters.ticker.clone().unwrap(), parameters.api_key,
+        parameters.ticker.clone().unwrap(),
+        parameters.api_key,
     ))
 }

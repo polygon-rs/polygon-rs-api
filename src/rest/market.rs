@@ -33,7 +33,7 @@ use trades::TradesRequest;
 pub enum Market {
     Aggregates(aggregates::Aggregates),
     BBO(bbo::BBO), // Change all parse arrays to this parse method
-    CurrencyConversion(currency_conversion::CurrencyConversion), 
+    CurrencyConversion(currency_conversion::CurrencyConversion),
     Daily(daily::Daily),
     Grouped(grouped_bars::GroupedBars),
     LastQuote(last_quote::LastQuote),

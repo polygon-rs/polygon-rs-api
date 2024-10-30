@@ -101,7 +101,7 @@ pub enum Parameter {
     Date,
     Adjusted,
     Sort,
-    Limit, //Configure per request Max limits as it can be different depending on the call 
+    Limit, //Configure per request Max limits as it can be different depending on the call
     Timespan,
     From,
     To,

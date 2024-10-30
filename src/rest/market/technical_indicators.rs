@@ -4,15 +4,17 @@ pub mod relative_strength_index;
 pub mod simple_moving_average;
 
 use exponential_moving_average::ExponentialMovingAverageRequest;
-use relative_strength_index::RelativeStrengthIndexRequest;
 use moving_average_converge_divergence::MovingAverageConvergenceDivergenceRequest;
+use relative_strength_index::RelativeStrengthIndexRequest;
 use serde::{Deserialize, Serialize};
 use simple_moving_average::SimpleMovingAverageRequest;
 
 #[derive(Serialize, Deserialize)]
 pub enum TechnicalIndicators {
     ExponentialMovingAverage(exponential_moving_average::ExponentialMovingAverage),
-    MovingAverageConvergenceDivergence(moving_average_converge_divergence::MovingAverageConvergenceDivergence),
+    MovingAverageConvergenceDivergence(
+        moving_average_converge_divergence::MovingAverageConvergenceDivergence,
+    ),
     RelativeStrengthIndex(relative_strength_index::RelativeStrengthIndex),
     SimpleMovingAverage(simple_moving_average::SimpleMovingAverage),
 }

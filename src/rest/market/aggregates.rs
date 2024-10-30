@@ -1,7 +1,13 @@
 use crate::{
     data_types::{bar::Bar, Parse},
-    rest::{error::ErrorCode,parameters::{Parameter, ParameterRequirment, Parameters, Sort, TickerTypes, Timespan}},
-    tools::{request::{Next, Request}, verification::Verification},
+    rest::{
+        error::ErrorCode,
+        parameters::{Parameter, ParameterRequirment, Parameters, Sort, TickerTypes, Timespan},
+    },
+    tools::{
+        request::{Next, Request},
+        verification::Verification,
+    },
 };
 use serde::{Deserialize, Serialize};
 
@@ -65,7 +71,7 @@ impl Parse for Aggregates {
 impl Next for Aggregates {}
 
 pub trait AggregatesRequest {
-    fn get_aggregates (
+    fn get_aggregates(
         api_key: String,
         ticker: String,
         multiplier: u16,
@@ -90,7 +96,9 @@ pub trait AggregatesRequest {
             limit: limit,
             ..Parameters::default()
         };
-        if let Err(check) = verification.check_parameters(&TickerTypes::all(), PARAMETERS, &aggregates_parameters) {
+        if let Err(check) =
+            verification.check_parameters(&TickerTypes::all(), PARAMETERS, &aggregates_parameters)
+        {
             return Err(check);
         }
         let url = url(&aggregates_parameters);

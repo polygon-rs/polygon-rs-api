@@ -1,7 +1,7 @@
 use crate::data_types::{l2::L2, Parse};
 use crate::rest::{
-    parameters::{Parameter, ParameterRequirment, Parameters, TickerTypes},
     error::ErrorCode,
+    parameters::{Parameter, ParameterRequirment, Parameters, TickerTypes},
 };
 use crate::tools::{request::Request, verification::Verification};
 use serde::{Deserialize, Serialize};
@@ -29,10 +29,7 @@ impl Parse for L2Snapshot {
             }
             l2s
         });
-        L2Snapshot {
-            status,
-            l2,
-        }
+        L2Snapshot { status, l2 }
     }
 }
 
@@ -72,7 +69,7 @@ fn url(parameters: &Parameters) -> String {
     String::from(format!(
         "https://api.polygon.io/v2/snapshot/locale/global/markets/crypto/tickers/{}/book?apiKey={}",
         if let Some(s) = parameters.clone().ticker {
-           s
+            s
         } else {
             "".to_string()
         },

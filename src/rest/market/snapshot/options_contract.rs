@@ -1,9 +1,12 @@
 use crate::data_types::{contract::Contract, Parse};
 use crate::rest::{
-    parameters::{Parameter, ParameterRequirment, Parameters, TickerTypes},
     error::ErrorCode,
+    parameters::{Parameter, ParameterRequirment, Parameters, TickerTypes},
 };
-use crate::tools::{request::{Next, Request}, verification::Verification};
+use crate::tools::{
+    request::{Next, Request},
+    verification::Verification,
+};
 
 #[derive(serde::Serialize, serde::Deserialize, Clone, Debug)]
 pub struct OptionsContract {
@@ -28,7 +31,7 @@ impl Parse for OptionsContract {
             request_id: Some(request_id),
             next_url: Some(next_url),
             status: Some(status),
-            contract
+            contract,
         }
     }
 }

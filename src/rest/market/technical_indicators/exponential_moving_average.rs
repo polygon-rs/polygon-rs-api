@@ -60,7 +60,12 @@ impl Parse for ExponentialMovingAverage {
         };
         let moving_average = map.get("results").and_then(|v| {
             v.as_object();
-            v.get("values").and_then(|v| v.as_array()).map(|v| { v.iter().map(|v| MovingAverage::parse(v.clone().as_object_mut().unwrap())).collect()})});
+            v.get("values").and_then(|v| v.as_array()).map(|v| {
+                v.iter()
+                    .map(|v| MovingAverage::parse(v.clone().as_object_mut().unwrap()))
+                    .collect()
+            })
+        });
 
         ExponentialMovingAverage {
             next_url,

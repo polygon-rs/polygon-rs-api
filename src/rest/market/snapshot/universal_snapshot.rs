@@ -1,9 +1,14 @@
 use crate::data_types::{universal::Universal, Parse};
 use crate::rest::{
-    parameters::{Order, Parameter, ParameterRequirment, Parameters, Sortv3, TickerType, TickerTypes},
     error::ErrorCode,
+    parameters::{
+        Order, Parameter, ParameterRequirment, Parameters, Sortv3, TickerType, TickerTypes,
+    },
 };
-use crate::tools::{request::{Next, Request}, verification::Verification};
+use crate::tools::{
+    request::{Next, Request},
+    verification::Verification,
+};
 use serde::{Deserialize, Serialize};
 
 #[derive(Serialize, Deserialize, Clone, Debug)]
@@ -33,7 +38,11 @@ impl Parse for UniversalSnapshot {
         let universal = map.get_mut("results").and_then(|v| v.as_array()).map(|v| {
             let mut universal_snapshots = Vec::new();
             for universal_snapshot in v {
-                if let Some(us) = universal_snapshot.clone().as_object_mut().map(|v| Universal::parse(v)) {
+                if let Some(us) = universal_snapshot
+                    .clone()
+                    .as_object_mut()
+                    .map(|v| Universal::parse(v))
+                {
                     universal_snapshots.push(us);
                 }
             }
@@ -89,11 +98,9 @@ pub trait UniversalSnapshotRequest {
             },
             None => TickerTypes::all(),
         };
-        if let Err(check) = verification.check_parameters(
-            &ticker_types,
-            PARAMETERS,
-            &universal_snapshot_parameters,
-        ) {
+        if let Err(check) =
+            verification.check_parameters(&ticker_types, PARAMETERS, &universal_snapshot_parameters)
+        {
             return Err(check);
         }
         let url = url(&universal_snapshot_parameters);
@@ -117,7 +124,7 @@ const PARAMETERS: &'static [&'static ParameterRequirment] = &[
         required: false,
         parameter: Parameter::TickerTo,
     },
-    &ParameterRequirment{
+    &ParameterRequirment {
         required: false,
         parameter: Parameter::TickerType,
     },
@@ -190,4 +197,3 @@ fn url(parameters: &Parameters) -> String {
         parameters.api_key,
     ))
 }
-

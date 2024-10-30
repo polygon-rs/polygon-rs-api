@@ -22,7 +22,6 @@ pub struct Trade {
 
 impl Parse for Trade {
     fn parse(map: &mut serde_json::Map<String, serde_json::Value>) -> Self {
-        
         if let Some(conditions) = map.get("c") {
             map.insert(String::from("conditions"), conditions.clone());
         };
@@ -60,9 +59,10 @@ impl Parse for Trade {
         if let Some(trade_id) = map.get("i") {
             map.insert(String::from("id"), trade_id.clone());
         };
-        let trade_id = map.get("id").and_then(|v| v.as_str()).map(|v|{
-            String::from(v)
-        });
+        let trade_id = map
+            .get("id")
+            .and_then(|v| v.as_str())
+            .map(|v| String::from(v));
         let timeframe = map
             .get("timeframe")
             .and_then(|v| v.as_str())
@@ -71,10 +71,7 @@ impl Parse for Trade {
                 "REAL-TIME" => Timeframe::RealTime,
                 _ => Timeframe::Unknown,
             });
-        let exchange = map
-            .get("T")
-            .and_then(|v| v.as_str())
-            .map(|v| v.to_string());
+        let exchange = map.get("T").and_then(|v| v.as_str()).map(|v| v.to_string());
         if let Some(trade_correction) = map.get("e") {
             map.insert(String::from("correction"), trade_correction.clone());
         };
@@ -92,7 +89,10 @@ impl Parse for Trade {
         };
         let trf_id = map.get("trf_id").and_then(|v| v.as_i64());
         if let Some(participant_timestamp) = map.get("y") {
-            map.insert(String::from("participant_timestamp"), participant_timestamp.clone());
+            map.insert(
+                String::from("participant_timestamp"),
+                participant_timestamp.clone(),
+            );
         };
         let participant_timestamp = map.get("participant_timestamp").and_then(|v| v.as_i64());
         if let Some(tape) = map.get("z") {

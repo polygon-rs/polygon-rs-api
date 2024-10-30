@@ -31,7 +31,7 @@ impl Parse for LastTrade {
             .get_mut("results")
             .and_then(|v| v.as_object_mut())
             .map(|v| Trade::parse(v));
-        LastTrade{
+        LastTrade {
             request_id,
             results,
             status,
@@ -74,6 +74,7 @@ const PARAMETERS: &'static [&'static ParameterRequirment] = &[&ParameterRequirme
 fn url(parameters: &Parameters) -> String {
     String::from(format!(
         "https://api.polygon.io/v2/last/trade/{}apiKey={}",
-        parameters.ticker.clone().unwrap(), parameters.api_key,
+        parameters.ticker.clone().unwrap(),
+        parameters.api_key,
     ))
 }

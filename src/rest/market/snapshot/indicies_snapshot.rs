@@ -1,9 +1,12 @@
 use crate::data_types::{indicie::Indicie, Parse};
 use crate::rest::{
-    parameters::{Order, Parameter, ParameterRequirment, Parameters, Sortv3, TickerTypes},
     error::ErrorCode,
+    parameters::{Order, Parameter, ParameterRequirment, Parameters, Sortv3, TickerTypes},
 };
-use crate::tools::{request::{Next, Request}, verification::Verification};
+use crate::tools::{
+    request::{Next, Request},
+    verification::Verification,
+};
 use serde::{Deserialize, Serialize};
 
 #[derive(Serialize, Deserialize, Clone, Debug)]

@@ -4,7 +4,10 @@ use crate::{
         error::ErrorCode,
         parameters::{Order, Parameter, ParameterRequirment, Parameters, Sortv3, TickerTypes},
     },
-    tools::{request::{Next, Request}, verification::Verification},
+    tools::{
+        request::{Next, Request},
+        verification::Verification,
+    },
 };
 use serde::{Deserialize, Serialize};
 
@@ -28,10 +31,11 @@ impl Parse for Quotes {
             .get("next_url")
             .and_then(|v| v.as_str())
             .map(|v| v.to_string());
-        let quotes = map
-            .get("results")
-            .and_then(|v| v.as_array())
-            .map(|v| v.iter().map(|v| Quote::parse(v.clone().as_object_mut().unwrap())).collect());
+        let quotes = map.get("results").and_then(|v| v.as_array()).map(|v| {
+            v.iter()
+                .map(|v| Quote::parse(v.clone().as_object_mut().unwrap()))
+                .collect()
+        });
         let status = map
             .get("status")
             .and_then(|v| v.as_str())

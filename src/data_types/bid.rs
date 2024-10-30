@@ -14,14 +14,17 @@ impl Parse for Bid {
         let size_objects = map.get("size").and_then(|v| v.as_object());
         let size = match size_objects {
             Some(size_object) => {
-                let mut bid_hash_map = HashMap::new(); 
-                for key in size_object.keys(){ 
-                    match size_object.get(key).and_then(|v| v.as_f64()){ 
-                        Some(value) => {bid_hash_map.insert(key.clone(),value);},
+                let mut bid_hash_map = HashMap::new();
+                for key in size_object.keys() {
+                    match size_object.get(key).and_then(|v| v.as_f64()) {
+                        Some(value) => {
+                            bid_hash_map.insert(key.clone(), value);
+                        }
                         None => continue,
                     }
-                } 
-                Some(bid_hash_map)},
+                }
+                Some(bid_hash_map)
+            }
             None => None,
         };
         Bid { price, size }

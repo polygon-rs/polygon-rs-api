@@ -29,10 +29,11 @@ impl Parse for Previous {
             .and_then(|v| v.as_str())
             .map(|v| v.to_string());
         let query_count = map.get("queryCount").and_then(|v| v.as_i64()).map(|v| v);
-        let results = map
-            .get("results")
-            .and_then(|v| v.as_array())
-            .map(|v| v.iter().map(|v| Bar::parse(v.clone().as_object_mut().unwrap())).collect());
+        let results = map.get("results").and_then(|v| v.as_array()).map(|v| {
+            v.iter()
+                .map(|v| Bar::parse(v.clone().as_object_mut().unwrap()))
+                .collect()
+        });
         let results_count = map.get("resultsCount").and_then(|v| v.as_i64()).map(|v| v);
         let status = map
             .get("status")
@@ -69,7 +70,9 @@ pub trait PreviousRequest {
             adjusted: adjusted,
             ..Parameters::default()
         };
-        if let Err(check) = verification.check_parameters(&TickerTypes::all(), PARAMETERS, &previous_parameters) {
+        if let Err(check) =
+            verification.check_parameters(&TickerTypes::all(), PARAMETERS, &previous_parameters)
+        {
             return Err(check);
         }
         let url = url(&previous_parameters);

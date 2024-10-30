@@ -1,7 +1,7 @@
 use crate::data_types::{ticker::Ticker, Parse};
 use crate::rest::{
-    parameters::{Direction,Parameter, ParameterRequirment, Parameters, TickerType, TickerTypes},
     error::ErrorCode,
+    parameters::{Direction, Parameter, ParameterRequirment, Parameters, TickerType, TickerTypes},
 };
 use crate::tools::{request::Request, verification::Verification};
 use serde::{Deserialize, Serialize};
@@ -20,21 +20,16 @@ impl Parse for GainersLosers {
             .get("status")
             .and_then(|v| v.as_str())
             .map(|v| v.to_string());
-        let tickers = map
-            .get_mut("tickers")
-            .and_then(|v| v.as_array()).map(|v| {
-                let mut tickers = Vec::new();
-                for ticker in v {
-                    if let Some(t) = ticker.clone().as_object_mut().map(|v| Ticker::parse(v)) {
-                        tickers.push(t);
-                    }
+        let tickers = map.get_mut("tickers").and_then(|v| v.as_array()).map(|v| {
+            let mut tickers = Vec::new();
+            for ticker in v {
+                if let Some(t) = ticker.clone().as_object_mut().map(|v| Ticker::parse(v)) {
+                    tickers.push(t);
+                }
             }
             tickers
         });
-        GainersLosers {
-            status,
-            tickers,
-        }
+        GainersLosers { status, tickers }
     }
 }
 
@@ -63,11 +58,9 @@ pub trait GainersLosersRequest {
             include_otc: includeotc,
             ..Parameters::default()
         };
-        if let Err(check) = verification.check_parameters(
-            &ticker_types,
-            PARAMETERS,
-            &gainers_losers_parameters,
-        ) {
+        if let Err(check) =
+            verification.check_parameters(&ticker_types, PARAMETERS, &gainers_losers_parameters)
+        {
             return Err(check);
         }
         let locale = match ticker_type {
@@ -84,15 +77,15 @@ pub trait GainersLosersRequest {
 }
 
 const PARAMETERS: &'static [&'static ParameterRequirment] = &[
-        &ParameterRequirment {
-            required: true,
-            parameter: Parameter::Direction,
-        },
-        &ParameterRequirment {
-            required: false,
-            parameter: Parameter::IncludeOTC,
-        },
-    ];
+    &ParameterRequirment {
+        required: true,
+        parameter: Parameter::Direction,
+    },
+    &ParameterRequirment {
+        required: false,
+        parameter: Parameter::IncludeOTC,
+    },
+];
 
 fn url(parameters: &Parameters, locale: String, ticker_type: TickerType) -> String {
     String::from(format!(

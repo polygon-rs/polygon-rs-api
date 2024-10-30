@@ -22,10 +22,11 @@ impl GroupedBarsRequest for GroupedBars {}
 impl Parse for GroupedBars {
     fn parse(map: &mut serde_json::Map<String, serde_json::Value>) -> Self {
         let adjusted = map.get("adjusted").and_then(|v| v.as_bool());
-        let bars = map
-            .get_mut("bars")
-            .and_then(|v| v.as_array_mut())
-            .map(|v| v.iter().map(|v| Bar::parse(v.clone().as_object_mut().unwrap())).collect());
+        let bars = map.get_mut("bars").and_then(|v| v.as_array_mut()).map(|v| {
+            v.iter()
+                .map(|v| Bar::parse(v.clone().as_object_mut().unwrap()))
+                .collect()
+        });
         let status = map
             .get("status")
             .and_then(|v| v.as_str())

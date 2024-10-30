@@ -12,7 +12,7 @@ pub struct L2 {
     pub ticker: Option<String>,
 }
 
-impl Parse for L2{
+impl Parse for L2 {
     fn parse(map: &mut serde_json::Map<String, serde_json::Value>) -> Self {
         let bids = map.get("bids").and_then(|v| v.as_array()).map(|v| {
             let mut bids = Vec::new();
@@ -32,7 +32,10 @@ impl Parse for L2{
         let ask_count = map.get("ask_count").and_then(|v| v.as_f64());
         let timestamp = map.get("timestamp").and_then(|v| v.as_i64());
         let spread = map.get("spread").and_then(|v| v.as_f64());
-        let ticker = map.get("ticker").and_then(|v| v.as_str()).map(|v| v.to_string());
+        let ticker = map
+            .get("ticker")
+            .and_then(|v| v.as_str())
+            .map(|v| v.to_string());
         L2 {
             bids,
             asks,

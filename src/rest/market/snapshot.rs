@@ -31,18 +31,8 @@ pub enum Snapshot {
 
 pub trait SnapshotRequest {}
 
-impl GainersLosersRequest for dyn SnapshotRequest {}
+pub struct Miner {
+    pub api: String,
+}
 
-impl IndiciesSnapshotRequest for dyn SnapshotRequest {}
-
-impl L2SnapshotRequest for dyn SnapshotRequest {}
-
-impl OptionsChainRequest for dyn SnapshotRequest {}
-
-impl OptionsContractRequest for dyn SnapshotRequest {}
-
-impl TickerSnapshotRequest for dyn SnapshotRequest {}
-
-impl TickersSnapshotRequest for dyn SnapshotRequest {}
-
-impl UniversalSnapshotRequest for dyn SnapshotRequest {}
+impl SnapshotRequest for Miner {}

@@ -1,11 +1,13 @@
 use chrono::DateTime;
 
-use crate::rest::{error::ErrorCode, parameters::{Parameter, ParameterRequirment, Parameters, TickerType, TickerTypes}};
+use crate::rest::{
+    error::ErrorCode,
+    parameters::{Parameter, ParameterRequirment, Parameters, TickerType, TickerTypes},
+};
 
 use super::regex_patterns::RegexPatterns;
 
-pub trait Verification{
-
+pub trait Verification {
     fn date_error(&self, date_type: &Parameter) -> ErrorCode {
         match date_type {
             Parameter::From => ErrorCode::DateFromError,
@@ -115,7 +117,11 @@ pub trait Verification{
         Ok(())
     }
 
-    fn verify_stocks_ticker(&self, required: bool, parameters: &Parameters) -> Result<(), ErrorCode> {
+    fn verify_stocks_ticker(
+        &self,
+        required: bool,
+        parameters: &Parameters,
+    ) -> Result<(), ErrorCode> {
         match &parameters.ticker {
             Some(t) => self.verify_stock_ticker(t.to_string()),
             None => {
@@ -134,7 +140,11 @@ pub trait Verification{
         Ok(())
     }
 
-    fn verify_options_ticker(&self, required: bool, parameters: &Parameters) -> Result<(), ErrorCode> {
+    fn verify_options_ticker(
+        &self,
+        required: bool,
+        parameters: &Parameters,
+    ) -> Result<(), ErrorCode> {
         match &parameters.ticker {
             Some(t) => self.verify_option_ticker(t.to_string()),
             None => {
@@ -153,7 +163,11 @@ pub trait Verification{
         Ok(())
     }
 
-    fn verify_indices_ticker(&self, required: bool, parameters: &Parameters) -> Result<(), ErrorCode> {
+    fn verify_indices_ticker(
+        &self,
+        required: bool,
+        parameters: &Parameters,
+    ) -> Result<(), ErrorCode> {
         match &parameters.ticker {
             Some(t) => self.verify_indicie_ticker(t.to_string()),
             None => {
@@ -172,7 +186,11 @@ pub trait Verification{
         Ok(())
     }
 
-    fn verify_forex_tickers(&self, required: bool, parameters: &Parameters) -> Result<(), ErrorCode> {
+    fn verify_forex_tickers(
+        &self,
+        required: bool,
+        parameters: &Parameters,
+    ) -> Result<(), ErrorCode> {
         match &parameters.ticker {
             Some(t) => self.verify_forex_ticker(t.to_string()),
             None => {
@@ -191,7 +209,11 @@ pub trait Verification{
         Ok(())
     }
 
-    fn verify_crypto_tickers(&self, required: bool, parameters: &Parameters) -> Result<(), ErrorCode> {
+    fn verify_crypto_tickers(
+        &self,
+        required: bool,
+        parameters: &Parameters,
+    ) -> Result<(), ErrorCode> {
         match &parameters.ticker {
             Some(t) => self.verify_crypto_ticker(t.to_string()),
             None => {
@@ -222,7 +244,12 @@ pub trait Verification{
         return Err(ErrorCode::TickerError);
     }
 
-    fn verify_ticker(&self, required: bool, ticker_types: &TickerTypes, parameters: &Parameters) -> Result<(), ErrorCode> {
+    fn verify_ticker(
+        &self,
+        required: bool,
+        ticker_types: &TickerTypes,
+        parameters: &Parameters,
+    ) -> Result<(), ErrorCode> {
         match &parameters.ticker {
             Some(t) => match self.get_ticker_type(t) {
                 Ok(ticker_type) => match ticker_type {
@@ -268,7 +295,12 @@ pub trait Verification{
         }
     }
 
-    fn verify_tickers(&self, required: bool, ticker_types: &TickerTypes, parameters: &Parameters) -> Result<(), ErrorCode> {
+    fn verify_tickers(
+        &self,
+        required: bool,
+        ticker_types: &TickerTypes,
+        parameters: &Parameters,
+    ) -> Result<(), ErrorCode> {
         match &parameters.tickers {
             Some(tickers) => {
                 for ticker in tickers {
@@ -320,7 +352,11 @@ pub trait Verification{
         }
     }
 
-    fn verify_underlying_asset(&self, required: bool, parameters: &Parameters) -> Result<(), ErrorCode> {
+    fn verify_underlying_asset(
+        &self,
+        required: bool,
+        parameters: &Parameters,
+    ) -> Result<(), ErrorCode> {
         match &parameters.underlying_asset {
             Some(underlying_asset) => {
                 match self.get_ticker_type(underlying_asset) {
@@ -397,35 +433,43 @@ pub trait Verification{
         }
     }
 
-    fn check_parameters(&self, ticker_types: &TickerTypes, parameter_requirements: &'static [&'static ParameterRequirment], parameters: &Parameters) -> Result<(), ErrorCode> {
+    fn check_parameters(
+        &self,
+        ticker_types: &TickerTypes,
+        parameter_requirements: &'static [&'static ParameterRequirment],
+        parameters: &Parameters,
+    ) -> Result<(), ErrorCode> {
         if let Err(check) = self.verify_api_key(parameters) {
             return Err(check);
         }
         for parameter in parameter_requirements {
             match parameter.parameter {
                 Parameter::Ticker => {
-                    if let Err(check) = self.verify_ticker(parameter.required, ticker_types, parameters) {
+                    if let Err(check) =
+                        self.verify_ticker(parameter.required, ticker_types, parameters)
+                    {
                         return Err(check);
                     }
                 }
                 Parameter::Tickers => {
-                    if let Err(check) = self.verify_tickers(parameter.required, ticker_types, parameters) {
+                    if let Err(check) =
+                        self.verify_tickers(parameter.required, ticker_types, parameters)
+                    {
                         return Err(check);
                     }
                 }
                 Parameter::UnderlyingAsset => {
-                    if let Err(check) = self.verify_underlying_asset(parameter.required, parameters) {
+                    if let Err(check) = self.verify_underlying_asset(parameter.required, parameters)
+                    {
                         return Err(check);
                     }
                 }
                 Parameter::TickerFrom => {}
                 Parameter::TickerTo => {}
                 Parameter::Date => {
-                    if let Err(check) = self.verify(
-                        parameter.required,
-                        &parameters.date,
-                        &parameter.parameter,
-                    ) {
+                    if let Err(check) =
+                        self.verify(parameter.required, &parameters.date, &parameter.parameter)
+                    {
                         return Err(check);
                     }
                 }
@@ -448,11 +492,9 @@ pub trait Verification{
                     }
                 }
                 Parameter::Sort => {
-                    if let Err(check) = self.verify(
-                        parameter.required,
-                        &parameters.sort,
-                        &parameter.parameter,
-                    ) {
+                    if let Err(check) =
+                        self.verify(parameter.required, &parameters.sort, &parameter.parameter)
+                    {
                         return Err(check);
                     }
                 }
@@ -475,20 +517,16 @@ pub trait Verification{
                     }
                 }
                 Parameter::From => {
-                    if let Err(check) = self.verify(
-                        parameter.required,
-                        &parameters.from,
-                        &parameter.parameter,
-                    ) {
+                    if let Err(check) =
+                        self.verify(parameter.required, &parameters.from, &parameter.parameter)
+                    {
                         return Err(check);
                     }
                 }
                 Parameter::To => {
-                    if let Err(check) = self.verify(
-                        parameter.required,
-                        &parameters.to,
-                        &parameter.parameter,
-                    ) {
+                    if let Err(check) =
+                        self.verify(parameter.required, &parameters.to, &parameter.parameter)
+                    {
                         return Err(check);
                     }
                 }
@@ -511,20 +549,16 @@ pub trait Verification{
                     }
                 }
                 Parameter::Order => {
-                    if let Err(check) = self.verify(
-                        parameter.required,
-                        &parameters.order,
-                        &parameter.parameter,
-                    ) {
+                    if let Err(check) =
+                        self.verify(parameter.required, &parameters.order, &parameter.parameter)
+                    {
                         return Err(check);
                     }
                 }
                 Parameter::Sortv3 => {
-                    if let Err(check) = self.verify(
-                        parameter.required,
-                        &parameters.sortv3,
-                        &parameter.parameter,
-                    ) {
+                    if let Err(check) =
+                        self.verify(parameter.required, &parameters.sortv3, &parameter.parameter)
+                    {
                         return Err(check);
                     }
                 }
@@ -574,11 +608,9 @@ pub trait Verification{
                     }
                 }
                 Parameter::Amount => {
-                    if let Err(check) = self.verify(
-                        parameter.required,
-                        &parameters.amount,
-                        &parameter.parameter,
-                    ) {
+                    if let Err(check) =
+                        self.verify(parameter.required, &parameters.amount, &parameter.parameter)
+                    {
                         return Err(check);
                     }
                 }
@@ -619,11 +651,9 @@ pub trait Verification{
                     }
                 }
                 Parameter::Window => {
-                    if let Err(check) = self.verify(
-                        parameter.required,
-                        &parameters.window,
-                        &parameter.parameter,
-                    ) {
+                    if let Err(check) =
+                        self.verify(parameter.required, &parameters.window, &parameter.parameter)
+                    {
                         return Err(check);
                     }
                 }

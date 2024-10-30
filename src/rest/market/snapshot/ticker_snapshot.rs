@@ -1,7 +1,7 @@
 use crate::data_types::{ticker::Ticker, Parse};
 use crate::rest::{
-    parameters::{Parameter, ParameterRequirment, Parameters, TickerType, TickerTypes},
     error::ErrorCode,
+    parameters::{Parameter, ParameterRequirment, Parameters, TickerType, TickerTypes},
 };
 use crate::tools::{request::Request, verification::Verification};
 use serde::{Deserialize, Serialize};

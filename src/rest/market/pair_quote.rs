@@ -36,7 +36,7 @@ impl Parse for PairQuote {
             .get("symbol")
             .and_then(|v| v.as_str())
             .map(|v| v.to_string());
-        PairQuote{
+        PairQuote {
             request_id,
             pair_quote,
             status,
