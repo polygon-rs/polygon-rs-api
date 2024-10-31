@@ -13,24 +13,22 @@ pub struct UnderlyingAsset {
 }
 
 impl Parse for UnderlyingAsset {
-    fn parse(map: &mut serde_json::Map<String, serde_json::Value>) -> Self {
-        let change_to_break_even = map.get("change_to_break_even").and_then(|v| v.as_f64());
-        let last_updated = map.get("last_updated").and_then(|v| v.as_i64());
-        let price = map.get("price").and_then(|v| v.as_f64());
-        let ticker = map
-            .get("ticker")
-            .and_then(|v| v.as_str())
-            .map(|v| v.to_string());
-        let timeframe = map
-            .get("timeframe")
-            .and_then(|v| v.as_str())
-            .map(|v| match v {
-                "DELAYED" => Timeframe::Delayed,
-                "REAL-TIME" => Timeframe::RealTime,
-                _ => Timeframe::Unknown,
-            });
-        let value = map.get("value").and_then(|v| v.as_f64());
-        Self {
+    fn parse(map: &serde_json::Map<String, serde_json::Value>) -> Self {
+        let change_to_break_even = Self::f64_parse(map, vec!["change_to_break_even"]);
+        let last_updated = Self::i64_parse(map, vec!["last_updated"]);
+        let price = Self::f64_parse(map, vec!["price"]);
+        let ticker = Self::string_parse(map, vec!["ticker"]);
+        let timeframe = match Self::string_parse(map, vec!["timeframe"]) {
+            Some(timeframe) => match timeframe.as_str() {
+                "DELAYED" => Some(Timeframe::Delayed),
+                "REAL-TIME" => Some(Timeframe::RealTime),
+                _ => None,
+            },
+            None => None,
+        };
+        let value = Self::f64_parse(map, vec!["value"]);
+
+        UnderlyingAsset {
             change_to_break_even,
             last_updated,
             price,

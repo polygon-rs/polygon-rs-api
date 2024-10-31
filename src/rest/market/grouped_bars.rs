@@ -20,19 +20,12 @@ pub struct GroupedBars {
 impl GroupedBarsRequest for GroupedBars {}
 
 impl Parse for GroupedBars {
-    fn parse(map: &mut serde_json::Map<String, serde_json::Value>) -> Self {
-        let adjusted = map.get("adjusted").and_then(|v| v.as_bool());
-        let bars = map.get_mut("bars").and_then(|v| v.as_array_mut()).map(|v| {
-            v.iter()
-                .map(|v| Bar::parse(v.clone().as_object_mut().unwrap()))
-                .collect()
-        });
-        let status = map
-            .get("status")
-            .and_then(|v| v.as_str())
-            .map(|v| v.to_string());
-        let results_count = map.get("resultsCount").and_then(|v| v.as_i64());
-        let query_count = map.get("queryCount").and_then(|v| v.as_i64());
+    fn parse(map: &serde_json::Map<String, serde_json::Value>) -> Self {
+        let adjusted = Self::bool_parse(map, vec!["adjusted"]);
+        let bars = Self::array_parse(map, vec!["bars"]);
+        let status = Self::string_parse(map, vec!["status"]);
+        let results_count = Self::i64_parse(map, vec!["resultsCount"]);
+        let query_count = Self::i64_parse(map, vec!["queryCount"]);
 
         GroupedBars {
             adjusted,

@@ -8,9 +8,9 @@ pub struct RelativeStrength {
 }
 
 impl Parse for RelativeStrength {
-    fn parse(map: &mut serde_json::Map<String, serde_json::Value>) -> Self {
-        let timestamp = map.get("timestamp").and_then(|v| v.as_i64());
-        let value = map.get("value").and_then(|v| v.as_f64());
+    fn parse(map: &serde_json::Map<String, serde_json::Value>) -> Self {
+        let timestamp = Self::i64_parse(map, vec!["timestamp"]);
+        let value = Self::f64_parse(map, vec!["value"]);
         RelativeStrength { timestamp, value }
     }
 }

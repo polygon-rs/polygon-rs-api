@@ -1,10 +1,9 @@
 use crate::data_types::{
-    details::Details, greeks::Greeks, quote::Quote, session::Session, trade::Trade, Parse,
+    details::Details, greeks::Greeks, quote::Quote, session::Session, trade::Trade,
+    underlying_asset::UnderlyingAsset, Parse,
 };
 use crate::rest::parameters::TickerType;
 use serde::{Deserialize, Serialize};
-
-use super::underlying_asset::UnderlyingAsset;
 
 #[derive(Serialize, Deserialize, Clone, Debug)]
 pub struct Universal {
@@ -28,61 +27,35 @@ pub struct Universal {
 }
 
 impl Parse for Universal {
-    fn parse(map: &mut serde_json::Map<String, serde_json::Value>) -> Self {
-        let break_even_price = map.get("break_even_price").and_then(|v| v.as_f64());
-        let details = map
-            .get_mut("details")
-            .and_then(|v| v.as_object_mut().map(|v| Details::parse(v)));
-        let fair_market_value = map.get("fmv").and_then(|v| v.as_f64());
-        let greeks = map
-            .get_mut("greeks")
-            .and_then(|v| v.as_object_mut().map(|v| Greeks::parse(v)));
-        let implied_volatility = map.get("implied_volatility").and_then(|v| v.as_f64());
-        let last_quote = map
-            .get_mut("last_quote")
-            .and_then(|v| v.as_object_mut().map(|v| Quote::parse(v)));
-        let last_trade = map
-            .get_mut("last_trade")
-            .and_then(|v| v.as_object_mut().map(|v| Trade::parse(v)));
-        let market_status = map
-            .get("market_status")
-            .and_then(|v| v.as_str())
-            .map(|v| v.to_string());
-        let name = map
-            .get("name")
-            .and_then(|v| v.as_str())
-            .map(|v| v.to_string());
-        let open_interest = map.get("open_interest").and_then(|v| v.as_i64());
-        let session = map
-            .get_mut("session")
-            .and_then(|v| v.as_object_mut().map(|v| Session::parse(v)));
-        let ticker = map
-            .get("ticker")
-            .and_then(|v| v.as_str())
-            .map(|v| v.to_string());
-        let ticker_type = map
-            .get_mut("type")
-            .and_then(|v| v.as_str())
-            .map(|v| match v {
-                "stocks" => TickerType::Stocks,
-                "options" => TickerType::Options,
-                "indices" => TickerType::Indicies,
-                "forex" => TickerType::Forex,
-                "crypto" => TickerType::Crypto,
-                _ => TickerType::default(),
-            });
-        let underlying_asset = map
-            .get_mut("underlying_asset")
-            .and_then(|v| v.as_object_mut().map(|v| UnderlyingAsset::parse(v)));
-        let error = map
-            .get("error")
-            .and_then(|v| v.as_str())
-            .map(|v| v.to_string());
-        let message = map
-            .get("message")
-            .and_then(|v| v.as_str())
-            .map(|v| v.to_string());
-        let value = map.get("value").and_then(|v| v.as_f64());
+    fn parse(map: &serde_json::Map<String, serde_json::Value>) -> Self {
+        let break_even_price = Self::f64_parse(map, vec!["break_even_price"]);
+        let details = Self::object_parse(map, vec!["details"]);
+        let fair_market_value = Self::f64_parse(map, vec!["fmv"]);
+        let greeks = Self::object_parse(map, vec!["greeks"]);
+        let implied_volatility = Self::f64_parse(map, vec!["implied_volatility"]);
+        let last_quote = Self::object_parse(map, vec!["last_quote"]);
+        let last_trade = Self::object_parse(map, vec!["last_trade"]);
+        let market_status = Self::string_parse(map, vec!["market_status"]);
+        let name = Self::string_parse(map, vec!["name"]);
+        let open_interest = Self::i64_parse(map, vec!["open_interest"]);
+        let session = Self::object_parse(map, vec!["session"]);
+        let ticker = Self::string_parse(map, vec!["ticker"]);
+        let ticker_type = match Self::string_parse(map, vec!["type"]) {
+            Some(s) => match s.as_str() {
+                "stocks" => Some(TickerType::Stocks),
+                "options" => Some(TickerType::Options),
+                "indices" => Some(TickerType::Indicies),
+                "forex" => Some(TickerType::Forex),
+                "crypto" => Some(TickerType::Crypto),
+                _ => None,
+            },
+            None => None,
+        };
+        let underlying_asset = Self::object_parse(map, vec!["underlying_asset"]);
+        let error = Self::string_parse(map, vec!["error"]);
+        let message = Self::string_parse(map, vec!["message"]);
+        let value = Self::f64_parse(map, vec!["value"]);
+
         Universal {
             break_even_price,
             details,

@@ -22,24 +22,11 @@ pub struct Trades {
 impl TradesRequest for Trades {}
 
 impl Parse for Trades {
-    fn parse(map: &mut serde_json::Map<String, serde_json::Value>) -> Self {
-        let request_id = map
-            .get("request_id")
-            .and_then(|v| v.as_str())
-            .map(|v| v.to_string());
-        let next_url = map
-            .get("next_url")
-            .and_then(|v| v.as_str())
-            .map(|v| v.to_string());
-        let trades = map.get("results").and_then(|v| v.as_array()).map(|v| {
-            v.iter()
-                .map(|v| Trade::parse(v.clone().as_object_mut().unwrap()))
-                .collect()
-        });
-        let status = map
-            .get("status")
-            .and_then(|v| v.as_str())
-            .map(|v| v.to_string());
+    fn parse(map: &serde_json::Map<String, serde_json::Value>) -> Self {
+        let request_id = Self::string_parse(map, vec!["request_id"]);
+        let next_url: Option<String> = Self::string_parse(map, vec!["next_url"]);
+        let trades = Self::array_parse(map, vec!["results"]);
+        let status = Self::string_parse(map, vec!["status"]);
 
         Trades {
             request_id,

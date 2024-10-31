@@ -22,24 +22,12 @@ pub struct BBO {
 impl BBORequest for BBO {}
 
 impl Parse for BBO {
-    fn parse(map: &mut serde_json::Map<String, serde_json::Value>) -> Self {
-        let request_id = map
-            .get("request_id")
-            .and_then(|v| v.as_str())
-            .map(|v| v.to_string());
-        let next_url = map
-            .get("next_url")
-            .and_then(|v| v.as_str())
-            .map(|v| v.to_string());
-        let status = map
-            .get("status")
-            .and_then(|v| v.as_str())
-            .map(|v| v.to_string());
-        let results = map.get("results").and_then(|v| v.as_array()).map(|v| {
-            v.iter()
-                .map(|v| Quote::parse(v.clone().as_object_mut().unwrap()))
-                .collect()
-        });
+    fn parse(map: &serde_json::Map<String, serde_json::Value>) -> Self {
+        let next_url = Self::string_parse(map, vec!["next_url"]);
+        let request_id = Self::string_parse(map, vec!["request_id"]);
+        let status = Self::string_parse(map, vec!["status"]);
+        let results = Self::array_parse(map, vec!["results"]);
+
         BBO {
             request_id,
             next_url,

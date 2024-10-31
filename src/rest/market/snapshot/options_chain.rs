@@ -21,35 +21,15 @@ pub struct OptionsChain {
 impl OptionsChainRequest for OptionsChain {}
 
 impl Parse for OptionsChain {
-    fn parse(map: &mut serde_json::Map<String, serde_json::Value>) -> Self {
-        let request_id = map
-            .get("request_id")
-            .and_then(|v| v.as_str())
-            .map(|v| v.to_string());
-        let next_url = map
-            .get("next_url")
-            .and_then(|v| v.as_str())
-            .map(|v| v.to_string());
-        let status = map
-            .get("status")
-            .and_then(|v| v.as_str())
-            .map(|v| v.to_string());
-        let chain = map
-            .get_mut("results")
-            .and_then(|v| v.as_array_mut())
-            .map(|v| {
-                let mut contracts = Vec::new();
-                for contract in v {
-                    if let Some(c) = contract.as_object_mut().map(|v| Contract::parse(v)) {
-                        contracts.push(c);
-                    }
-                }
-                contracts
-            });
+    fn parse(map: &serde_json::Map<String, serde_json::Value>) -> Self {
+        let request_id = Self::string_parse(map, vec!["request_id"]);
+        let next_url = Self::string_parse(map, vec!["next_url"]);
+        let status = Self::string_parse(map, vec!["status"]);
+        let chain = Self::array_parse(map, vec!["results"]);
         OptionsChain {
-            request_id: request_id,
-            next_url: next_url,
-            status: status,
+            request_id,
+            next_url,
+            status,
             chain,
         }
     }

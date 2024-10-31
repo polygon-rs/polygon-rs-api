@@ -21,28 +21,16 @@ pub struct CurrencyConversion {
 }
 
 impl Parse for CurrencyConversion {
-    fn parse(map: &mut serde_json::Map<String, serde_json::Value>) -> Self {
-        let to = map
-            .get("to")
-            .and_then(|v| v.as_str().map(|s| s.to_string()));
-        let from = map
-            .get("from")
-            .and_then(|v| v.as_str().map(|s| s.to_string()));
-        let request_id = map
-            .get("request_id")
-            .and_then(|v| v.as_str().map(|s| s.to_string()));
-        let status = map
-            .get("status")
-            .and_then(|v| v.as_str().map(|s| s.to_string()));
-        let symbol = map
-            .get("symbol")
-            .and_then(|v| v.as_str().map(|s| s.to_string()));
-        let initial_amount = map.get("initial_amount").and_then(|v| v.as_f64());
-        let converted = map.get("converted").and_then(|v| v.as_f64());
-        let quote = map
-            .get_mut("last")
-            .and_then(|v| v.as_object_mut())
-            .map(|v| Quote::parse(v));
+    fn parse(map: &serde_json::Map<String, serde_json::Value>) -> Self {
+        let to = Self::string_parse(map, vec!["to"]);
+        let from = Self::string_parse(map, vec!["from"]);
+        let request_id = Self::string_parse(map, vec!["request_id"]);
+        let status = Self::string_parse(map, vec!["status"]);
+        let quote = Self::object_parse(map, vec!["last"]);
+        let symbol = Self::string_parse(map, vec!["symbol"]);
+        let initial_amount = Self::f64_parse(map, vec!["initial_amount"]);
+        let converted = Self::f64_parse(map, vec!["converted"]);
+
         CurrencyConversion {
             to,
             from,

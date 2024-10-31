@@ -26,46 +26,23 @@ pub struct ExponentialMovingAverage {
 impl ExponentialMovingAverageRequest for ExponentialMovingAverage {}
 
 impl Parse for ExponentialMovingAverage {
-    fn parse(map: &mut serde_json::Map<String, serde_json::Value>) -> Self {
-        let next_url = map
-            .get("next_url")
-            .and_then(|v| v.as_str())
-            .map(|v| v.to_string());
-        let request_id = map
-            .get("request_id")
-            .and_then(|v| v.as_str())
-            .map(|v| v.to_string());
-        let status = map
-            .get("status")
-            .and_then(|v| v.as_str())
-            .map(|v| v.to_string());
-        let underyling = map.get("results").and_then(|v| {
-            v.as_object();
-            v.get("underlying").and_then(|v| v.as_object())
-        });
-        let bars = match underyling {
-            Some(u) => u.get("aggregates").and_then(|v| v.as_array()).map(|v| {
-                v.iter()
-                    .map(|v| Bar::parse(v.clone().as_object_mut().unwrap()))
-                    .collect()
-            }),
+    fn parse(map: &serde_json::Map<String, serde_json::Value>) -> Self {
+        let next_url = Self::string_parse(map, vec!["next_url"]);
+        let request_id = Self::string_parse(map, vec!["request_id"]);
+        let status = Self::string_parse(map, vec!["status"]);
+        let results = Self::object(map, vec!["results"]);
+        let bars = match results {
+            Some(bars) => Self::array_parse(bars, vec!["aggregates"]),
             None => None,
         };
-        let bars_url = match underyling {
-            Some(u) => u
-                .get("next_url")
-                .and_then(|v| v.as_str())
-                .map(|v| v.to_string()),
+        let bars_url = match results {
+            Some(bars_url) => Self::string_parse(bars_url, vec!["next_url"]),
             None => None,
         };
-        let moving_average = map.get("results").and_then(|v| {
-            v.as_object();
-            v.get("values").and_then(|v| v.as_array()).map(|v| {
-                v.iter()
-                    .map(|v| MovingAverage::parse(v.clone().as_object_mut().unwrap()))
-                    .collect()
-            })
-        });
+        let moving_average = match results {
+            Some(moving_average) => Self::array_parse(moving_average, vec!["values"]),
+            None => None,
+        };
 
         ExponentialMovingAverage {
             next_url,

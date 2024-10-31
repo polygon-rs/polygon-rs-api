@@ -26,35 +26,15 @@ pub struct Aggregates {
 impl AggregatesRequest for Aggregates {}
 
 impl Parse for Aggregates {
-    fn parse(map: &mut serde_json::Map<String, serde_json::Value>) -> Self {
-        let adjusted = map.get("adjusted").and_then(|v| v.as_bool()).map(|v| v);
-        let next_url = map
-            .get("next_url")
-            .and_then(|v| v.as_str())
-            .map(|v| v.to_string());
-        let request_id = map
-            .get("request_id")
-            .and_then(|v| v.as_str())
-            .map(|v| v.to_string());
-        let results = map.get_mut("results").and_then(|v| v.as_array()).map(|v| {
-            let mut results = Vec::new();
-            for result in v {
-                if let Some(t) = result.clone().as_object_mut().map(|v| Bar::parse(v)) {
-                    results.push(t);
-                }
-            }
-            results
-        });
-        let status = map
-            .get("status")
-            .and_then(|v| v.as_str())
-            .map(|v| v.to_string());
-        let results_count = map.get("resultsCount").and_then(|v| v.as_i64()).map(|v| v);
-        let ticker = map
-            .get("ticker")
-            .and_then(|v| v.as_str())
-            .map(|v| v.to_string());
-        let query_count = map.get("queryCount").and_then(|v| v.as_i64()).map(|v| v);
+    fn parse(map: &serde_json::Map<String, serde_json::Value>) -> Self {
+        let adjusted = Self::bool_parse(map, vec!["adjusted"]);
+        let next_url = Self::string_parse(map, vec!["next_url"]);
+        let request_id = Self::string_parse(map, vec!["request_id"]);
+        let status = Self::string_parse(map, vec!["status"]);
+        let results = Self::array_parse(map, vec!["results"]);
+        let results_count = Self::i64_parse(map, vec!["resultsCount"]);
+        let ticker = Self::string_parse(map, vec!["ticker"]);
+        let query_count = Self::i64_parse(map, vec!["queryCount"]);
         Aggregates {
             adjusted,
             next_url,

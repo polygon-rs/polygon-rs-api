@@ -13,29 +13,14 @@ pub struct L2 {
 }
 
 impl Parse for L2 {
-    fn parse(map: &mut serde_json::Map<String, serde_json::Value>) -> Self {
-        let bids = map.get("bids").and_then(|v| v.as_array()).map(|v| {
-            let mut bids = Vec::new();
-            for bid in v {
-                bids.push(Bid::parse(bid.clone().as_object_mut().unwrap()));
-            }
-            bids
-        });
-        let asks = map.get("asks").and_then(|v| v.as_array()).map(|v| {
-            let mut asks = Vec::new();
-            for ask in v {
-                asks.push(Ask::parse(ask.clone().as_object_mut().unwrap()));
-            }
-            asks
-        });
-        let bid_count = map.get("bid_count").and_then(|v| v.as_f64());
-        let ask_count = map.get("ask_count").and_then(|v| v.as_f64());
-        let timestamp = map.get("timestamp").and_then(|v| v.as_i64());
-        let spread = map.get("spread").and_then(|v| v.as_f64());
-        let ticker = map
-            .get("ticker")
-            .and_then(|v| v.as_str())
-            .map(|v| v.to_string());
+    fn parse(map: &serde_json::Map<String, serde_json::Value>) -> Self {
+        let bids = Self::array_parse(map, vec!["bids"]);
+        let asks = Self::array_parse(map, vec!["asks"]);
+        let bid_count = Self::f64_parse(map, vec!["bid_count"]);
+        let ask_count = Self::f64_parse(map, vec!["ask_count"]);
+        let timestamp = Self::i64_parse(map, vec!["timestamp"]);
+        let spread = Self::f64_parse(map, vec!["spread"]);
+        let ticker = Self::string_parse(map, vec!["ticker"]);
         L2 {
             bids,
             asks,

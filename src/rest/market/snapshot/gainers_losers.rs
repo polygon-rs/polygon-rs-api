@@ -15,20 +15,9 @@ pub struct GainersLosers {
 impl GainersLosersRequest for GainersLosers {}
 
 impl Parse for GainersLosers {
-    fn parse(map: &mut serde_json::Map<String, serde_json::Value>) -> Self {
-        let status = map
-            .get("status")
-            .and_then(|v| v.as_str())
-            .map(|v| v.to_string());
-        let tickers = map.get_mut("tickers").and_then(|v| v.as_array()).map(|v| {
-            let mut tickers = Vec::new();
-            for ticker in v {
-                if let Some(t) = ticker.clone().as_object_mut().map(|v| Ticker::parse(v)) {
-                    tickers.push(t);
-                }
-            }
-            tickers
-        });
+    fn parse(map: &serde_json::Map<String, serde_json::Value>) -> Self {
+        let status = Self::string_parse(map, vec!["status"]);
+        let tickers = Self::array_parse(map, vec!["tickers"]);
         GainersLosers { status, tickers }
     }
 }

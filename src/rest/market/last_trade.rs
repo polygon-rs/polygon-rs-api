@@ -18,19 +18,11 @@ pub struct LastTrade {
 impl LastTradeRequest for LastTrade {}
 
 impl Parse for LastTrade {
-    fn parse(map: &mut serde_json::Map<String, serde_json::Value>) -> Self {
-        let request_id = map
-            .get("request_id")
-            .and_then(|v| v.as_str())
-            .map(|v| v.to_string());
-        let status = map
-            .get("status")
-            .and_then(|v| v.as_str())
-            .map(|v| v.to_string());
-        let results = map
-            .get_mut("results")
-            .and_then(|v| v.as_object_mut())
-            .map(|v| Trade::parse(v));
+    fn parse(map: &serde_json::Map<String, serde_json::Value>) -> Self {
+        let request_id = Self::string_parse(map, vec!["request_id"]);
+        let status = Self::string_parse(map, vec!["status"]);
+        let results = Self::object_parse(map, vec!["results"]);
+
         LastTrade {
             request_id,
             results,

@@ -16,22 +16,14 @@ pub struct TickerSnapshot {
 impl TickerSnapshotRequest for TickerSnapshot {}
 
 impl Parse for TickerSnapshot {
-    fn parse(map: &mut serde_json::Map<String, serde_json::Value>) -> Self {
-        let status = map
-            .get("status")
-            .and_then(|v| v.as_str())
-            .map(|v| v.to_string());
-        let request_id = map
-            .get("request_id")
-            .and_then(|v| v.as_str())
-            .map(|v| v.to_string());
-        let ticker = map
-            .get_mut("ticker")
-            .and_then(|v| v.as_object_mut())
-            .map(|v| Ticker::parse(v));
+    fn parse(map: &serde_json::Map<String, serde_json::Value>) -> Self {
+        let status = Self::string_parse(map, vec!["status"]);
+        let request_id = Self::string_parse(map, vec!["request_id"]);
+        let ticker = Self::object_parse(map, vec!["ticker"]);
+
         TickerSnapshot {
-            status: status,
-            request_id: request_id,
+            status,
+            request_id,
             ticker,
         }
     }

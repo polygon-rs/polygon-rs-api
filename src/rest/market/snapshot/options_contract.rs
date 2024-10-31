@@ -19,18 +19,15 @@ pub struct OptionsContract {
 impl OptionsContractRequest for OptionsContract {}
 
 impl Parse for OptionsContract {
-    fn parse(map: &mut serde_json::Map<String, serde_json::Value>) -> Self {
-        let request_id = map.get("request_id").unwrap().as_str().unwrap().to_string();
-        let next_url = map.get("next_url").unwrap().as_str().unwrap().to_string();
-        let status = map.get("status").unwrap().as_str().unwrap().to_string();
-        let contract = map
-            .get_mut("results")
-            .and_then(|v| v.as_object_mut())
-            .map(|v| Contract::parse(v));
+    fn parse(map: &serde_json::Map<String, serde_json::Value>) -> Self {
+        let request_id = Self::string_parse(map, vec!["request_id"]);
+        let next_url = Self::string_parse(map, vec!["next_url"]);
+        let status = Self::string_parse(map, vec!["status"]);
+        let contract = Self::object_parse(map, vec!["contract"]);
         OptionsContract {
-            request_id: Some(request_id),
-            next_url: Some(next_url),
-            status: Some(status),
+            request_id,
+            next_url,
+            status,
             contract,
         }
     }

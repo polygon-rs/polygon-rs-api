@@ -22,35 +22,15 @@ pub struct UniversalSnapshot {
 impl UniversalSnapshotRequest for UniversalSnapshot {}
 
 impl Parse for UniversalSnapshot {
-    fn parse(map: &mut serde_json::Map<String, serde_json::Value>) -> Self {
-        let status = map
-            .get("status")
-            .and_then(|v| v.as_str())
-            .map(|v| v.to_string());
-        let request_id = map
-            .get("request_id")
-            .and_then(|v| v.as_str())
-            .map(|v| v.to_string());
-        let next_url = map
-            .get("next_url")
-            .and_then(|v| v.as_str())
-            .map(|v| v.to_string());
-        let universal = map.get_mut("results").and_then(|v| v.as_array()).map(|v| {
-            let mut universal_snapshots = Vec::new();
-            for universal_snapshot in v {
-                if let Some(us) = universal_snapshot
-                    .clone()
-                    .as_object_mut()
-                    .map(|v| Universal::parse(v))
-                {
-                    universal_snapshots.push(us);
-                }
-            }
-            universal_snapshots
-        });
+    fn parse(map: &serde_json::Map<String, serde_json::Value>) -> Self {
+        let status = Self::string_parse(map, vec!["status"]);
+        let request_id = Self::string_parse(map, vec!["request_id"]);
+        let next_url = Self::string_parse(map, vec!["next_url"]);
+        let universal = Self::array_parse(map, vec!["results"]);
+
         UniversalSnapshot {
-            status: status,
-            request_id: request_id,
+            status,
+            request_id,
             universal,
             next_url,
         }

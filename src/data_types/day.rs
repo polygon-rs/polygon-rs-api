@@ -17,41 +17,19 @@ pub struct Day {
 }
 
 impl Parse for Day {
-    fn parse(map: &mut serde_json::Map<String, serde_json::Value>) -> Self {
-        let change = map.get("change").and_then(|v| v.as_f64());
-        let change_percent = map.get("change_percent").and_then(|v| v.as_f64());
-        if let Some(close) = map.get("c") {
-            map.insert(String::from("close"), close.clone());
-        };
-        let close = map.get("close").and_then(|v| v.as_f64());
-        if let Some(high) = map.get("h") {
-            map.insert(String::from("high"), high.clone());
-        };
-        let high = map.get("high").and_then(|v| v.as_f64());
-        let last_updated = map.get("last_updated").and_then(|v| v.as_i64());
-        if let Some(low) = map.get("l") {
-            map.insert(String::from("low"), low.clone());
-        };
-        let low = map.get("low").and_then(|v| v.as_f64());
-        if let Some(open) = map.get("o") {
-            map.insert(String::from("open"), open.clone());
-        };
-        let open = map.get("open").and_then(|v| v.as_f64());
-        let previous_close = map.get("previous_close").and_then(|v| v.as_f64());
-        if let Some(volume) = map.get("v") {
-            map.insert(String::from("volume"), volume.clone());
-        };
-        let volume = map.get("volume").and_then(|v| v.as_i64());
-        if let Some(volume_weighted_average_price) = map.get("vw") {
-            map.insert(
-                String::from("volume_weighted_average_price"),
-                volume_weighted_average_price.clone(),
-            );
-        };
-        let volume_weighted_average_price = map
-            .get("volume_weighted_average_price")
-            .and_then(|v| v.as_f64());
-        let otc = map.get("otc").and_then(|v| v.as_bool());
+    fn parse(map: &serde_json::Map<String, serde_json::Value>) -> Self {
+        let change = Self::f64_parse(map, vec!["change"]);
+        let change_percent = Self::f64_parse(map, vec!["change_percent"]);
+        let close = Self::f64_parse(map, vec!["c", "close"]);
+        let high = Self::f64_parse(map, vec!["h", "high"]);
+        let last_updated = Self::i64_parse(map, vec!["last_updated"]);
+        let low = Self::f64_parse(map, vec!["l", "low"]);
+        let open = Self::f64_parse(map, vec!["o", "open"]);
+        let previous_close = Self::f64_parse(map, vec!["previous_close"]);
+        let volume = Self::i64_parse(map, vec!["v", "volume"]);
+        let volume_weighted_average_price =
+            Self::f64_parse(map, vec!["vw", "volume_weighted_average_price"]);
+        let otc = Self::bool_parse(map, vec!["otc"]);
         Self {
             change,
             change_percent,

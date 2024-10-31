@@ -29,10 +29,20 @@ pub enum Snapshot {
     UniversalSnapshot(universal_snapshot::UniversalSnapshot), //Done but need to compleate to and from ticker verifications
 }
 
-pub trait SnapshotRequest {}
+pub struct SnapshotRequest {}
 
-pub struct Miner {
-    pub api: String,
-}
+impl GainersLosersRequest for SnapshotRequest {}
 
-impl SnapshotRequest for Miner {}
+impl IndiciesSnapshotRequest for SnapshotRequest {}
+
+impl L2SnapshotRequest for SnapshotRequest {}
+
+impl OptionsChainRequest for SnapshotRequest {}
+
+impl OptionsContractRequest for SnapshotRequest {}
+
+impl TickerSnapshotRequest for SnapshotRequest {}
+
+impl TickersSnapshotRequest for SnapshotRequest {}
+
+impl UniversalSnapshotRequest for SnapshotRequest {}

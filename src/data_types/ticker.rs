@@ -16,35 +16,18 @@ pub struct Ticker {
 }
 
 impl Parse for Ticker {
-    fn parse(map: &mut serde_json::Map<String, serde_json::Value>) -> Self {
-        let day = map
-            .get_mut("day")
-            .and_then(|v| v.as_object_mut())
-            .map(|v| Day::parse(v));
-        let last_trade = map
-            .get_mut("lastTrade")
-            .and_then(|v| v.as_object_mut())
-            .map(|v| Trade::parse(v));
-        let last_quote = map
-            .get_mut("lastQuote")
-            .and_then(|v| v.as_object_mut())
-            .map(|v| Quote::parse(v));
-        let min = map
-            .get_mut("min")
-            .and_then(|v| v.as_object_mut())
-            .map(|v| Min::parse(v));
-        let previous_day = map
-            .get_mut("prevDay")
-            .and_then(|v| v.as_object_mut())
-            .map(|v| Day::parse(v));
-        let ticker = map
-            .get("ticker")
-            .and_then(|v| v.as_str())
-            .map(|v| v.to_string());
-        let todays_change = map.get("todaysChange").and_then(|v| v.as_f64());
-        let todays_change_percent = map.get("todaysChangePerc").and_then(|v| v.as_f64());
-        let timestamp = map.get("updated").and_then(|v| v.as_i64());
-        let fair_market_value = map.get("fmv").and_then(|v| v.as_f64());
+    fn parse(map: &serde_json::Map<String, serde_json::Value>) -> Self {
+        let day = Self::object_parse(map, vec!["day"]);
+        let last_trade = Self::object_parse(map, vec!["lastTrade"]);
+        let last_quote = Self::object_parse(map, vec!["lastQuote"]);
+        let min = Self::object_parse(map, vec!["min"]);
+        let previous_day = Self::object_parse(map, vec!["prevDay"]);
+        let ticker = Self::string_parse(map, vec!["ticker"]);
+        let todays_change = Self::f64_parse(map, vec!["todaysChange"]);
+        let todays_change_percent = Self::f64_parse(map, vec!["todaysChangePerc"]);
+        let timestamp = Self::i64_parse(map, vec!["updated"]);
+        let fair_market_value = Self::f64_parse(map, vec!["fmv"]);
+
         Ticker {
             day,
             last_trade,

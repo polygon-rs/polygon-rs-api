@@ -7,8 +7,5 @@ use rest::RestRequest;
 
 pub struct Polygon {
     pub api_key: String,
+    pub rest: RestRequest,
 }
-
-impl Polygon {}
-
-impl RestRequest for Polygon {}

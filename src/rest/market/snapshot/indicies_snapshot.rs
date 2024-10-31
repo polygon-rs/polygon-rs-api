@@ -20,28 +20,12 @@ pub struct IndiciesSnapshot {
 impl IndiciesSnapshotRequest for IndiciesSnapshot {}
 
 impl Parse for IndiciesSnapshot {
-    fn parse(map: &mut serde_json::Map<String, serde_json::Value>) -> Self {
-        let status = map
-            .get("status")
-            .and_then(|v| v.as_str())
-            .map(|v| v.to_string());
-        let request_id = map
-            .get("request_id")
-            .and_then(|v| v.as_str())
-            .map(|v| v.to_string());
-        let next_url = map
-            .get("next_url")
-            .and_then(|v| v.as_str())
-            .map(|v| v.to_string());
-        let indicies = map.get_mut("results").and_then(|v| v.as_array()).map(|v| {
-            let mut indicies = Vec::new();
-            for indicie in v {
-                if let Some(i) = indicie.clone().as_object_mut().map(|v| Indicie::parse(v)) {
-                    indicies.push(i);
-                }
-            }
-            indicies
-        });
+    fn parse(map: &serde_json::Map<String, serde_json::Value>) -> Self {
+        let status = Self::string_parse(map, vec!["status"]);
+        let request_id = Self::string_parse(map, vec!["request_id"]);
+        let next_url = Self::string_parse(map, vec!["next_url"]);
+        let indicies = Self::array_parse(map, vec!["results"]);
+
         IndiciesSnapshot {
             status: status,
             request_id: request_id,

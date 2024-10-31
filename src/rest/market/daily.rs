@@ -25,23 +25,17 @@ pub struct Daily {
 impl DailyRequest for Daily {}
 
 impl Parse for Daily {
-    fn parse(map: &mut serde_json::Map<String, serde_json::Value>) -> Self {
-        let after_hours = map.get("afterHours").and_then(|v| v.as_f64());
-        let close = map.get("close").and_then(|v| v.as_f64());
-        let from = map
-            .get("from")
-            .and_then(|v| v.as_str().map(|s| s.to_string()));
-        let high = map.get("high").and_then(|v| v.as_f64());
-        let low = map.get("low").and_then(|v| v.as_f64());
-        let open = map.get("open").and_then(|v| v.as_f64());
-        let pre_market = map.get("preMarket").and_then(|v| v.as_f64());
-        let status = map
-            .get("status")
-            .and_then(|v| v.as_str().map(|s| s.to_string()));
-        let symbol = map
-            .get("symbol")
-            .and_then(|v| v.as_str().map(|s| s.to_string()));
-        let volume = map.get("volume").and_then(|v| v.as_f64());
+    fn parse(map: &serde_json::Map<String, serde_json::Value>) -> Self {
+        let after_hours = Self::f64_parse(map, vec!["afterHours"]);
+        let close = Self::f64_parse(map, vec!["close"]);
+        let from = Self::string_parse(map, vec!["from"]);
+        let high = Self::f64_parse(map, vec!["high"]);
+        let low = Self::f64_parse(map, vec!["low"]);
+        let open = Self::f64_parse(map, vec!["open"]);
+        let pre_market = Self::f64_parse(map, vec!["preMarket"]);
+        let status = Self::string_parse(map, vec!["status"]);
+        let symbol = Self::string_parse(map, vec!["symbol"]);
+        let volume = Self::f64_parse(map, vec!["volume"]);
         Daily {
             after_hours,
             close,

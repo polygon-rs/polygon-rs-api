@@ -10,11 +10,11 @@ pub struct Greeks {
 }
 
 impl Parse for Greeks {
-    fn parse(map: &mut serde_json::Map<String, serde_json::Value>) -> Self {
-        let delta = map.get("delta").and_then(|v| v.as_f64());
-        let gamma = map.get("gamma").and_then(|v| v.as_f64());
-        let theta = map.get("theta").and_then(|v| v.as_f64());
-        let vega = map.get("vega").and_then(|v| v.as_f64());
+    fn parse(map: &serde_json::Map<String, serde_json::Value>) -> Self {
+        let delta = Self::f64_parse(map, vec!["delta"]);
+        let gamma = Self::f64_parse(map, vec!["gamma"]);
+        let theta = Self::f64_parse(map, vec!["theta"]);
+        let vega = Self::f64_parse(map, vec!["vega"]);
         Self {
             delta,
             gamma,

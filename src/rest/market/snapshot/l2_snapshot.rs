@@ -15,20 +15,10 @@ pub struct L2Snapshot {
 impl L2SnapshotRequest for L2Snapshot {}
 
 impl Parse for L2Snapshot {
-    fn parse(map: &mut serde_json::Map<String, serde_json::Value>) -> Self {
-        let status = map
-            .get("status")
-            .and_then(|v| v.as_str())
-            .map(|v| v.to_string());
-        let l2 = map.get_mut("data").and_then(|v| v.as_array()).map(|v| {
-            let mut l2s = Vec::new();
-            for l in v {
-                if let Some(i) = l.clone().as_object_mut().map(|v| L2::parse(v)) {
-                    l2s.push(i);
-                }
-            }
-            l2s
-        });
+    fn parse(map: &serde_json::Map<String, serde_json::Value>) -> Self {
+        let status = Self::string_parse(map, vec!["status"]);
+        let l2 = Self::array_parse(map, vec!["data"]);
+
         L2Snapshot { status, l2 }
     }
 }
