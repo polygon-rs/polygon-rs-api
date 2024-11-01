@@ -1,9 +1,11 @@
 use crate::{data_types, rest::error::ErrorCode};
 use serde_json::Value;
 
-pub trait Request {
+pub struct Request {}
+
+impl Request {
     #[tokio::main]
-    async fn request(&self, url: String) -> Result<serde_json::Map<String, Value>, ErrorCode> {
+    pub async fn request(url: String) -> Result<serde_json::Map<String, Value>, ErrorCode> {
         let r = match reqwest::get(url).await {
             Ok(response) => match response.text().await {
                 Ok(text) => text,
@@ -25,13 +27,9 @@ pub trait Request {
             }
         }
     }
-}
-
-pub trait Next {
-    fn next<T: data_types::Parse>(
+    pub fn next<T: data_types::Parse>(
         url: Option<String>,
         api_key: String,
-        request: &impl Request,
     ) -> Result<T, ErrorCode> {
         if url.is_none() {
             return Err(ErrorCode::NoNextURL);
@@ -41,7 +39,7 @@ pub trait Next {
         } else {
             return Err(ErrorCode::NoNextURL);
         };
-        match request.request(next_url) {
+        match Self::request(next_url) {
             Ok(mut map) => Ok(T::parse(&mut map)),
             Err(e) => return Err(e),
         }

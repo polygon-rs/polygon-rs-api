@@ -32,26 +32,24 @@ impl Parse for LastTrade {
 }
 
 pub trait LastTradeRequest {
-    fn get_last_trade(
-        api_key: String,
-        ticker: String,
-        request: &impl Request,
-        verification: &impl Verification,
-    ) -> Result<LastTrade, ErrorCode> {
+    fn get_last_trade(&self, api_key: String, ticker: String) -> Result<LastTrade, ErrorCode> {
         let last_trade_parameters = Parameters {
             api_key: api_key,
             ticker: Some(ticker),
             ..Parameters::default()
         };
-        if let Err(check) = verification.check_parameters(
+        if let Err(check) = Verification::check_parameters(
             &TickerTypes::set(true, true, false, false, false),
             PARAMETERS,
             &last_trade_parameters,
         ) {
             return Err(check);
         }
-        let url = url(&last_trade_parameters);
-        match request.request(url) {
+        let url = match url(&last_trade_parameters){
+            Ok(url) => url,
+            Err(e) => return Err(e),
+        };
+        match Request::request(url) {
             Ok(mut map) => Ok(LastTrade::parse(&mut map)),
             Err(e) => return Err(e),
         }
@@ -63,10 +61,14 @@ const PARAMETERS: &'static [&'static ParameterRequirment] = &[&ParameterRequirme
     parameter: Parameter::Ticker,
 }];
 
-fn url(parameters: &Parameters) -> String {
-    String::from(format!(
+fn url(parameters: &Parameters) -> Result<String, ErrorCode> {
+    let url = String::from(format!(
         "https://api.polygon.io/v2/last/trade/{}apiKey={}",
-        parameters.ticker.clone().unwrap(),
-        parameters.api_key,
-    ))
+        match &parameters.ticker{
+            Some(ticker) => ticker,
+            None => return Err(ErrorCode::TickerNotSet),
+        },
+        &parameters.api_key,
+    ));
+    Ok(url)
 }

@@ -3,10 +3,7 @@ use crate::rest::{
     error::ErrorCode,
     parameters::{Order, Parameter, ParameterRequirment, Parameters, Sortv3, TickerTypes},
 };
-use crate::tools::{
-    request::{Next, Request},
-    verification::Verification,
-};
+use crate::tools::{request::Request, verification::Verification};
 use serde::{Deserialize, Serialize};
 
 #[derive(Serialize, Deserialize, Clone, Debug)]
@@ -35,10 +32,9 @@ impl Parse for IndiciesSnapshot {
     }
 }
 
-impl Next for IndiciesSnapshot {}
-
 pub trait IndiciesSnapshotRequest {
     fn get_indicie_snapshot(
+        &self,
         api_key: String,
         tickers: Option<Vec<String>>,
         ticker_from: Option<String>,
@@ -46,8 +42,6 @@ pub trait IndiciesSnapshotRequest {
         sort: Option<Sortv3>,
         limit: Option<u16>,
         order: Option<Order>,
-        request: &impl Request,
-        verification: &impl Verification,
     ) -> Result<IndiciesSnapshot, ErrorCode> {
         let tickers = if ticker_from.is_some() || ticker_to.is_some() {
             None
@@ -64,15 +58,18 @@ pub trait IndiciesSnapshotRequest {
             order: order,
             ..Parameters::default()
         };
-        if let Err(check) = verification.check_parameters(
+        if let Err(check) = Verification::check_parameters(
             &TickerTypes::indicies(),
             PARAMETERS,
             &indicies_snapshot_parameters,
         ) {
             return Err(check);
         }
-        let url = url(&indicies_snapshot_parameters);
-        match request.request(url) {
+        let url = match url(&indicies_snapshot_parameters) {
+            Ok(url) => url,
+            Err(e) => return Err(e)
+        };
+        match Request::request(url) {
             Ok(mut map) => Ok(IndiciesSnapshot::parse(&mut map)),
             Err(e) => return Err(e),
         }
@@ -106,10 +103,10 @@ const PARAMETERS: &'static [&'static ParameterRequirment] = &[
     },
 ];
 
-fn url(parameters: &Parameters) -> String {
+fn url(parameters: &Parameters) -> Result<String, ErrorCode> {
     let tickers = {
         let mut tickers_flattened = String::new();
-        if let Some(tickers) = parameters.clone().tickers {
+        if let Some(tickers) = &parameters.tickers {
             for ticker in tickers {
                 tickers_flattened = tickers_flattened.replace('&', ",");
                 tickers_flattened = format!("{}{}&", tickers_flattened, ticker);
@@ -118,34 +115,35 @@ fn url(parameters: &Parameters) -> String {
         }
         tickers_flattened
     };
-    String::from(format!(
+    let url = String::from(format!(
         "https://api.polygon.io/v3/snapshot/indicies?{}{}{}{}{}{}apiKey={}",
         tickers,
-        if let Some(tf) = parameters.clone().ticker_from {
+        if let Some(tf) = &parameters.ticker_from {
             format!("ticker.gte={}&", tf)
         } else {
             "".to_string()
         },
-        if let Some(tt) = parameters.clone().ticker_to {
+        if let Some(tt) = &parameters.ticker_to {
             format!("ticker.lte={}&", tt)
         } else {
             "".to_string()
         },
-        if let Some(o) = parameters.clone().order {
+        if let Some(o) = &parameters.order {
             format!("order={}&", o)
         } else {
             "".to_string()
         },
-        if let Some(l) = parameters.clone().limit {
+        if let Some(l) = &parameters.limit {
             format!("limit={}&", l)
         } else {
             "".to_string()
         },
-        if let Some(s) = parameters.clone().sortv3 {
+        if let Some(s) = &parameters.sortv3 {
             format!("sort={}&", s)
         } else {
             "".to_string()
         },
-        parameters.api_key,
-    ))
+        &parameters.api_key,
+    ));
+    Ok(url)
 }

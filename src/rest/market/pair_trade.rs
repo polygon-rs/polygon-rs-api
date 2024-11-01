@@ -35,26 +35,24 @@ impl Parse for PairTrade {
 }
 
 pub trait PairTradeRequest {
-    fn set_parameters(
-        api_key: String,
-        ticker: String,
-        request: &impl Request,
-        verification: &impl Verification,
-    ) -> Result<PairTrade, ErrorCode> {
+    fn get_pair_trade(&self, api_key: String, ticker: String) -> Result<PairTrade, ErrorCode> {
         let pair_trade_parameters = Parameters {
             api_key: api_key,
             ticker: Some(ticker),
             ..Parameters::default()
         };
-        if let Err(check) = verification.check_parameters(
+        if let Err(check) = Verification::check_parameters(
             &&TickerTypes::crypto(),
             PARAMETERS,
             &pair_trade_parameters,
         ) {
             return Err(check);
         }
-        let url = url(&pair_trade_parameters);
-        match request.request(url) {
+        let url = match url(&pair_trade_parameters){
+            Ok(url) => url,
+            Err(e) => return Err(e),
+        };
+        match Request::request(url) {
             Ok(mut map) => Ok(PairTrade::parse(&mut map)),
             Err(e) => return Err(e),
         }
@@ -66,14 +64,21 @@ const PARAMETERS: &'static [&'static ParameterRequirment] = &[&ParameterRequirme
     parameter: Parameter::Ticker,
 }];
 
-fn url(parameters: &Parameters) -> String {
+fn url(parameters: &Parameters) -> Result<String, ErrorCode> {
     //Need a different method to extract to and from as Crypto can be different lengths
-    let from = parameters.ticker.clone().unwrap()[2..4].to_string();
-    let to = parameters.ticker.clone().unwrap()[5..7].to_string();
-    String::from(format!(
+    let from = match &parameters.ticker {
+        Some(ticker) => ticker[2..4].to_string(),
+        None => return Err(ErrorCode::TickerNotSet),
+    };
+    let to = match &parameters.ticker {
+        Some(ticker) => ticker[5..7].to_string(),
+        None => return Err(ErrorCode::TickerNotSet),
+    };
+    let url = String::from(format!(
         "https://api.polygon.io/v1/last/crypto/{}/{}?apiKey={}",
         from,
         to,
-        parameters.clone().api_key,
-    ))
+        &parameters.api_key,
+    ));
+    Ok(url)
 }

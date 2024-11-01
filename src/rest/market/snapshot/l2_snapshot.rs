@@ -24,26 +24,24 @@ impl Parse for L2Snapshot {
 }
 
 pub trait L2SnapshotRequest {
-    fn get_indicie_snapshot(
-        api_key: String,
-        ticker: String,
-        request: &impl Request,
-        verification: &impl Verification,
-    ) -> Result<L2Snapshot, ErrorCode> {
+    fn get_l2(&self, api_key: String, ticker: String) -> Result<L2Snapshot, ErrorCode> {
         let l2_snapshot_parameters = Parameters {
             api_key: api_key,
             ticker: Some(ticker),
             ..Parameters::default()
         };
-        if let Err(check) = verification.check_parameters(
+        if let Err(check) = Verification::check_parameters(
             &TickerTypes::crypto(),
             PARAMETERS,
             &l2_snapshot_parameters,
         ) {
             return Err(check);
         }
-        let url = url(&l2_snapshot_parameters);
-        match request.request(url) {
+        let url = match url(&l2_snapshot_parameters){
+            Ok(url) => url,
+            Err(e) => return Err(e)
+        };
+        match Request::request(url) {
             Ok(mut map) => Ok(L2Snapshot::parse(&mut map)),
             Err(e) => return Err(e),
         }
@@ -55,14 +53,14 @@ const PARAMETERS: &'static [&'static ParameterRequirment] = &[&ParameterRequirme
     parameter: Parameter::Ticker,
 }];
 
-fn url(parameters: &Parameters) -> String {
-    String::from(format!(
+fn url(parameters: &Parameters) -> Result<String, ErrorCode> {
+    let url = String::from(format!(
         "https://api.polygon.io/v2/snapshot/locale/global/markets/crypto/tickers/{}/book?apiKey={}",
-        if let Some(s) = parameters.clone().ticker {
-            s
-        } else {
-            "".to_string()
+        match &parameters.ticker {
+            Some(ticker) => ticker,
+            None => return Err(ErrorCode::TickerNotSet),
         },
-        parameters.api_key,
-    ))
+        &parameters.api_key,
+    ));
+    Ok(url)
 }

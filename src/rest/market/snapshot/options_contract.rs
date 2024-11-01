@@ -3,10 +3,7 @@ use crate::rest::{
     error::ErrorCode,
     parameters::{Parameter, ParameterRequirment, Parameters, TickerTypes},
 };
-use crate::tools::{
-    request::{Next, Request},
-    verification::Verification,
-};
+use crate::tools::{request::Request, verification::Verification};
 
 #[derive(serde::Serialize, serde::Deserialize, Clone, Debug)]
 pub struct OptionsContract {
@@ -33,15 +30,12 @@ impl Parse for OptionsContract {
     }
 }
 
-impl Next for OptionsContract {}
-
 pub trait OptionsContractRequest {
     fn options_contract_request(
+        &self,
         api_key: String,
         ticker: String,
         underlying_asset: String,
-        request: &impl Request,
-        verification: &impl Verification,
     ) -> Result<OptionsContract, ErrorCode> {
         let options_contract_parameters = Parameters {
             api_key: api_key,
@@ -49,15 +43,18 @@ pub trait OptionsContractRequest {
             underlying_asset: Some(underlying_asset),
             ..Parameters::default()
         };
-        if let Err(check) = verification.check_parameters(
+        if let Err(check) = Verification::check_parameters(
             &TickerTypes::options(),
             PARAMETERS,
             &options_contract_parameters,
         ) {
             return Err(check);
         }
-        let url = url(&options_contract_parameters);
-        match request.request(url) {
+        let url = match url(&options_contract_parameters){
+            Ok(url) => url,
+            Err(e) => return Err(e)
+        };
+        match Request::request(url) {
             Ok(mut map) => Ok(OptionsContract::parse(&mut map)),
             Err(e) => return Err(e),
         }
@@ -75,12 +72,18 @@ const PARAMETERS: &'static [&'static ParameterRequirment] = &[
     },
 ];
 
-//Address unwrap and clone
-fn url(parameters: &Parameters) -> String {
-    String::from(format!(
+fn url(parameters: &Parameters) -> Result<String, ErrorCode> {
+    let url = String::from(format!(
         "https://api.polygon.io/v3/snapshot/options/{}/{}?apiKey={}",
-        parameters.clone().underlying_asset.unwrap(),
-        parameters.clone().ticker.unwrap(),
-        parameters.api_key,
-    ))
+        match &parameters.underlying_asset{
+            Some(asset) => asset,
+            None => return Err(ErrorCode::UnderlyingAssetNotSet)
+        },
+        match &parameters.ticker{
+            Some(ticker) => ticker,
+            None => return Err(ErrorCode::TickerNotSet)
+        },
+        &parameters.api_key,
+    ));
+    Ok(url)
 }

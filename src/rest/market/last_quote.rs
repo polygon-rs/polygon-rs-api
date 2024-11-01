@@ -32,26 +32,24 @@ impl Parse for LastQuote {
 }
 
 pub trait LastQuoteRequest {
-    fn get_last_quote(
-        api_key: String,
-        ticker: String,
-        request: &impl Request,
-        verification: &impl Verification,
-    ) -> Result<LastQuote, ErrorCode> {
+    fn get_last_quote(&self, api_key: String, ticker: String) -> Result<LastQuote, ErrorCode> {
         let last_quote_parameters = Parameters {
             api_key: api_key,
             ticker: Some(ticker),
             ..Parameters::default()
         };
-        if let Err(check) = verification.check_parameters(
+        if let Err(check) = Verification::check_parameters(
             &TickerTypes::stocks(),
             PARAMETERS,
             &last_quote_parameters,
         ) {
             return Err(check);
         }
-        let url = url(&last_quote_parameters);
-        match request.request(url) {
+        let url = match url(&last_quote_parameters){
+            Ok(url) => url,
+            Err(e) => return Err(e),
+        };
+        match Request::request(url) {
             Ok(mut map) => Ok(LastQuote::parse(&mut map)),
             Err(e) => return Err(e),
         }
@@ -63,10 +61,14 @@ const PARAMETERS: &'static [&'static ParameterRequirment] = &[&ParameterRequirme
     parameter: Parameter::Ticker,
 }];
 
-fn url(parameters: &Parameters) -> String {
-    String::from(format!(
+fn url(parameters: &Parameters) -> Result<String, ErrorCode> {
+    let url = String::from(format!(
         "https://api.polygon.io/v2/last/nbbo/{}?apiKey={}",
-        parameters.ticker.clone().unwrap(),
-        parameters.api_key,
-    ))
+        match &parameters.ticker{
+            Some(ticker) => ticker,
+            None => return Err(ErrorCode::TickerNotSet),
+        },
+        &parameters.api_key,
+    ));
+    Ok(url)
 }

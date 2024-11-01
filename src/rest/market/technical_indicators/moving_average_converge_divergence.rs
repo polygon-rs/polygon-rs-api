@@ -6,10 +6,7 @@ use crate::{
             Order, Parameter, ParameterRequirment, Parameters, SeriesType, TickerTypes, Timespan,
         },
     },
-    tools::{
-        request::{Next, Request},
-        verification::Verification,
-    },
+    tools::{request::Request, verification::Verification},
 };
 use serde::{Deserialize, Serialize};
 
@@ -55,8 +52,6 @@ impl Parse for MovingAverageConvergenceDivergence {
     }
 }
 
-impl Next for MovingAverageConvergenceDivergence {}
-
 pub trait MovingAverageConvergenceDivergenceRequest {
     fn get_relatvie_strength(
         api_key: String,
@@ -73,8 +68,6 @@ pub trait MovingAverageConvergenceDivergenceRequest {
         expand_underlying: Option<bool>,
         order: Option<Order>,
         limit: Option<u16>,
-        request: &impl Request,
-        verification: &impl Verification,
     ) -> Result<MovingAverageConvergenceDivergence, ErrorCode> {
         let ts = if to.is_some() || from.is_some() {
             None
@@ -98,15 +91,18 @@ pub trait MovingAverageConvergenceDivergenceRequest {
             limit: limit,
             ..Parameters::default()
         };
-        if let Err(check) = verification.check_parameters(
+        if let Err(check) = Verification::check_parameters(
             &TickerTypes::all(),
             PARAMETERS,
             &moving_average_convergence_divergence_parameters,
         ) {
             return Err(check);
         }
-        let url = url(&moving_average_convergence_divergence_parameters);
-        match request.request(url) {
+        let url = match url(&moving_average_convergence_divergence_parameters){
+            Ok(url) => url,
+            Err(e) => return Err(e),
+        };
+        match Request::request(url) {
             Ok(mut map) => Ok(MovingAverageConvergenceDivergence::parse(&mut map)),
             Err(e) => return Err(e),
         }
@@ -168,26 +164,29 @@ const PARAMETERS: &'static [&'static ParameterRequirment] = &[
     },
 ];
 
-fn url(parameters: &Parameters) -> String {
-    String::from(format!(
+fn url(parameters: &Parameters) -> Result<String, ErrorCode> {
+    let url = String::from(format!(
         "https://api.polygon.io/v1/indicators/macd/{}?{}{}{}{}{}{}{}{}{}{}{}{}apiKey={}",
-        parameters.ticker.clone().unwrap(),
-        if let Some(t) = parameters.clone().timestamp {
+        match &parameters.ticker{
+            Some(ticker) => ticker,
+            None => return Err(ErrorCode::TickerNotSet),
+        },
+        if let Some(t) = &parameters.timestamp {
             format!("timestamp={}&", t)
         } else {
             "".to_string()
         },
-        if let Some(tf) = parameters.clone().from {
+        if let Some(tf) = &parameters.from {
             format!("timestamp.gte={}&", tf)
         } else {
             "".to_string()
         },
-        if let Some(tt) = parameters.clone().to {
+        if let Some(tt) = &parameters.to {
             format!("timestamp.lte={}&", tt)
         } else {
             "".to_string()
         },
-        if let Some(ts) = parameters.clone().timespan {
+        if let Some(ts) = &parameters.timespan {
             format!("timespan={}&", ts)
         } else {
             "".to_string()
@@ -197,41 +196,42 @@ fn url(parameters: &Parameters) -> String {
         } else {
             "".to_string()
         },
-        if let Some(w) = parameters.clone().long_window {
+        if let Some(w) = &parameters.long_window {
             format!("long_window={}&", w)
         } else {
             "".to_string()
         },
-        if let Some(w) = parameters.clone().short_window {
+        if let Some(w) = &parameters.short_window {
             format!("short_window={}&", w)
         } else {
             "".to_string()
         },
-        if let Some(w) = parameters.clone().signal_window {
+        if let Some(w) = &parameters.signal_window {
             format!("signal_window={}&", w)
         } else {
             "".to_string()
         },
-        if let Some(st) = parameters.clone().series_type {
+        if let Some(st) = &parameters.series_type {
             format!("series_type={}&", st)
         } else {
             "".to_string()
         },
-        if let Some(eu) = parameters.clone().expand_underlying {
+        if let Some(eu) = &parameters.expand_underlying {
             format!("expand_underlying={}&", eu)
         } else {
             "".to_string()
         },
-        if let Some(o) = parameters.clone().order {
+        if let Some(o) = &parameters.order {
             format!("order={}&", o)
         } else {
             "".to_string()
         },
-        if let Some(l) = parameters.clone().limit {
+        if let Some(l) = &parameters.limit {
             format!("limit={}&", l)
         } else {
             "".to_string()
         },
-        parameters.api_key,
-    ))
+        &parameters.api_key,
+    ));
+    Ok(url)
 }

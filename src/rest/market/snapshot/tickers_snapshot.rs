@@ -31,12 +31,11 @@ impl Parse for TickersSnapshot {
 
 pub trait TickersSnapshotRequest {
     fn get_tickers_snapshot(
+        &self,
         api_key: String,
         tickers: Option<Vec<String>>,
         include_otc: Option<bool>,
         ticker_type: TickerType,
-        request: &impl Request,
-        verification: &impl Verification,
     ) -> Result<TickersSnapshot, ErrorCode> {
         let ticker_types = match ticker_type {
             TickerType::Stocks => TickerTypes::stocks(),
@@ -55,7 +54,7 @@ pub trait TickersSnapshotRequest {
             ..Parameters::default()
         };
         if let Err(check) =
-            verification.check_parameters(&ticker_types, PARAMETERS, &tickers_snapshot_parameters)
+            Verification::check_parameters(&ticker_types, PARAMETERS, &tickers_snapshot_parameters)
         {
             return Err(check);
         }
@@ -64,8 +63,11 @@ pub trait TickersSnapshotRequest {
             TickerType::Forex | TickerType::Crypto => String::from("global"),
             _ => return Err(ErrorCode::TickerTypeeNotValidForAPICall),
         };
-        let url = url(&tickers_snapshot_parameters, locale, ticker_type);
-        match request.request(url) {
+        let url = match url(&tickers_snapshot_parameters, locale, ticker_type){
+            Ok(url) => url,
+            Err(e) => return Err(e)
+        };
+        match Request::request(url) {
             Ok(mut map) => Ok(TickersSnapshot::parse(&mut map)),
             Err(e) => return Err(e),
         }
@@ -83,10 +85,10 @@ const PARAMETERS: &'static [&'static ParameterRequirment] = &[
     },
 ];
 
-fn url(parameters: &Parameters, locale: String, ticker_type: TickerType) -> String {
+fn url(parameters: &Parameters, locale: String, ticker_type: TickerType) -> Result<String, ErrorCode> {
     let tickers = {
         let mut tickers_flattened = String::new();
-        if let Some(tickers) = parameters.clone().tickers {
+        if let Some(tickers) = &parameters.tickers {
             for ticker in tickers {
                 tickers_flattened = tickers_flattened.replace('&', ",");
                 tickers_flattened = format!("{}{}&", tickers_flattened, ticker);
@@ -95,16 +97,17 @@ fn url(parameters: &Parameters, locale: String, ticker_type: TickerType) -> Stri
         }
         tickers_flattened
     };
-    String::from(format!(
+    let url = String::from(format!(
         "https://api.polygon.io/v2/snapshot/locale/{}/markets/{}/tickers?{}{}apiKey={}",
         locale,
         ticker_type.to_string().to_lowercase(),
         tickers,
-        if let Some(s) = parameters.include_otc {
+        if let Some(s) = &parameters.include_otc {
             format!("include_otc={}&", s)
         } else {
             "".to_string()
         },
-        parameters.api_key,
-    ))
+        &parameters.api_key,
+    ));
+    Ok(url)
 }

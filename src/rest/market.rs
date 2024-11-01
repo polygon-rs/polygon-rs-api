@@ -25,7 +25,6 @@ use pair_trade::PairTradeRequest;
 use previous::PreviousRequest;
 use quotes::QuotesRequest;
 use serde::{Deserialize, Serialize};
-use trades::TradesRequest;
 use snapshot::gainers_losers::GainersLosersRequest;
 use snapshot::indicies_snapshot::IndiciesSnapshotRequest;
 use snapshot::l2_snapshot::L2SnapshotRequest;
@@ -38,7 +37,7 @@ use technical_indicators::exponential_moving_average::ExponentialMovingAverageRe
 use technical_indicators::moving_average_converge_divergence::MovingAverageConvergenceDivergenceRequest;
 use technical_indicators::relative_strength_index::RelativeStrengthIndexRequest;
 use technical_indicators::simple_moving_average::SimpleMovingAverageRequest;
-
+use trades::TradesRequest;
 
 #[derive(Serialize, Deserialize)]
 pub enum Market {

@@ -39,12 +39,11 @@ impl Parse for GroupedBars {
 
 pub trait GroupedBarsRequest {
     fn get_grouped_bars(
+        &self,
         api_key: String,
         date: String,
         include_otc: Option<bool>,
         adjusted: Option<bool>,
-        request: &impl Request,
-        verification: &impl Verification,
     ) -> Result<GroupedBars, ErrorCode> {
         let grouped_bars_parameters = Parameters {
             api_key: api_key,
@@ -53,15 +52,18 @@ pub trait GroupedBarsRequest {
             include_otc: include_otc,
             ..Parameters::default()
         };
-        if let Err(check) = verification.check_parameters(
+        if let Err(check) = Verification::check_parameters(
             &TickerTypes::set(true, false, false, true, true),
             PARAMETERS,
             &grouped_bars_parameters,
         ) {
             return Err(check);
         }
-        let url = url(&grouped_bars_parameters);
-        match request.request(url) {
+        let url = match url(&grouped_bars_parameters){
+            Ok(url) => url,
+            Err(e) => return Err(e),
+        };
+        match Request::request(url) {
             Ok(mut map) => Ok(GroupedBars::parse(&mut map)),
             Err(e) => return Err(e),
         }
@@ -83,20 +85,24 @@ const PARAMETERS: &'static [&'static ParameterRequirment] = &[
     },
 ];
 
-fn url(parameters: &Parameters) -> String {
-    String::from(format!(
+fn url(parameters: &Parameters) -> Result<String, ErrorCode> {
+    let url = String::from(format!(
         "https://api.polygon.io/v2/aggs/grouped/locale/us/market/stocks/{}?{}{}apiKey={}",
-        parameters.date.clone().unwrap(),
-        if let Some(adj) = parameters.adjusted {
+        match &parameters.date {
+            Some(date) => date,
+            None => return Err(ErrorCode::DateNotSet),
+        },
+        if let Some(adj) = &parameters.adjusted {
             format!("adjusted={}&", adj)
         } else {
             "".to_string()
         },
-        if let Some(s) = parameters.include_otc {
+        if let Some(s) = &parameters.include_otc {
             format!("include_otc={}&", s)
         } else {
             "".to_string()
         },
-        parameters.api_key,
-    ))
+        &parameters.api_key,
+    ));
+    Ok(url)
 }

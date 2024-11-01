@@ -35,24 +35,24 @@ impl Parse for PairQuote {
 }
 
 pub trait PairQuoteRequest {
-    fn get_pair_quote(
-        api_key: String,
-        ticker: String,
-        request: &impl Request,
-        verification: &impl Verification,
-    ) -> Result<PairQuote, ErrorCode> {
+    fn get_pair_quote(&self, api_key: String, ticker: String) -> Result<PairQuote, ErrorCode> {
         let pair_quote_parameters = Parameters {
             api_key: api_key,
             ticker: Some(ticker),
             ..Parameters::default()
         };
-        if let Err(check) =
-            verification.check_parameters(&TickerTypes::forex(), PARAMETERS, &pair_quote_parameters)
-        {
+        if let Err(check) = Verification::check_parameters(
+            &TickerTypes::forex(),
+            PARAMETERS,
+            &pair_quote_parameters,
+        ) {
             return Err(check);
         }
-        let url = url(&pair_quote_parameters);
-        match request.request(url) {
+        let url = match url(&pair_quote_parameters){
+            Ok(url) => url,
+            Err(e) => return Err(e),
+        };
+        match Request::request(url) {
             Ok(mut map) => Ok(PairQuote::parse(&mut map)),
             Err(e) => return Err(e),
         }
@@ -64,11 +64,18 @@ const PARAMETERS: &'static [&'static ParameterRequirment] = &[&ParameterRequirme
     parameter: Parameter::Ticker,
 }];
 
-fn url(parameters: &Parameters) -> String {
-    let from = parameters.ticker.clone().unwrap()[2..4].to_string();
-    let to = parameters.ticker.clone().unwrap()[5..7].to_string();
-    String::from(format!(
+fn url(parameters: &Parameters) -> Result<String, ErrorCode> {
+    let from = match &parameters.ticker {
+        Some(ticker) => ticker[2..4].to_string(),
+        None => return Err(ErrorCode::TickerNotSet),
+    };
+    let to = match &parameters.ticker {
+        Some(ticker) => ticker[5..7].to_string(),
+        None => return Err(ErrorCode::TickerNotSet),
+    };
+    let url = String::from(format!(
         "https://api.polygon.io/v1/lastquote/currencies/{}/{}?apiKey={}",
-        from, to, parameters.api_key,
-    ))
+        from, to, &parameters.api_key,
+    ));
+    Ok(url)
 }

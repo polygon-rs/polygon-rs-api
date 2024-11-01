@@ -1,9 +1,8 @@
 use serde::{Deserialize, Serialize};
 use strum_macros::Display;
 
-#[derive(Serialize, Deserialize, Clone, Debug, Default, Display, Copy)]
+#[derive(Serialize, Deserialize, Clone, Debug, Display, Copy)]
 pub enum TickerType {
-    #[default]
     Stocks,
     Options,
     Indicies,
@@ -11,6 +10,7 @@ pub enum TickerType {
     Crypto,
 }
 
+#[derive(Serialize, Deserialize, Clone, Debug, Copy)]
 pub struct TickerTypes {
     pub stocks: bool,
     pub options: bool,
@@ -169,43 +169,38 @@ pub struct Parameters {
     pub expand_underlying: Option<bool>,
 }
 
-#[derive(Serialize, Deserialize, Clone, Debug, Default, Display)]
+#[derive(Serialize, Deserialize, Copy, Clone, Debug, Display)]
 pub enum ContractType {
     Call,
     Put,
     Other,
-    #[default]
-    Unknown,
 }
 
-#[derive(Serialize, Deserialize, Clone, Debug, Default)]
+#[derive(Serialize, Deserialize, Copy, Clone, Debug, Display)]
 pub enum ContractStyle {
     American,
     European,
     Bermudan,
-    #[default]
-    Unknown,
 }
 
-#[derive(Serialize, Deserialize, Clone, Debug, Default)]
+#[derive(Serialize, Deserialize, Copy, Clone, Debug, Display)]
 pub enum Timeframe {
     Delayed,
     RealTime,
-    #[default]
-    Unknown,
 }
 
-#[derive(Serialize, Deserialize, Clone, Debug, Display)]
+#[derive(Serialize, Deserialize, Copy, Clone, Debug, Display)]
 pub enum Sort {
     Asc,
     Desc,
 }
-#[derive(Serialize, Deserialize, Clone, Debug, Display)]
+
+#[derive(Serialize, Deserialize, Copy, Clone, Debug, Display)]
 pub enum Order {
     Asc,
     Desc,
 }
-#[derive(Serialize, Deserialize, Clone, Debug, Display)]
+#[derive(Serialize, Deserialize, Copy, Clone, Debug, Display)]
 pub enum Sortv3 {
     Timestamp,
     Ticker,
@@ -213,7 +208,7 @@ pub enum Sortv3 {
     StrikePrice,
 }
 
-#[derive(Serialize, Deserialize, Clone, Debug, Display)]
+#[derive(Serialize, Deserialize, Copy, Clone, Debug, Display)]
 pub enum Timespan {
     Second,
     Minute,
@@ -225,13 +220,13 @@ pub enum Timespan {
     Year,
 }
 
-#[derive(Serialize, Deserialize, Clone, Debug, Display)]
+#[derive(Serialize, Deserialize, Copy, Clone, Debug, Display)]
 pub enum Direction {
     Gainers,
     Losers,
 }
 
-#[derive(Serialize, Deserialize, Clone, Debug, Display)]
+#[derive(Serialize, Deserialize, Copy, Clone, Debug, Display)]
 pub enum SeriesType {
     Open,
     High,

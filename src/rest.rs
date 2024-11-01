@@ -19,8 +19,6 @@ use market::pair_quote::PairQuoteRequest;
 use market::pair_trade::PairTradeRequest;
 use market::previous::PreviousRequest;
 use market::quotes::QuotesRequest;
-use serde::{Deserialize, Serialize};
-use market::trades::TradesRequest;
 use market::snapshot::gainers_losers::GainersLosersRequest;
 use market::snapshot::indicies_snapshot::IndiciesSnapshotRequest;
 use market::snapshot::l2_snapshot::L2SnapshotRequest;
@@ -33,6 +31,8 @@ use market::technical_indicators::exponential_moving_average::ExponentialMovingA
 use market::technical_indicators::moving_average_converge_divergence::MovingAverageConvergenceDivergenceRequest;
 use market::technical_indicators::relative_strength_index::RelativeStrengthIndexRequest;
 use market::technical_indicators::simple_moving_average::SimpleMovingAverageRequest;
+use market::trades::TradesRequest;
+use serde::{Deserialize, Serialize};
 
 pub struct RestRequest {}
 

@@ -106,11 +106,16 @@ pub trait Parse {
             if !map.contains_key(key) {
                 continue;
             }
-            return map.get("results").and_then(|v| v.as_array()).map(|v| {
-                v.iter()
-                    .map(|v| T::parse(v.clone().as_object().unwrap()))
-                    .collect()
-            });
+            let mut array = Vec::new();
+            if let Some(values) = map.get("results").and_then(|v| v.as_array()) {
+                for object in values {
+                    match object.as_object() {
+                        Some(o) => array.push(T::parse(o)),
+                        None => (),
+                    }
+                }
+            };
+            return Some(array);
         }
         None
     }
@@ -123,10 +128,16 @@ pub trait Parse {
             if !map.contains_key(key) {
                 continue;
             }
-            return map
-                .get("results")
-                .and_then(|v| v.as_array())
-                .map(|v| v.iter().map(|v| v.as_i64().unwrap()).collect());
+            let mut i64_array = Vec::new();
+            if let Some(values) = map.get("results").and_then(|v| v.as_array()) {
+                for i64 in values {
+                    match i64.as_i64() {
+                        Some(i) => i64_array.push(i),
+                        None => (),
+                    }
+                }
+            };
+            return Some(i64_array);
         }
         None
     }
@@ -142,14 +153,14 @@ pub trait Parse {
             return match map.get("size").and_then(|v| v.as_object()) {
                 Some(size_object) => {
                     let mut ask_hash_map = HashMap::new();
-                    for size_object_key in size_object.keys() {
-                        match size_object.get(size_object_key).and_then(|v| v.as_f64()) {
+                    size_object.keys().for_each(|v| {
+                        match size_object.get(v).and_then(|v| v.as_f64()) {
                             Some(value) => {
-                                ask_hash_map.insert(size_object_key.clone(), value);
+                                ask_hash_map.insert(v.to_string(), value);
                             }
-                            None => continue,
-                        }
-                    }
+                            None => (),
+                        };
+                    });
                     Some(ask_hash_map)
                 }
                 None => None,

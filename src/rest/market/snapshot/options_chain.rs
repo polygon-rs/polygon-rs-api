@@ -5,10 +5,7 @@ use crate::rest::{
         ContractType, Order, Parameter, ParameterRequirment, Parameters, Sortv3, TickerTypes,
     },
 };
-use crate::tools::{
-    request::{Next, Request},
-    verification::Verification,
-};
+use crate::tools::{request::Request, verification::Verification};
 
 #[derive(serde::Serialize, serde::Deserialize, Clone, Debug)]
 pub struct OptionsChain {
@@ -35,10 +32,9 @@ impl Parse for OptionsChain {
     }
 }
 
-impl Next for OptionsChain {}
-
 pub trait OptionsChainRequest {
     fn get_options_chain(
+        &self,
         api_key: String,
         underlying_asset: String,
         date: Option<String>,
@@ -51,8 +47,6 @@ pub trait OptionsChainRequest {
         order: Option<Order>,
         limit: Option<u16>,
         sort: Option<Sortv3>,
-        request: &impl Request,
-        verification: &impl Verification,
     ) -> Result<OptionsChain, ErrorCode> {
         let ts = if from.is_some() || from.is_some() {
             None
@@ -79,15 +73,18 @@ pub trait OptionsChainRequest {
             strike_price_to: strike_price_to,
             ..Parameters::default()
         };
-        if let Err(check) = verification.check_parameters(
+        if let Err(check) = Verification::check_parameters(
             &TickerTypes::options(),
             PARAMETERS,
             &options_chain_parameters,
         ) {
             return Err(check);
         }
-        let url = url(&options_chain_parameters);
-        match request.request(url) {
+        let url = match url(&options_chain_parameters){
+            Ok(url) => url,
+            Err(e) => return Err(e)
+        };
+        match Request::request(url) {
             Ok(mut map) => Ok(OptionsChain::parse(&mut map)),
             Err(e) => return Err(e),
         }
@@ -141,60 +138,64 @@ const PARAMETERS: &'static [&'static ParameterRequirment] = &[
     },
 ];
 
-fn url(parameters: &Parameters) -> String {
-    String::from(format!(
+fn url(parameters: &Parameters) -> Result<String, ErrorCode> {
+    let url = String::from(format!(
         "https://api.polygon.io/v3/snapshot/options/{}?{}{}{}{}{}{}{}{}{}{}apiKey={}",
-        parameters.clone().underlying_asset.unwrap(),
-        if let Some(strike_price) = parameters.clone().strike_price {
+        match &parameters.underlying_asset {
+            Some(underlying_asset) => underlying_asset,
+            None => return Err(ErrorCode::UnderlyingAssetNotSet),
+        },
+        if let Some(strike_price) = &parameters.strike_price {
             format!("strike_price={}&", strike_price)
         } else {
             "".to_string()
         },
-        if let Some(strike_price_from) = parameters.clone().strike_price_from {
+        if let Some(strike_price_from) = &parameters.strike_price_from {
             format!("strike_price.gte={}&", strike_price_from)
         } else {
             "".to_string()
         },
-        if let Some(strike_price_to) = parameters.clone().strike_price_to {
+        if let Some(strike_price_to) = &parameters.strike_price_to {
             format!("strike_price.lte={}&", strike_price_to)
         } else {
             "".to_string()
         },
-        if let Some(date) = parameters.clone().date {
+        if let Some(date) = &parameters.date {
             format!("expiration_date={}&", date)
         } else {
             "".to_string()
         },
-        if let Some(from) = parameters.clone().from {
+        if let Some(from) = &parameters.from {
             format!("expiration_date.gte={}&", from)
         } else {
             "".to_string()
         },
-        if let Some(to) = parameters.clone().to {
+        if let Some(to) = &parameters.to {
             format!("expiration_date.lte={}&", to)
         } else {
             "".to_string()
         },
-        if let Some(contract_type) = parameters.clone().contract_type {
+        if let Some(contract_type) = &parameters.contract_type {
             format!("contract_type={}&", contract_type)
         } else {
             "".to_string()
         },
-        if let Some(order) = parameters.clone().order {
+        if let Some(order) = &parameters.order {
             format!("order={}&", order)
         } else {
             "".to_string()
         },
-        if let Some(limit) = parameters.clone().limit {
+        if let Some(limit) = &parameters.limit {
             format!("limit={}&", limit)
         } else {
             "".to_string()
         },
-        if let Some(sort) = parameters.clone().sortv3 {
+        if let Some(sort) = &parameters.sortv3 {
             format!("sort={}&", sort)
         } else {
             "".to_string()
         },
-        parameters.clone().api_key,
-    ))
+        &parameters.api_key,
+    ));
+    Ok(url)
 }

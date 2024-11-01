@@ -4,10 +4,7 @@ use crate::{
         error::ErrorCode,
         parameters::{Order, Parameter, ParameterRequirment, Parameters, Sortv3, TickerTypes},
     },
-    tools::{
-        request::{Next, Request},
-        verification::Verification,
-    },
+    tools::{request::Request, verification::Verification},
 };
 use serde::{Deserialize, Serialize};
 
@@ -37,10 +34,9 @@ impl Parse for BBO {
     }
 }
 
-impl Next for BBO {}
-
 pub trait BBORequest {
     fn get_bbo(
+        &self,
         api_key: String,
         ticker: String,
         timestamp: Option<String>,
@@ -49,8 +45,6 @@ pub trait BBORequest {
         sort: Option<Sortv3>,
         limit: Option<u16>,
         order: Option<Order>,
-        request: &impl Request,
-        verification: &impl Verification,
     ) -> Result<BBO, ErrorCode> {
         let ts = if to.is_some() || from.is_some() {
             None
@@ -69,12 +63,15 @@ pub trait BBORequest {
             ..Parameters::default()
         };
         if let Err(check) =
-            verification.check_parameters(&TickerTypes::forex(), PARAMETERS, &bbo_parameters)
+            Verification::check_parameters(&TickerTypes::forex(), PARAMETERS, &bbo_parameters)
         {
             return Err(check);
         }
-        let url = url(&bbo_parameters);
-        match request.request(url) {
+        let url = match url(&bbo_parameters) {
+            Ok(url) => url,
+            Err(e) => return Err(e),
+        };
+        match Request::request(url) {
             Ok(mut map) => Ok(BBO::parse(&mut map)),
             Err(e) => return Err(e),
         }
@@ -112,40 +109,44 @@ const PARAMETERS: &'static [&'static ParameterRequirment] = &[
     },
 ];
 
-fn url(parameters: &Parameters) -> String {
-    String::from(format!(
+fn url(parameters: &Parameters) -> Result<String, ErrorCode> {
+    let url = String::from(format!(
         "https://api.polygon.io/v3/quotes/{}?{}{}{}{}{}{}apiKey={}",
-        parameters.ticker.clone().unwrap(),
-        if let Some(t) = parameters.clone().timestamp {
+        match &parameters.ticker {
+            Some(ticker) => ticker,
+            None => return Err(ErrorCode::TickerNotSet),
+        },
+        if let Some(t) = &parameters.timestamp {
             format!("timestamp={}&", t)
         } else {
             "".to_string()
         },
-        if let Some(tf) = parameters.clone().from {
+        if let Some(tf) = &parameters.from {
             format!("timestamp.gte={}&", tf)
         } else {
             "".to_string()
         },
-        if let Some(tt) = parameters.clone().to {
+        if let Some(tt) = &parameters.to {
             format!("timestamp.lte={}&", tt)
         } else {
             "".to_string()
         },
-        if let Some(o) = parameters.clone().order {
+        if let Some(o) = &parameters.order {
             format!("order={}&", o)
         } else {
             "".to_string()
         },
-        if let Some(l) = parameters.clone().limit {
+        if let Some(l) = &parameters.limit {
             format!("limit={}&", l)
         } else {
             "".to_string()
         },
-        if let Some(s) = parameters.clone().sortv3 {
+        if let Some(s) = &parameters.sortv3 {
             format!("sort={}&", s)
         } else {
             "".to_string()
         },
-        parameters.api_key,
-    ))
+        &parameters.api_key,
+    ));
+    Ok(url)
 }

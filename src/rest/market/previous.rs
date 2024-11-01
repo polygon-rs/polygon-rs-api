@@ -45,12 +45,10 @@ impl Parse for Previous {
 
 pub trait PreviousRequest {
     fn get_previous(
-        &mut self,
+        &self,
         api_key: String,
         ticker: String,
         adjusted: Option<bool>,
-        request: &impl Request,
-        verification: &impl Verification,
     ) -> Result<Previous, ErrorCode> {
         let previous_parameters = Parameters {
             api_key: api_key,
@@ -59,12 +57,15 @@ pub trait PreviousRequest {
             ..Parameters::default()
         };
         if let Err(check) =
-            verification.check_parameters(&TickerTypes::all(), PARAMETERS, &previous_parameters)
+            Verification::check_parameters(&TickerTypes::all(), PARAMETERS, &previous_parameters)
         {
             return Err(check);
         }
-        let url = url(&previous_parameters);
-        match request.request(url) {
+        let url = match url(&previous_parameters){
+            Ok(url) => url,
+            Err(e) => return Err(e),
+        };
+        match Request::request(url) {
             Ok(mut map) => Ok(Previous::parse(&mut map)),
             Err(e) => return Err(e),
         }
@@ -82,15 +83,19 @@ const PARAMETERS: &'static [&'static ParameterRequirment] = &[
     },
 ];
 
-fn url(parameters: &Parameters) -> String {
-    String::from(format!(
+fn url(parameters: &Parameters) -> Result<String, ErrorCode> {
+    let url = String::from(format!(
         "https://api.polygon.io/v2/aggs/ticker/{}/prev?{}apiKey={}",
-        parameters.ticker.clone().unwrap(),
-        if let Some(adj) = parameters.adjusted {
+        match &parameters.ticker{
+            Some(ticker) => ticker,
+            None => return Err(ErrorCode::TickerNotSet),
+        },
+        if let Some(adj) = &parameters.adjusted {
             format!("adjusted={}&", adj)
         } else {
             "".to_string()
         },
-        parameters.api_key,
-    ))
+        &parameters.api_key,
+    ));
+    Ok(url)
 }

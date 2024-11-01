@@ -46,12 +46,11 @@ impl Parse for CurrencyConversion {
 
 pub trait CurrencyConversionRequest {
     fn get_currency_conversion(
+        &self,
         api_key: String,
         ticker: String,
         amount: Option<f64>,
         precision: Option<u8>,
-        request: &impl Request,
-        verification: &impl Verification,
     ) -> Result<CurrencyConversion, ErrorCode> {
         let currency_conversion_parameters = Parameters {
             api_key: api_key,
@@ -60,15 +59,18 @@ pub trait CurrencyConversionRequest {
             precision: precision,
             ..Parameters::default()
         };
-        if let Err(check) = verification.check_parameters(
+        if let Err(check) = Verification::check_parameters(
             &TickerTypes::forex(),
             PARAMETERS,
             &currency_conversion_parameters,
         ) {
             return Err(check);
         }
-        let url = url(&currency_conversion_parameters);
-        match request.request(url) {
+        let url = match url(&currency_conversion_parameters){
+            Ok(url) => url,
+            Err(e) => return Err(e),
+        };
+        match Request::request(url) {
             Ok(mut map) => Ok(CurrencyConversion::parse(&mut map)),
             Err(e) => return Err(e),
         }
@@ -90,23 +92,30 @@ const PARAMETERS: &'static [&'static ParameterRequirment] = &[
     },
 ];
 
-fn url(parameters: &Parameters) -> String {
-    let from = parameters.ticker.clone().unwrap()[2..4].to_string();
-    let to = parameters.ticker.clone().unwrap()[5..7].to_string();
-    String::from(format!(
+fn url(parameters: &Parameters) -> Result<String, ErrorCode> {
+    let from = match &parameters.ticker {
+        Some(ticker) => ticker[2..4].to_string(),
+        None => return Err(ErrorCode::TickerNotSet),
+    };
+    let to = match &parameters.ticker {
+        Some(ticker) => ticker[5..7].to_string(),
+        None => return Err(ErrorCode::TickerNotSet),
+    };
+    let url = String::from(format!(
         "https://api.polygon.io/v1/conversion/{}/{}?{}{}apiKey={}",
         from,
         to,
-        if let Some(s) = parameters.amount {
+        if let Some(s) = &parameters.amount {
             format!("amount={}&", s)
         } else {
             "".to_string()
         },
-        if let Some(s) = parameters.precision {
+        if let Some(s) = &parameters.precision {
             format!("precision={}&", s)
         } else {
             "".to_string()
         },
-        parameters.api_key,
-    ))
+        &parameters.api_key,
+    ));
+    Ok(url)
 }

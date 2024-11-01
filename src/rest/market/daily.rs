@@ -53,13 +53,11 @@ impl Parse for Daily {
 
 pub trait DailyRequest {
     fn get_daily(
-        &mut self,
+        &self,
         api_key: String,
         ticker: String,
         date: String,
         adjusted: Option<bool>,
-        request: &impl Request,
-        verification: &impl Verification,
     ) -> Result<Daily, ErrorCode> {
         let daily_parameters = Parameters {
             api_key: api_key,
@@ -68,15 +66,18 @@ pub trait DailyRequest {
             adjusted: adjusted,
             ..Parameters::default()
         };
-        if let Err(check) = verification.check_parameters(
+        if let Err(check) = Verification::check_parameters(
             &TickerTypes::set(true, true, false, false, true),
             PARAMETERS,
             &daily_parameters,
         ) {
             return Err(check);
         }
-        let url = url(&daily_parameters);
-        match request.request(url) {
+        let url = match url(&daily_parameters){
+            Ok(url) => url,
+            Err(e) => return Err(e),
+        };
+        match Request::request(url) {
             Ok(mut map) => Ok(Daily::parse(&mut map)),
             Err(e) => return Err(e),
         }
@@ -97,16 +98,23 @@ const PARAMETERS: &'static [&'static ParameterRequirment] = &[
         parameter: Parameter::Adjusted,
     },
 ];
-fn url(parameters: &Parameters) -> String {
-    String::from(format!(
+fn url(parameters: &Parameters) -> Result<String, ErrorCode> {
+    let url = String::from(format!(
         "https://api.polygon.io/v1/open-close/{}/{}?{}apiKey={}",
-        parameters.ticker.clone().unwrap(),
-        parameters.date.clone().unwrap(),
-        if let Some(adj) = parameters.adjusted {
+        match &parameters.ticker{
+            Some(ticker) => ticker,
+            None => return Err(ErrorCode::TickerNotSet),
+        },
+        match &parameters.date{
+            Some(date) => date,
+            None => return Err(ErrorCode::DateNotSet),
+        },
+        if let Some(adj) = &parameters.adjusted {
             format!("adjusted={}&", adj)
         } else {
             "".to_string()
         },
-        parameters.api_key,
-    ))
+        &parameters.api_key,
+    ));
+    Ok(url)
 }
