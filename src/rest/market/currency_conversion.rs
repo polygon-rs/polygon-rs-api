@@ -46,14 +46,13 @@ impl Parse for CurrencyConversion {
 
 pub trait CurrencyConversionRequest {
     fn get_currency_conversion(
-        &self,
-        api_key: String,
+        api_key: &String,
         ticker: String,
         amount: Option<f64>,
         precision: Option<u8>,
     ) -> Result<CurrencyConversion, ErrorCode> {
         let currency_conversion_parameters = Parameters {
-            api_key: api_key,
+            api_key: api_key.to_string(),
             ticker: Some(ticker),
             amount: amount,
             precision: precision,
@@ -66,7 +65,7 @@ pub trait CurrencyConversionRequest {
         ) {
             return Err(check);
         }
-        let url = match url(&currency_conversion_parameters){
+        let url = match url(&currency_conversion_parameters) {
             Ok(url) => url,
             Err(e) => return Err(e),
         };

@@ -53,14 +53,13 @@ impl Parse for Daily {
 
 pub trait DailyRequest {
     fn get_daily(
-        &self,
-        api_key: String,
+        api_key: &String,
         ticker: String,
         date: String,
         adjusted: Option<bool>,
     ) -> Result<Daily, ErrorCode> {
         let daily_parameters = Parameters {
-            api_key: api_key,
+            api_key: api_key.to_string(),
             ticker: Some(ticker),
             date: Some(date),
             adjusted: adjusted,
@@ -73,7 +72,7 @@ pub trait DailyRequest {
         ) {
             return Err(check);
         }
-        let url = match url(&daily_parameters){
+        let url = match url(&daily_parameters) {
             Ok(url) => url,
             Err(e) => return Err(e),
         };
@@ -101,11 +100,11 @@ const PARAMETERS: &'static [&'static ParameterRequirment] = &[
 fn url(parameters: &Parameters) -> Result<String, ErrorCode> {
     let url = String::from(format!(
         "https://api.polygon.io/v1/open-close/{}/{}?{}apiKey={}",
-        match &parameters.ticker{
+        match &parameters.ticker {
             Some(ticker) => ticker,
             None => return Err(ErrorCode::TickerNotSet),
         },
-        match &parameters.date{
+        match &parameters.date {
             Some(date) => date,
             None => return Err(ErrorCode::DateNotSet),
         },

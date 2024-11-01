@@ -32,13 +32,13 @@ impl Parse for OptionsContract {
 
 pub trait OptionsContractRequest {
     fn options_contract_request(
-        &self,
-        api_key: String,
+        
+        api_key: &String,
         ticker: String,
         underlying_asset: String,
     ) -> Result<OptionsContract, ErrorCode> {
         let options_contract_parameters = Parameters {
-            api_key: api_key,
+            api_key: api_key.to_string(),
             ticker: Some(ticker),
             underlying_asset: Some(underlying_asset),
             ..Parameters::default()

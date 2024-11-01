@@ -54,7 +54,7 @@ impl Parse for MovingAverageConvergenceDivergence {
 
 pub trait MovingAverageConvergenceDivergenceRequest {
     fn get_relatvie_strength(
-        api_key: String,
+        api_key: &String,
         ticker: String,
         timestamp: Option<String>,
         from: Option<String>,
@@ -75,7 +75,7 @@ pub trait MovingAverageConvergenceDivergenceRequest {
             timestamp
         };
         let moving_average_convergence_divergence_parameters = Parameters {
-            api_key: api_key,
+            api_key: api_key.to_string(),
             ticker: Some(ticker),
             timestamp: ts,
             from: from,

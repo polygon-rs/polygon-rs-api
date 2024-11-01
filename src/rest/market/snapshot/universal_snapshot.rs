@@ -36,8 +36,7 @@ impl Parse for UniversalSnapshot {
 
 pub trait UniversalSnapshotRequest {
     fn get_universal_snapshot(
-        &self,
-        api_key: String,
+        api_key: &String,
         tickers: Option<Vec<String>>,
         ticker_from: Option<String>,
         ticker_to: Option<String>,
@@ -52,7 +51,7 @@ pub trait UniversalSnapshotRequest {
             tickers
         };
         let universal_snapshot_parameters = Parameters {
-            api_key: api_key,
+            api_key: api_key.to_string(),
             tickers: tickers,
             ticker_from: ticker_from,
             ticker_to: ticker_to,
@@ -79,9 +78,9 @@ pub trait UniversalSnapshotRequest {
         ) {
             return Err(check);
         }
-        let url = match url(&universal_snapshot_parameters){
+        let url = match url(&universal_snapshot_parameters) {
             Ok(url) => url,
-            Err(e) => return Err(e)
+            Err(e) => return Err(e),
         };
         match Request::request(url) {
             Ok(mut map) => Ok(UniversalSnapshot::parse(&mut map)),

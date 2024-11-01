@@ -24,8 +24,7 @@ impl Parse for GainersLosers {
 
 pub trait GainersLosersRequest {
     fn get_gainers_losers(
-        &self,
-        api_key: String,
+        api_key: &String,
         direction: Direction,
         include_otc: Option<bool>,
         ticker_type: TickerType,
@@ -41,7 +40,7 @@ pub trait GainersLosersRequest {
             _ => include_otc,
         };
         let gainers_losers_parameters = Parameters {
-            api_key: api_key,
+            api_key: api_key.to_string(),
             direction: Some(direction),
             include_otc: includeotc,
             ..Parameters::default()
@@ -56,9 +55,9 @@ pub trait GainersLosersRequest {
             TickerType::Forex | TickerType::Crypto => String::from("global"),
             _ => return Err(ErrorCode::TickerTypeeNotValidForAPICall),
         };
-        let url = match url(&gainers_losers_parameters, locale, ticker_type){
+        let url = match url(&gainers_losers_parameters, locale, ticker_type) {
             Ok(url) => url,
-            Err(e) => return Err(e)
+            Err(e) => return Err(e),
         };
         match Request::request(url) {
             Ok(mut map) => Ok(GainersLosers::parse(&mut map)),
@@ -78,8 +77,12 @@ const PARAMETERS: &'static [&'static ParameterRequirment] = &[
     },
 ];
 
-fn url(parameters: &Parameters, locale: String, ticker_type: TickerType) -> Result<String, ErrorCode> {
-    let url =String::from(format!(
+fn url(
+    parameters: &Parameters,
+    locale: String,
+    ticker_type: TickerType,
+) -> Result<String, ErrorCode> {
+    let url = String::from(format!(
         "https://api.polygon.io/v2/snapshot/locale/{}/markets/{}/{}?{}apiKey={}",
         locale,
         ticker_type.to_string().to_lowercase(),

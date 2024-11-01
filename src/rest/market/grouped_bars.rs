@@ -39,14 +39,13 @@ impl Parse for GroupedBars {
 
 pub trait GroupedBarsRequest {
     fn get_grouped_bars(
-        &self,
-        api_key: String,
+        api_key: &String,
         date: String,
         include_otc: Option<bool>,
         adjusted: Option<bool>,
     ) -> Result<GroupedBars, ErrorCode> {
         let grouped_bars_parameters = Parameters {
-            api_key: api_key,
+            api_key: api_key.to_string(),
             date: Some(date),
             adjusted: adjusted,
             include_otc: include_otc,
@@ -59,7 +58,7 @@ pub trait GroupedBarsRequest {
         ) {
             return Err(check);
         }
-        let url = match url(&grouped_bars_parameters){
+        let url = match url(&grouped_bars_parameters) {
             Ok(url) => url,
             Err(e) => return Err(e),
         };

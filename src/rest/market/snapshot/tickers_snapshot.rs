@@ -31,8 +31,7 @@ impl Parse for TickersSnapshot {
 
 pub trait TickersSnapshotRequest {
     fn get_tickers_snapshot(
-        &self,
-        api_key: String,
+        api_key: &String,
         tickers: Option<Vec<String>>,
         include_otc: Option<bool>,
         ticker_type: TickerType,
@@ -48,7 +47,7 @@ pub trait TickersSnapshotRequest {
             _ => include_otc,
         };
         let tickers_snapshot_parameters = Parameters {
-            api_key: api_key,
+            api_key: api_key.to_string(),
             tickers: tickers,
             include_otc: includeotc,
             ..Parameters::default()
@@ -63,9 +62,9 @@ pub trait TickersSnapshotRequest {
             TickerType::Forex | TickerType::Crypto => String::from("global"),
             _ => return Err(ErrorCode::TickerTypeeNotValidForAPICall),
         };
-        let url = match url(&tickers_snapshot_parameters, locale, ticker_type){
+        let url = match url(&tickers_snapshot_parameters, locale, ticker_type) {
             Ok(url) => url,
-            Err(e) => return Err(e)
+            Err(e) => return Err(e),
         };
         match Request::request(url) {
             Ok(mut map) => Ok(TickersSnapshot::parse(&mut map)),
@@ -85,7 +84,11 @@ const PARAMETERS: &'static [&'static ParameterRequirment] = &[
     },
 ];
 
-fn url(parameters: &Parameters, locale: String, ticker_type: TickerType) -> Result<String, ErrorCode> {
+fn url(
+    parameters: &Parameters,
+    locale: String,
+    ticker_type: TickerType,
+) -> Result<String, ErrorCode> {
     let tickers = {
         let mut tickers_flattened = String::new();
         if let Some(tickers) = &parameters.tickers {

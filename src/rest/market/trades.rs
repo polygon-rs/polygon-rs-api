@@ -36,8 +36,7 @@ impl Parse for Trades {
 
 pub trait TradesRequest {
     fn get_trades(
-        &self,
-        api_key: String,
+        api_key: &String,
         ticker: String,
         timestamp: Option<String>,
         from: Option<String>,
@@ -52,7 +51,7 @@ pub trait TradesRequest {
             timestamp
         };
         let trades_parameters = Parameters {
-            api_key: api_key,
+            api_key: api_key.to_string(),
             ticker: Some(ticker),
             timestamp: ts,
             from: from,
@@ -69,7 +68,7 @@ pub trait TradesRequest {
         ) {
             return Err(check);
         }
-        let url = match url(&trades_parameters){
+        let url = match url(&trades_parameters) {
             Ok(url) => url,
             Err(e) => return Err(e),
         };
@@ -114,7 +113,7 @@ const PARAMETERS: &'static [&'static ParameterRequirment] = &[
 fn url(parameters: &Parameters) -> Result<String, ErrorCode> {
     let url = String::from(format!(
         "https://api.polygon.io/v3/trades/{}?{}{}{}{}{}{}apiKey={}",
-        match &parameters.ticker{
+        match &parameters.ticker {
             Some(ticker) => ticker,
             None => return Err(ErrorCode::TickerNotSet),
         },

@@ -32,9 +32,9 @@ impl Parse for LastTrade {
 }
 
 pub trait LastTradeRequest {
-    fn get_last_trade(&self, api_key: String, ticker: String) -> Result<LastTrade, ErrorCode> {
+    fn get_last_trade(api_key: &String, ticker: String) -> Result<LastTrade, ErrorCode> {
         let last_trade_parameters = Parameters {
-            api_key: api_key,
+            api_key: api_key.to_string(),
             ticker: Some(ticker),
             ..Parameters::default()
         };
@@ -45,7 +45,7 @@ pub trait LastTradeRequest {
         ) {
             return Err(check);
         }
-        let url = match url(&last_trade_parameters){
+        let url = match url(&last_trade_parameters) {
             Ok(url) => url,
             Err(e) => return Err(e),
         };
@@ -64,7 +64,7 @@ const PARAMETERS: &'static [&'static ParameterRequirment] = &[&ParameterRequirme
 fn url(parameters: &Parameters) -> Result<String, ErrorCode> {
     let url = String::from(format!(
         "https://api.polygon.io/v2/last/trade/{}apiKey={}",
-        match &parameters.ticker{
+        match &parameters.ticker {
             Some(ticker) => ticker,
             None => return Err(ErrorCode::TickerNotSet),
         },

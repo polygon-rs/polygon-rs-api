@@ -34,8 +34,7 @@ impl Parse for IndiciesSnapshot {
 
 pub trait IndiciesSnapshotRequest {
     fn get_indicie_snapshot(
-        &self,
-        api_key: String,
+        api_key: &String,
         tickers: Option<Vec<String>>,
         ticker_from: Option<String>,
         ticker_to: Option<String>,
@@ -49,7 +48,7 @@ pub trait IndiciesSnapshotRequest {
             tickers
         };
         let indicies_snapshot_parameters = Parameters {
-            api_key: api_key,
+            api_key: api_key.to_string(),
             tickers: tickers,
             ticker_from: ticker_from,
             ticker_to: ticker_to,
@@ -67,7 +66,7 @@ pub trait IndiciesSnapshotRequest {
         }
         let url = match url(&indicies_snapshot_parameters) {
             Ok(url) => url,
-            Err(e) => return Err(e)
+            Err(e) => return Err(e),
         };
         match Request::request(url) {
             Ok(mut map) => Ok(IndiciesSnapshot::parse(&mut map)),

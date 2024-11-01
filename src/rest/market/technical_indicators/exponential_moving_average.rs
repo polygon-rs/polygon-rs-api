@@ -54,7 +54,7 @@ impl Parse for ExponentialMovingAverage {
 
 pub trait ExponentialMovingAverageRequest {
     fn get_exponential_moving_average(
-        api_key: String,
+        api_key: &String,
         ticker: String,
         timestamp: Option<String>,
         from: Option<String>,
@@ -73,7 +73,7 @@ pub trait ExponentialMovingAverageRequest {
             timestamp
         };
         let exponential_moving_average_parameters = Parameters {
-            api_key: api_key,
+            api_key: api_key.to_string(),
             ticker: Some(ticker),
             timestamp: ts,
             from: from,

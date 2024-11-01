@@ -36,8 +36,7 @@ impl Parse for BBO {
 
 pub trait BBORequest {
     fn get_bbo(
-        &self,
-        api_key: String,
+        api_key: &String,
         ticker: String,
         timestamp: Option<String>,
         from: Option<String>,
@@ -52,7 +51,7 @@ pub trait BBORequest {
             timestamp
         };
         let bbo_parameters = Parameters {
-            api_key: api_key,
+            api_key: api_key.to_string(),
             ticker: Some(ticker),
             timestamp: ts,
             from: from,

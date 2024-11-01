@@ -45,13 +45,12 @@ impl Parse for Previous {
 
 pub trait PreviousRequest {
     fn get_previous(
-        &self,
-        api_key: String,
+        api_key: &String,
         ticker: String,
         adjusted: Option<bool>,
     ) -> Result<Previous, ErrorCode> {
         let previous_parameters = Parameters {
-            api_key: api_key,
+            api_key: api_key.to_string(),
             ticker: Some(ticker),
             adjusted: adjusted,
             ..Parameters::default()
@@ -61,7 +60,7 @@ pub trait PreviousRequest {
         {
             return Err(check);
         }
-        let url = match url(&previous_parameters){
+        let url = match url(&previous_parameters) {
             Ok(url) => url,
             Err(e) => return Err(e),
         };
@@ -86,7 +85,7 @@ const PARAMETERS: &'static [&'static ParameterRequirment] = &[
 fn url(parameters: &Parameters) -> Result<String, ErrorCode> {
     let url = String::from(format!(
         "https://api.polygon.io/v2/aggs/ticker/{}/prev?{}apiKey={}",
-        match &parameters.ticker{
+        match &parameters.ticker {
             Some(ticker) => ticker,
             None => return Err(ErrorCode::TickerNotSet),
         },

@@ -24,9 +24,9 @@ impl Parse for L2Snapshot {
 }
 
 pub trait L2SnapshotRequest {
-    fn get_l2(&self, api_key: String, ticker: String) -> Result<L2Snapshot, ErrorCode> {
+    fn get_l2(api_key: &String, ticker: String) -> Result<L2Snapshot, ErrorCode> {
         let l2_snapshot_parameters = Parameters {
-            api_key: api_key,
+            api_key: api_key.to_string(),
             ticker: Some(ticker),
             ..Parameters::default()
         };
@@ -37,9 +37,9 @@ pub trait L2SnapshotRequest {
         ) {
             return Err(check);
         }
-        let url = match url(&l2_snapshot_parameters){
+        let url = match url(&l2_snapshot_parameters) {
             Ok(url) => url,
-            Err(e) => return Err(e)
+            Err(e) => return Err(e),
         };
         match Request::request(url) {
             Ok(mut map) => Ok(L2Snapshot::parse(&mut map)),

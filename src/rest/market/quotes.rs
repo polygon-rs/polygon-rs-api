@@ -36,8 +36,7 @@ impl Parse for Quotes {
 
 pub trait QuotesRequest {
     fn get_quotes(
-        &self,
-        api_key: String,
+        api_key: &String,
         ticker: String,
         timestamp: Option<String>,
         from: Option<String>,
@@ -52,7 +51,7 @@ pub trait QuotesRequest {
             timestamp
         };
         let quotes_parameters = Parameters {
-            api_key: api_key,
+            api_key: api_key.to_string(),
             ticker: Some(ticker),
             timestamp: ts,
             from: from,
@@ -69,7 +68,7 @@ pub trait QuotesRequest {
         ) {
             return Err(check);
         }
-        let url = match url(&quotes_parameters){
+        let url = match url(&quotes_parameters) {
             Ok(url) => url,
             Err(e) => return Err(e),
         };

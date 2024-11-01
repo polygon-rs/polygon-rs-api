@@ -34,8 +34,8 @@ impl Parse for OptionsChain {
 
 pub trait OptionsChainRequest {
     fn get_options_chain(
-        &self,
-        api_key: String,
+        
+        api_key: &String,
         underlying_asset: String,
         date: Option<String>,
         from: Option<String>,
@@ -59,7 +59,7 @@ pub trait OptionsChainRequest {
             strike_price
         };
         let options_chain_parameters = Parameters {
-            api_key: api_key,
+            api_key: api_key.to_string(),
             underlying_asset: Some(underlying_asset),
             date: ts,
             from: from,

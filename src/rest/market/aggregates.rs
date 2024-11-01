@@ -47,8 +47,7 @@ impl Parse for Aggregates {
 
 pub trait AggregatesRequest {
     fn get_aggregates(
-        &self,
-        api_key: String,
+        api_key: &String,
         ticker: String,
         multiplier: u16,
         timespan: Timespan,
@@ -59,7 +58,7 @@ pub trait AggregatesRequest {
         adjusted: Option<bool>,
     ) -> Result<Aggregates, ErrorCode> {
         let aggregates_parameters = Parameters {
-            api_key: api_key,
+            api_key: api_key.to_string(),
             ticker: Some(ticker),
             adjusted: adjusted,
             multiplier: Some(multiplier),
@@ -75,7 +74,7 @@ pub trait AggregatesRequest {
         {
             return Err(check);
         }
-        let url = match url(&aggregates_parameters){
+        let url = match url(&aggregates_parameters) {
             Ok(url) => url,
             Err(e) => return Err(e),
         };
@@ -124,23 +123,23 @@ const PARAMETERS: &'static [&'static ParameterRequirment] = &[
 fn url(parameters: &Parameters) -> Result<String, ErrorCode> {
     let url = String::from(format!(
         "https://api.polygon.io/v2/aggs/ticker/{}/range/{}/{}/{}/{}?{}{}{}apiKey={}",
-        match &parameters.ticker{
+        match &parameters.ticker {
             Some(ticker) => ticker,
             None => return Err(ErrorCode::TickerNotSet),
         },
-        match &parameters.multiplier{
+        match &parameters.multiplier {
             Some(multiplier) => multiplier,
             None => return Err(ErrorCode::MultiplierNotSet),
         },
-        match &parameters.timespan{
+        match &parameters.timespan {
             Some(timespan) => timespan,
             None => return Err(ErrorCode::TimespanNotSet),
         },
-        match &parameters.from{
+        match &parameters.from {
             Some(from) => from,
             None => return Err(ErrorCode::FromNotSet),
         },
-        match &parameters.to{
+        match &parameters.to {
             Some(to) => to,
             None => return Err(ErrorCode::ToNotSet),
         },

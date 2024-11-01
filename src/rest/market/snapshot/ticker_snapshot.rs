@@ -31,13 +31,13 @@ impl Parse for TickerSnapshot {
 
 pub trait TickerSnapshotRequest {
     fn get_ticker_snapshot(
-        &self,
-        api_key: String,
+        
+        api_key: &String,
         ticker: String,
         ticker_type: TickerType,
     ) -> Result<TickerSnapshot, ErrorCode> {
         let ticker_snapshot_parameters = Parameters {
-            api_key: api_key,
+            api_key: api_key.to_string(),
             ticker: Some(ticker),
             ..Parameters::default()
         };

@@ -32,9 +32,9 @@ impl Parse for LastQuote {
 }
 
 pub trait LastQuoteRequest {
-    fn get_last_quote(&self, api_key: String, ticker: String) -> Result<LastQuote, ErrorCode> {
+    fn get_last_quote(api_key: &String, ticker: String) -> Result<LastQuote, ErrorCode> {
         let last_quote_parameters = Parameters {
-            api_key: api_key,
+            api_key: api_key.to_string(),
             ticker: Some(ticker),
             ..Parameters::default()
         };
@@ -45,7 +45,7 @@ pub trait LastQuoteRequest {
         ) {
             return Err(check);
         }
-        let url = match url(&last_quote_parameters){
+        let url = match url(&last_quote_parameters) {
             Ok(url) => url,
             Err(e) => return Err(e),
         };
@@ -64,7 +64,7 @@ const PARAMETERS: &'static [&'static ParameterRequirment] = &[&ParameterRequirme
 fn url(parameters: &Parameters) -> Result<String, ErrorCode> {
     let url = String::from(format!(
         "https://api.polygon.io/v2/last/nbbo/{}?apiKey={}",
-        match &parameters.ticker{
+        match &parameters.ticker {
             Some(ticker) => ticker,
             None => return Err(ErrorCode::TickerNotSet),
         },

@@ -35,9 +35,9 @@ impl Parse for PairTrade {
 }
 
 pub trait PairTradeRequest {
-    fn get_pair_trade(&self, api_key: String, ticker: String) -> Result<PairTrade, ErrorCode> {
+    fn get_pair_trade(api_key: &String, ticker: String) -> Result<PairTrade, ErrorCode> {
         let pair_trade_parameters = Parameters {
-            api_key: api_key,
+            api_key: api_key.to_string(),
             ticker: Some(ticker),
             ..Parameters::default()
         };
@@ -48,7 +48,7 @@ pub trait PairTradeRequest {
         ) {
             return Err(check);
         }
-        let url = match url(&pair_trade_parameters){
+        let url = match url(&pair_trade_parameters) {
             Ok(url) => url,
             Err(e) => return Err(e),
         };
@@ -76,9 +76,7 @@ fn url(parameters: &Parameters) -> Result<String, ErrorCode> {
     };
     let url = String::from(format!(
         "https://api.polygon.io/v1/last/crypto/{}/{}?apiKey={}",
-        from,
-        to,
-        &parameters.api_key,
+        from, to, &parameters.api_key,
     ));
     Ok(url)
 }

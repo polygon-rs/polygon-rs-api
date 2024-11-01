@@ -35,9 +35,9 @@ impl Parse for PairQuote {
 }
 
 pub trait PairQuoteRequest {
-    fn get_pair_quote(&self, api_key: String, ticker: String) -> Result<PairQuote, ErrorCode> {
+    fn get_pair_quote(api_key: &String, ticker: String) -> Result<PairQuote, ErrorCode> {
         let pair_quote_parameters = Parameters {
-            api_key: api_key,
+            api_key: api_key.to_string(),
             ticker: Some(ticker),
             ..Parameters::default()
         };
@@ -48,7 +48,7 @@ pub trait PairQuoteRequest {
         ) {
             return Err(check);
         }
-        let url = match url(&pair_quote_parameters){
+        let url = match url(&pair_quote_parameters) {
             Ok(url) => url,
             Err(e) => return Err(e),
         };
