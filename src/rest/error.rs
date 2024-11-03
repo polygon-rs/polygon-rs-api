@@ -1,6 +1,6 @@
 use std::fmt;
 
-#[derive(Debug)]
+#[derive(Debug, PartialEq)]
 pub enum ErrorCode {
     TickerError,
     OptionsTickerError,
@@ -10,6 +10,10 @@ pub enum ErrorCode {
     FormatError,
     DateError,
     DateNotSet,
+    DateToError,
+    DateToNotSet,
+    DateFromError,
+    DateFromNotSet,
     RegexError,
     ToNotSet,
     FromNotSet,
@@ -23,7 +27,20 @@ pub enum ErrorCode {
     TimestampNotSet,
     ContractTypeNotSet,
     JSONParseError,
-    StrikePriceNotSet
+    StrikePriceNotSet,
+    WrongParameterType,
+    TickerNotValidForAPICall,
+    TickerTypeeNotValidForAPICall,
+    TickersNotSet,
+    UnderlyingAssetNotSet,
+    StrikePriceToError,
+    StrikePriceFromNotSet,
+    StrikePriceToNotSet,
+    AmountNotSet,
+    PrecisionNotSet,
+    DirectionNotSet,
+    TickerTypeNotSet,
+    NoNextURL,
 }
 
 impl fmt::Display for ErrorCode {
@@ -50,7 +67,24 @@ impl fmt::Display for ErrorCode {
             ErrorCode::TimestampNotSet => f.write_str("There is no timestamp set"),
             ErrorCode::ContractTypeNotSet => f.write_str("There is no contract type set"),
             ErrorCode::JSONParseError => f.write_str("There is an issue with parsing the JSON"),
-            ErrorCode::StrikePriceNotSet => f.write_str("There is no strike price set")
+            ErrorCode::StrikePriceNotSet => f.write_str("There is no strike price set"),
+            ErrorCode::DateToNotSet => f.write_str("There is no to date set"),
+            ErrorCode::DateFromNotSet => f.write_str("There is no from date set"),
+            ErrorCode::DateToError => f.write_str("There is an issue with the to date"),
+            ErrorCode::DateFromError => f.write_str("There is an issue with the from date"),
+            ErrorCode::WrongParameterType => f.write_str("There is an issue with the parameter type"),
+            ErrorCode::TickerNotValidForAPICall => f.write_str("This Ticker can not be used for this API Call"),
+            ErrorCode::TickerTypeeNotValidForAPICall => f.write_str("This Ticker Type can not be used for this API Call"),
+            ErrorCode::TickersNotSet => f.write_str("There is no tickers set"),
+            ErrorCode::UnderlyingAssetNotSet => f.write_str("There is no underlying asset set"),
+            ErrorCode::StrikePriceToError => f.write_str("There is an issue with the strike price to"),
+            ErrorCode::StrikePriceFromNotSet => f.write_str("There is no Strike Price From Set"),
+            ErrorCode::StrikePriceToNotSet => f.write_str("There is no Strike Price To Set"),
+            ErrorCode::AmountNotSet => f.write_str("There is no amount set"),
+            ErrorCode::PrecisionNotSet => f.write_str("There is no precision set"),
+            ErrorCode::DirectionNotSet => f.write_str("There is no direction set"),
+            ErrorCode::TickerTypeNotSet => f.write_str("There is no ticker type set"),
+            ErrorCode::NoNextURL => f.write_str("The is no next URL"),
         }
     }
 }

@@ -1,36 +1,53 @@
-use crate::{ErrorCode, Parameter, ParameterRequirment, Parameters, Request, Sort, Timespan};
+use crate::{
+    data_types::{bar::Bar, Parse},
+    rest::{
+        error::ErrorCode,
+        parameters::{Parameter, ParameterRequirment, Parameters, Sort, TickerTypes, Timespan},
+    },
+    tools::{request::Request, verification::Verification},
+};
+use serde::{Deserialize, Serialize};
 
-#[derive(serde::Deserialize, Clone, Debug, Default)]
+#[derive(Serialize, Deserialize, Clone, Debug)]
 pub struct Aggregates {
-    aggregates_parameters: Parameters,
-    aggregates_url: String,
-    pub adjusted: bool,
-    pub next_url: String,
-    pub request_id: String,
-    pub results: Vec<Bar>,
-    pub status: String,
-    pub results_count: i64,
-    pub ticker: String,
-    pub query_count: i64,
+    pub adjusted: Option<bool>,
+    pub next_url: Option<String>,
+    pub request_id: Option<String>,
+    pub results: Option<Vec<Bar>>,
+    pub status: Option<String>,
+    pub results_count: Option<i64>,
+    pub ticker: Option<String>,
+    pub query_count: Option<i64>,
 }
 
-#[derive(serde::Deserialize, Clone, Debug, Default)]
-pub struct Bar {
-    pub close: f64,
-    pub high: f64,
-    pub low: f64,
-    pub transactions: i64,
-    pub open: f64,
-    pub timestamp: i64,
-    pub volume: f64,
-    pub volume_weighted: f64,
-    pub otc: bool,
+impl AggregatesRequest for Aggregates {}
+
+impl Parse for Aggregates {
+    fn parse(map: &serde_json::Map<String, serde_json::Value>) -> Self {
+        let adjusted = Self::bool_parse(map, vec!["adjusted"]);
+        let next_url = Self::string_parse(map, vec!["next_url"]);
+        let request_id = Self::string_parse(map, vec!["request_id"]);
+        let status = Self::string_parse(map, vec!["status"]);
+        let results = Self::array_parse(map, vec!["results"]);
+        let results_count = Self::i64_parse(map, vec!["resultsCount"]);
+        let ticker = Self::string_parse(map, vec!["ticker"]);
+        let query_count = Self::i64_parse(map, vec!["queryCount"]);
+        Aggregates {
+            adjusted,
+            next_url,
+            request_id,
+            results,
+            status,
+            results_count,
+            ticker,
+            query_count,
+        }
+    }
 }
 
-impl Aggregates {
-    pub fn set_parameters(
-        &mut self,
-        api_key: String,
+pub trait AggregatesRequest {
+    fn get_aggregates(
+        api_key: &String,
         ticker: String,
         multiplier: u16,
         timespan: Timespan,
@@ -39,9 +56,9 @@ impl Aggregates {
         sort: Option<Sort>,
         limit: Option<u16>,
         adjusted: Option<bool>,
-    ) {
-        self.aggregates_parameters = Parameters {
-            api_key: api_key,
+    ) -> Result<Aggregates, ErrorCode> {
+        let aggregates_parameters = Parameters {
+            api_key: api_key.to_string(),
             ticker: Some(ticker),
             adjusted: adjusted,
             multiplier: Some(multiplier),
@@ -51,161 +68,146 @@ impl Aggregates {
             sort: sort,
             limit: limit,
             ..Parameters::default()
+        };
+        if let Err(check) =
+            Verification::check_parameters(&TickerTypes::all(), PARAMETERS, &aggregates_parameters)
+        {
+            return Err(check);
+        }
+        let url = match url(&aggregates_parameters) {
+            Ok(url) => url,
+            Err(e) => return Err(e),
+        };
+        match Request::request(url) {
+            Ok(mut map) => Ok(Aggregates::parse(&mut map)),
+            Err(e) => return Err(e),
         }
     }
 }
 
-impl Request for Aggregates {
-    const VERSION: &'static str = "v2";
-    const CALL: &'static str = "aggs";
-    const PARAMETERS: &'static [&'static ParameterRequirment] = &[
-        &ParameterRequirment {
-            required: true,
-            parameter: Parameter::Ticker,
-        },
-        &ParameterRequirment {
-            required: true,
-            parameter: Parameter::Multiplier,
-        },
-        &ParameterRequirment {
-            required: true,
-            parameter: Parameter::Timespan,
-        },
-        &ParameterRequirment {
-            required: true,
-            parameter: Parameter::From,
-        },
-        &ParameterRequirment {
-            required: true,
-            parameter: Parameter::To,
-        },
-        &ParameterRequirment {
-            required: false,
-            parameter: Parameter::Adjusted,
-        },
-        &ParameterRequirment {
-            required: false,
-            parameter: Parameter::Sort,
-        },
-        &ParameterRequirment {
-            required: false,
-            parameter: Parameter::Limit,
-        },
-    ];
+const PARAMETERS: &'static [&'static ParameterRequirment] = &[
+    &ParameterRequirment {
+        required: true,
+        parameter: Parameter::Ticker,
+    },
+    &ParameterRequirment {
+        required: true,
+        parameter: Parameter::Multiplier,
+    },
+    &ParameterRequirment {
+        required: true,
+        parameter: Parameter::Timespan,
+    },
+    &ParameterRequirment {
+        required: true,
+        parameter: Parameter::From,
+    },
+    &ParameterRequirment {
+        required: true,
+        parameter: Parameter::To,
+    },
+    &ParameterRequirment {
+        required: false,
+        parameter: Parameter::Adjusted,
+    },
+    &ParameterRequirment {
+        required: false,
+        parameter: Parameter::Sort,
+    },
+    &ParameterRequirment {
+        required: false,
+        parameter: Parameter::Limit,
+    },
+];
 
-    fn parameters(&self) -> &Parameters {
-        &self.aggregates_parameters
-    }
-
-    fn url(&mut self) -> &String {
-        &self.aggregates_url
-    }
-
-    fn set_url(&mut self) -> Result<(), ErrorCode> {
-        if let Err(check) = self.check_parameters() {
-            return Err(check);
-        }
-        if self.next_url != "" {
-            self.aggregates_url = format!(
-                "{}&apiKey={}",
-                self.next_url.to_string(),
-                self.parameters().clone().api_key
-            );
-            return Ok(());
-        }
-        self.aggregates_url = String::from(format!(
-            "{}/{}/{}/ticker/{}/range/{}/{}/{}/{}?{}{}{}apiKey={}",
-            Self::BASE_URL,
-            Self::VERSION,
-            Self::CALL,
-            self.parameters().clone().ticker.unwrap(),
-            self.parameters().clone().multiplier.unwrap(),
-            self.parameters().clone().timespan.unwrap(),
-            self.parameters().clone().from.unwrap(),
-            self.parameters().clone().to.unwrap(),
-            if let Some(adj) = self.parameters().clone().adjusted {
-                format!("adjusted={}&", adj)
-            } else {
-                "".to_string()
-            },
-            if let Some(s) = self.parameters().clone().sort {
-                format!("sort={}&", s)
-            } else {
-                "".to_string()
-            },
-            if let Some(l) = self.parameters().clone().limit {
-                format!("limit={}&", l)
-            } else {
-                "".to_string()
-            },
-            self.parameters().clone().api_key,
-        ));
-        Ok(())
-    }
-
-    fn request(&mut self) -> Result<(), ErrorCode> {
-        match self.polygon_request() {
-            Ok(response) => {
-                if let Some(adjusted) = response["adjusted"].as_bool() {
-                    self.adjusted = adjusted
-                }
-                if let Some(next_url) = response["next_url"].as_str() {
-                    self.next_url = next_url.to_string()
-                } else {
-                    self.next_url = "".to_string()
-                }
-                if let Some(query_count) = response["queryCount"].as_i64() {
-                    self.query_count = query_count
-                }
-                if let Some(request_id) = response["request_id"].as_str() {
-                    self.request_id = request_id.to_string()
-                }
-                if let Some(results_count) = response["resultsCount"].as_i64() {
-                    self.results_count = results_count
-                }
-                if let Some(status) = response["status"].as_str() {
-                    self.status = status.to_string()
-                }
-                if let Some(ticker) = response["ticker"].as_str() {
-                    self.ticker = ticker.to_string()
-                }
-                if let Some(results) = response["results"].as_array() {
-                    for result in results {
-                        let mut bar = Bar::default();
-                        if let Some(close) = result["c"].as_f64() {
-                            bar.close = close
-                        }
-                        if let Some(high) = result["h"].as_f64() {
-                            bar.high = high
-                        }
-                        if let Some(low) = result["l"].as_f64() {
-                            bar.low = low
-                        }
-                        if let Some(transactions) = result["n"].as_i64() {
-                            bar.transactions = transactions
-                        }
-                        if let Some(open) = result["o"].as_f64() {
-                            bar.open = open
-                        }
-                        if let Some(timestamp) = result["t"].as_i64() {
-                            bar.timestamp = timestamp
-                        }
-                        if let Some(volume) = result["v"].as_f64() {
-                            bar.volume = volume
-                        }
-                        if let Some(volume_weighted) = result["vw"].as_f64() {
-                            bar.volume_weighted = volume_weighted
-                        }
-                        if let Some(otc) = result["otc"].as_bool() {
-                            bar.otc = otc
-                        }
-                        self.results.push(bar);
-                    }
-                }
+fn url(parameters: &Parameters) -> Result<String, ErrorCode> {
+    let url = String::from(format!(
+        "https://api.polygon.io/v2/aggs/ticker/{}/range/{}/{}/{}/{}?{}{}{}apiKey={}",
+        match &parameters.ticker {
+            Some(ticker) => ticker,
+            None => return Err(ErrorCode::TickerNotSet),
+        },
+        match &parameters.multiplier {
+            Some(multiplier) => multiplier,
+            None => return Err(ErrorCode::MultiplierNotSet),
+        },
+        match &parameters.timespan {
+            Some(timespan) => timespan.to_string().to_lowercase(),
+            None => return Err(ErrorCode::TimespanNotSet),
+        },
+        match &parameters.from {
+            Some(from) => from,
+            None => return Err(ErrorCode::FromNotSet),
+        },
+        match &parameters.to {
+            Some(to) => to,
+            None => return Err(ErrorCode::ToNotSet),
+        },
+        if let Some(adj) = &parameters.adjusted {
+            format!("adjusted={}&", adj)
+        } else {
+            "".to_string()
+        },
+        if let Some(s) = &parameters.sort {
+            format!("sort={}&", s.to_string().to_lowercase())
+        } else {
+            "".to_string()
+        },
+        if let Some(l) = &parameters.limit {
+            format!("limit={}&", l)
+        } else {
+            "".to_string()
+        },
+        &parameters.api_key,
+    ));
+    Ok(url)
+}
+#[test]
+fn test_aggregates_parse() {
+    let data = serde_json::json!({
+        "ticker": "AAPL",
+        "status": "OK",
+        "adjusted": true,
+        "queryCount": 1,
+        "resultsCount": 1,
+        "results": [
+            {
+                "v": 123456,
+                "vw": 1.23,
+                "o": 2.34,
+                "c": 3.45,
+                "h": 4.56,
+                "l": 0.12,
+                "t": 164545545,
+                "n": 123
             }
-            Err(e) => return Err(e),
-        };
+        ],
+        "request_id": "req12345",
+        "next_url": "https://api.polygon.io/v2/aggs/ticker/AAPL/range/1/day/2023-03-01/2023-04-01?cursor=YWN0aXZlPXRydWUmZGF0ZT0yMDIzLTA0LTAxJmxpbWl0PTEmb3JkZXI9YXNjJnBhZ2VfbWFya2VyPUElMjBWU1MjQyMCU3QzIwMjMtMDQtMDElN0M5JTNBNDElN0MwMCUzQTAwJnNvcnQ9dGlja2Vy&apiKey=apiKey"
+    });
+    let aggregates = Aggregates::parse(&data.as_object().unwrap());
+    assert_eq!(aggregates.ticker.unwrap(), "AAPL");
+    assert_eq!(aggregates.status.unwrap(), "OK");
+    assert_eq!(aggregates.adjusted.unwrap(), true);
+    assert_eq!(aggregates.query_count.unwrap(), 1);
+    assert_eq!(aggregates.results_count.unwrap(), 1);
+    assert_eq!(aggregates.results.unwrap()[0].volume.unwrap(), 123456.0);
+    assert_eq!(aggregates.request_id.unwrap(), "req12345");
+    assert_eq!(aggregates.next_url.unwrap(), "https://api.polygon.io/v2/aggs/ticker/AAPL/range/1/day/2023-03-01/2023-04-01?cursor=YWN0aXZlPXRydWUmZGF0ZT0yMDIzLTA0LTAxJmxpbWl0PTEmb3JkZXI9YXNjJnBhZ2VfbWFya2VyPUElMjBWU1MjQyMCU3QzIwMjMtMDQtMDElN0M5JTNBNDElN0MwMCUzQTAwJnNvcnQ9dGlja2Vy&apiKey=apiKey");
+}
 
-        Ok(())
-    }
+#[test]
+fn test_url() {
+    let mut parameters = Parameters::default();
+    parameters.api_key = String::from("apiKey");
+    parameters.ticker = Some(String::from("AAPL"));
+    parameters.multiplier = Some(1);
+    parameters.timespan = Some(Timespan::Day);
+    parameters.from = Some(String::from("2023-03-01"));
+    parameters.to = Some(String::from("2023-04-01"));
+    parameters.adjusted = Some(true);
+    parameters.sort = Some(Sort::Asc);
+    parameters.limit = Some(5000);
+    let url = url(&parameters).unwrap();
+    assert_eq!(url, "https://api.polygon.io/v2/aggs/ticker/AAPL/range/1/day/2023-03-01/2023-04-01?adjusted=true&sort=asc&limit=5000&apiKey=apiKey");
 }

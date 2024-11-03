@@ -3,419 +3,83 @@ pub mod market;
 pub mod parameters;
 pub mod reference;
 
-use crate::ErrorCode;
-use crate::{Parameter, ParameterRequirment, Parameters};
-use regex::Regex;
-use serde_json::Value;
-
-#[derive(serde::Deserialize)]
+#[derive(Serialize, Deserialize)]
 pub enum Rest {
     Market(market::Market),
 }
 
-pub trait Request {
-    const BASE_URL: &'static str = "https://api.polygon.io";
-    const VERSION: &'static str;
-    const CALL: &'static str;
-    const PARAMETERS: &'static [&'static ParameterRequirment];
+use market::aggregates::AggregatesRequest;
+use market::bbo::BBORequest;
+use market::currency_conversion::CurrencyConversionRequest;
+use market::daily::DailyRequest;
+use market::grouped_bars::GroupedBarsRequest;
+use market::last_quote::LastQuoteRequest;
+use market::last_trade::LastTradeRequest;
+use market::pair_quote::PairQuoteRequest;
+use market::pair_trade::PairTradeRequest;
+use market::previous::PreviousRequest;
+use market::quotes::QuotesRequest;
+use market::snapshot::gainers_losers::GainersLosersRequest;
+use market::snapshot::indicies_snapshot::IndiciesSnapshotRequest;
+use market::snapshot::l2_snapshot::L2SnapshotRequest;
+use market::snapshot::options_chain::OptionsChainRequest;
+use market::snapshot::options_contract::OptionsContractRequest;
+use market::snapshot::ticker_snapshot::TickerSnapshotRequest;
+use market::snapshot::tickers_snapshot::TickersSnapshotRequest;
+use market::snapshot::universal_snapshot::UniversalSnapshotRequest;
+use market::technical_indicators::exponential_moving_average::ExponentialMovingAverageRequest;
+use market::technical_indicators::moving_average_converge_divergence::MovingAverageConvergenceDivergenceRequest;
+use market::technical_indicators::relative_strength_index::RelativeStrengthIndexRequest;
+use market::technical_indicators::simple_moving_average::SimpleMovingAverageRequest;
+use market::trades::TradesRequest;
+use serde::{Deserialize, Serialize};
 
-    fn parameters(&self) -> &Parameters;
+pub struct RestRequest {}
 
-    fn url(&mut self) -> &String;
+impl AggregatesRequest for RestRequest {}
 
-    fn set_url(&mut self) -> Result<(), ErrorCode>;
+impl BBORequest for RestRequest {}
 
-    fn set_regex(&self, pattern: &str) -> Result<Regex, ErrorCode> {
-        match Regex::new(pattern) {
-            Ok(r) => Ok(r),
-            Err(e) => {
-                println!("The following error occured: {}", e);
-                return Err(ErrorCode::RegexError);
-            }
-        }
-    }
+impl CurrencyConversionRequest for RestRequest {}
 
-    fn verify_api_key(&self) -> Result<(), ErrorCode> {
-        let regex_pattern = self.set_regex(r"\S{32}");
-        if let Err(e) = regex_pattern {
-            return Err(e);
-        }
-        if !regex_pattern
-            .unwrap()
-            .is_match(&self.parameters().api_key.as_str())
-        {
-            return Err(ErrorCode::APIError);
-        }
-        Ok(())
-    }
+impl DailyRequest for RestRequest {}
 
-    //Need to adjust Regex check for nano timestamp ^\d{19}$
-    fn verify_date(&self, required: bool) -> Result<(), ErrorCode> {
-        let regex_pattern =
-            self.set_regex(r"(19|20)([0-9]{2})-(1[0-2]|0[1-9])-(3[01]|[12][0-9]|0[1-9])");
-        if let Err(e) = regex_pattern {
-            return Err(e);
-        }
-        match &self.parameters().date {
-            Some(d) => match regex_pattern.unwrap().is_match(d.as_str()) {
-                true => Ok(()),
-                false => Err(ErrorCode::DateError),
-            },
-            None => {
-                if required {
-                    return Err(ErrorCode::DateNotSet);
-                };
-                Ok(())
-            }
-        }
-    }
+impl GroupedBarsRequest for RestRequest {}
 
-    //Need to adjust Regex check for nano timestamp ^\d{19}$ and verify that the date is less or equal to the to date
-    fn verify_from_date(&self, required: bool) -> Result<(), ErrorCode> {
-        let regex_pattern =
-            self.set_regex(r"(19|20)([0-9]{2})-(1[0-2]|0[1-9])-(3[01]|[12][0-9]|0[1-9])");
-        if let Err(e) = regex_pattern {
-            return Err(e);
-        }
-        match &self.parameters().from {
-            Some(d) => match regex_pattern.unwrap().is_match(d.as_str()) {
-                true => Ok(()),
-                false => Err(ErrorCode::DateError),
-            },
-            None => {
-                if required {
-                    return Err(ErrorCode::DateNotSet);
-                };
-                Ok(())
-            }
-        }
-    }
+impl LastQuoteRequest for RestRequest {}
 
-    //Need to adjust Regex check for nano timestamp ^\d{19}$ and verify that the date is greater or equal to the from date
-    fn verify_to_date(&self, required: bool) -> Result<(), ErrorCode> {
-        let regex_pattern =
-            self.set_regex(r"(19|20)([0-9]{2})-(1[0-2]|0[1-9])-(3[01]|[12][0-9]|0[1-9])");
-        if let Err(e) = regex_pattern {
-            return Err(e);
-        }
-        match &self.parameters().to {
-            Some(d) => match regex_pattern.unwrap().is_match(d.as_str()) {
-                true => Ok(()),
-                false => Err(ErrorCode::DateError),
-            },
-            None => {
-                if required {
-                    return Err(ErrorCode::DateNotSet);
-                };
-                Ok(())
-            }
-        }
-    }
+impl LastTradeRequest for RestRequest {}
 
-    fn verify_options_ticker(&self, required: bool) -> Result<(), ErrorCode> {
-        let regex_pattern = self.set_regex(
-            r"(O:)([A-Z]){1,4}([0-9]{2})(1[0-2]|0[1-9])(3[01]|[12][0-9]|0[1-9])([CP]){1}([0-9]){8}",
-        );
-        if let Err(e) = regex_pattern {
-            return Err(e);
-        }
-        match &self.parameters().ticker {
-            Some(t) => match regex_pattern.unwrap().is_match(t.as_str()) {
-                true => Ok(()),
-                false => Err(ErrorCode::OptionsTickerError),
-            },
-            None => {
-                if required {
-                    return Err(ErrorCode::TickerNotSet);
-                };
-                Ok(())
-            }
-        }
-    }
+impl PairQuoteRequest for RestRequest {}
 
-    fn verify_ticker(&self, required: bool) -> Result<(), ErrorCode> {
-        let regex_pattern = self.set_regex(r"^O:");
-        if let Err(e) = regex_pattern {
-            return Err(e);
-        }
-        match &self.parameters().ticker {
-            Some(t) => match regex_pattern.unwrap().is_match(t.as_str()) {
-                true => match self.verify_options_ticker(required) {
-                    Ok(_) => Ok(()),
-                    Err(e) => {
-                        println!("{}", e);
-                        Err(ErrorCode::TickerError)
-                    }
-                },
-                false => Ok(()),
-            },
-            None => {
-                if required {
-                    return Err(ErrorCode::TickerNotSet);
-                };
-                Ok(())
-            }
-        }
-    }
+impl PairTradeRequest for RestRequest {}
 
-    fn verify_adjusted(&self, required: bool) -> Result<(), ErrorCode> {
-        match &self.parameters().adjusted {
-            Some(_) => Ok(()),
-            None => {
-                if required {
-                    return Err(ErrorCode::AdjusteedNotSet);
-                };
-                Ok(())
-            }
-        }
-    }
+impl PreviousRequest for RestRequest {}
 
-    fn verify_sort(&self, required: bool) -> Result<(), ErrorCode> {
-        match &self.parameters().sort {
-            Some(_) => Ok(()),
-            None => {
-                if required {
-                    return Err(ErrorCode::SortNotSet);
-                };
-                Ok(())
-            }
-        }
-    }
+impl QuotesRequest for RestRequest {}
 
-    fn verify_limit(&self, required: bool) -> Result<(), ErrorCode> {
-        match &self.parameters().limit {
-            Some(_) => Ok(()),
-            None => {
-                if required {
-                    return Err(ErrorCode::LimitNotSet);
-                };
-                Ok(())
-            }
-        }
-    }
+impl TradesRequest for RestRequest {}
 
-    fn verify_timespan(&self, required: bool) -> Result<(), ErrorCode> {
-        match &self.parameters().timespan {
-            Some(_) => Ok(()),
-            None => {
-                if required {
-                    return Err(ErrorCode::TimespanNotSet);
-                };
-                Ok(())
-            }
-        }
-    }
+impl GainersLosersRequest for RestRequest {}
 
-    fn verify_multiplier(&self, required: bool) -> Result<(), ErrorCode> {
-        match &self.parameters().multiplier {
-            Some(_) => Ok(()),
-            None => {
-                if required {
-                    return Err(ErrorCode::MultiplierNotSet);
-                };
-                Ok(())
-            }
-        }
-    }
+impl IndiciesSnapshotRequest for RestRequest {}
 
-    fn verify_order(&self, required: bool) -> Result<(), ErrorCode> {
-        match &self.parameters().order {
-            Some(_) => Ok(()),
-            None => {
-                if required {
-                    return Err(ErrorCode::OrderNotSet);
-                };
-                Ok(())
-            }
-        }
-    }
+impl L2SnapshotRequest for RestRequest {}
 
-    fn verify_sortv3(&self, required: bool) -> Result<(), ErrorCode> {
-        match &self.parameters().sortv3 {
-            Some(_) => Ok(()),
-            None => {
-                if required {
-                    return Err(ErrorCode::SortNotSet);
-                };
-                Ok(())
-            }
-        }
-    }
+impl OptionsChainRequest for RestRequest {}
 
-    fn verify_timestamp(&self, required: bool) -> Result<(), ErrorCode> {
-        match &self.parameters().timestamp {
-            Some(_) => Ok(()),
-            None => {
-                if required {
-                    return Err(ErrorCode::TimestampNotSet);
-                };
-                Ok(())
-            }
-        }
-    }
+impl OptionsContractRequest for RestRequest {}
 
-    fn verify_contract_type(&self, required: bool) -> Result<(), ErrorCode> {
-        match &self.parameters().contract_type {
-            Some(_) => Ok(()),
-            None => {
-                if required {
-                    return Err(ErrorCode::MultiplierNotSet);
-                };
-                Ok(())
-            }
-        }
-    }
+impl TickerSnapshotRequest for RestRequest {}
 
-    fn verify_include_otc(&self, required: bool) -> Result<(), ErrorCode> {
-        match &self.parameters().include_otc {
-            Some(_) => Ok(()),
-            None => {
-                if required {
-                    return Err(ErrorCode::IncludeOTCNotSet);
-                };
-                Ok(())
-            }
-        }
-    }
+impl TickersSnapshotRequest for RestRequest {}
 
-    fn verify_strike_price(&self, required: bool) -> Result<(), ErrorCode> {
-        match &self.parameters().strike_price {
-            Some(_) => Ok(()),
-            None => {
-                if required {
-                    return Err(ErrorCode::StrikePriceNotSet);
-                };
-                Ok(())
-            }
-        }
-    }
+impl UniversalSnapshotRequest for RestRequest {}
 
-    fn check_parameters(&self) -> Result<(), ErrorCode> {
-        if let Err(check) = self.verify_api_key() {
-            return Err(check);
-        }
-        for parameter in Self::PARAMETERS {
-            match parameter.parameter {
-                Parameter::Ticker => {
-                    if let Err(check) = self.verify_ticker(parameter.required) {
-                        return Err(check);
-                    }
-                }
-                Parameter::Date => {
-                    if let Err(check) = self.verify_date(parameter.required) {
-                        return Err(check);
-                    }
-                }
-                Parameter::Adjusted => {
-                    if let Err(check) = self.verify_adjusted(parameter.required) {
-                        return Err(check);
-                    }
-                }
-                Parameter::Sort => {
-                    if let Err(check) = self.verify_sort(parameter.required) {
-                        return Err(check);
-                    }
-                }
-                Parameter::Limit => {
-                    if let Err(check) = self.verify_limit(parameter.required) {
-                        return Err(check);
-                    }
-                }
-                Parameter::Timespan => {
-                    if let Err(check) = self.verify_timespan(parameter.required) {
-                        return Err(check);
-                    }
-                }
-                Parameter::From => {
-                    if let Err(check) = self.verify_from_date(parameter.required) {
-                        return Err(check);
-                    }
-                }
-                Parameter::To => {
-                    if let Err(check) = self.verify_to_date(parameter.required) {
-                        return Err(check);
-                    }
-                }
-                Parameter::Multiplier => {
-                    if let Err(check) = self.verify_multiplier(parameter.required) {
-                        return Err(check);
-                    }
-                }
-                Parameter::IncludeOTC => {
-                    if let Err(check) = self.verify_include_otc(parameter.required) {
-                        return Err(check);
-                    }
-                }
-                Parameter::OptionsTicker => {
-                    if let Err(check) = self.verify_options_ticker(parameter.required) {
-                        return Err(check);
-                    }
-                }
-                Parameter::Order => {
-                    if let Err(check) = self.verify_order(parameter.required) {
-                        return Err(check);
-                    }
-                }
-                Parameter::Sortv3 => {
-                    if let Err(check) = self.verify_sortv3(parameter.required) {
-                        return Err(check);
-                    }
-                }
-                Parameter::Timestamp => {
-                    if let Err(check) = self.verify_timestamp(parameter.required) {
-                        return Err(check);
-                    }
-                }
-                Parameter::ContractType => {
-                    if let Err(check) = self.verify_contract_type(parameter.required) {
-                        return Err(check);
-                    }
-                }
-                Parameter::StrikePrice => {
-                    if let Err(check) = self.verify_strike_price(parameter.required) {
-                        return Err(check);
-                    }
-                }
-                
-            }
-        }
-        Ok(())
-    }
+impl ExponentialMovingAverageRequest for RestRequest {}
 
-    #[tokio::main]
-    async fn get_raw_data(&mut self) -> Result<String, ErrorCode> {
-        match reqwest::get(self.url()).await {
-            Ok(response) => match response.text().await {
-                Ok(text) => Ok(text),
-                Err(e) => {
-                    println!("{}", e);
-                    return Err(ErrorCode::RequestError);
-                }
-            },
-            Err(e) => {
-                println!("{}", e);
-                return Err(ErrorCode::RequestError);
-            }
-        }
-    }
+impl MovingAverageConvergenceDivergenceRequest for RestRequest {}
 
-    fn polygon_request(&mut self) -> Result<Value, ErrorCode> {
-        if let Err(check) = self.set_url() {
-            return Err(check);
-        }
-        let r = match self.get_raw_data() {
-            Ok(response) => response,
-            Err(e) => return Err(e),
-        };
-        let v: Value = match serde_json::from_str(r.as_str()) {
-            Ok(it) => it,
-            Err(err) => {
-                println!("{}", err);
-                return Err(ErrorCode::JSONParseError);
-            }
-        };
-        Ok(v)
-    }
+impl RelativeStrengthIndexRequest for RestRequest {}
 
-    fn request(&mut self) -> Result<(), ErrorCode>;
-}
+impl SimpleMovingAverageRequest for RestRequest {}

@@ -1,138 +1,141 @@
-use crate::{ErrorCode, Parameter, ParameterRequirment, Parameters, Request};
+use crate::{
+    data_types::{bar::Bar, Parse},
+    rest::{
+        error::ErrorCode,
+        parameters::{Parameter, ParameterRequirment, Parameters, TickerTypes},
+    },
+    tools::{request::Request, verification::Verification},
+};
+use serde::{Deserialize, Serialize};
 
-#[derive(serde::Deserialize, Clone, Debug, Default)]
+#[derive(Serialize, Deserialize, Clone, Debug)]
 pub struct Previous {
-    previous_parameters: Parameters,
-    previous_url: String,
-    pub adjusted: bool,
-    pub query_count: i64,
-    pub request_id: String,
-    pub results: Vec<Bar>,
-    pub results_count: i64,
-    pub status: String,
-    pub ticker: String,
+    pub adjusted: Option<bool>,
+    pub query_count: Option<i64>,
+    pub request_id: Option<String>,
+    pub results: Option<Vec<Bar>>,
+    pub results_count: Option<i64>,
+    pub status: Option<String>,
+    pub ticker: Option<String>,
 }
 
-#[derive(serde::Deserialize, Clone, Debug, Default)]
-pub struct Bar {
-    pub ticker: String,
-    pub close: f64,
-    pub high: f64,
-    pub low: f64,
-    pub open: f64,
-    pub timestamp: i64,
-    pub volume: f64,
-    pub volume_weighted: f64,
+impl PreviousRequest for Previous {}
+
+impl Parse for Previous {
+    fn parse(map: &serde_json::Map<String, serde_json::Value>) -> Self {
+        let adjusted = Self::bool_parse(map, vec!["adjusted"]);
+        let request_id = Self::string_parse(map, vec!["request_id"]);
+        let status = Self::string_parse(map, vec!["status"]);
+        let results = Self::array_parse(map, vec!["results"]);
+        let results_count = Self::i64_parse(map, vec!["resultsCount"]);
+        let query_count = Self::i64_parse(map, vec!["queryCount"]);
+        let ticker = Self::string_parse(map, vec!["ticker"]);
+
+        Previous {
+            adjusted,
+            request_id,
+            query_count,
+            results,
+            results_count,
+            status,
+            ticker,
+        }
+    }
 }
 
-impl Previous {
-    pub fn set_parameters(&mut self, api_key: String, ticker: String, adjusted: Option<bool>) {
-        self.previous_parameters = Parameters {
-            api_key: api_key,
+pub trait PreviousRequest {
+    fn get_previous(
+        api_key: &String,
+        ticker: String,
+        adjusted: Option<bool>,
+    ) -> Result<Previous, ErrorCode> {
+        let previous_parameters = Parameters {
+            api_key: api_key.to_string(),
             ticker: Some(ticker),
             adjusted: adjusted,
             ..Parameters::default()
+        };
+        if let Err(check) =
+            Verification::check_parameters(&TickerTypes::all(), PARAMETERS, &previous_parameters)
+        {
+            return Err(check);
+        }
+        let url = match url(&previous_parameters) {
+            Ok(url) => url,
+            Err(e) => return Err(e),
+        };
+        match Request::request(url) {
+            Ok(mut map) => Ok(Previous::parse(&mut map)),
+            Err(e) => return Err(e),
         }
     }
 }
 
-impl Request for Previous {
-    const VERSION: &'static str = "v2";
-    const CALL: &'static str = "aggs";
-    const PARAMETERS: &'static [&'static ParameterRequirment] = &[
-        &ParameterRequirment {
-            required: true,
-            parameter: Parameter::Ticker,
+const PARAMETERS: &'static [&'static ParameterRequirment] = &[
+    &ParameterRequirment {
+        required: true,
+        parameter: Parameter::Ticker,
+    },
+    &ParameterRequirment {
+        required: false,
+        parameter: Parameter::Adjusted,
+    },
+];
+
+fn url(parameters: &Parameters) -> Result<String, ErrorCode> {
+    let url = String::from(format!(
+        "https://api.polygon.io/v2/aggs/ticker/{}/prev?{}apiKey={}",
+        match &parameters.ticker {
+            Some(ticker) => ticker,
+            None => return Err(ErrorCode::TickerNotSet),
         },
-        &ParameterRequirment {
-            required: false,
-            parameter: Parameter::Adjusted,
+        if let Some(adj) = &parameters.adjusted {
+            format!("adjusted={}&", adj)
+        } else {
+            "".to_string()
         },
-    ];
-
-    fn parameters(&self) -> &Parameters {
-        &self.previous_parameters
-    }
-
-    fn url(&mut self) -> &String {
-        &self.previous_url
-    }
-
-    fn set_url(&mut self) -> Result<(), ErrorCode> {
-        if let Err(check) = self.check_parameters() {
-            return Err(check);
-        }
-        self.previous_url = String::from(format!(
-            "{}/{}/{}/ticker/{}/prev?{}apiKey={}",
-            Self::BASE_URL,
-            Self::VERSION,
-            Self::CALL,
-            self.parameters().clone().ticker.unwrap(),
-            if let Some(adj) = self.parameters().clone().adjusted {
-                format!("adjusted={}&", adj)
-            } else {
-                "".to_string()
-            },
-            self.parameters().clone().api_key,
-        ));
-        Ok(())
-    }
-
-    fn request(&mut self) -> Result<(), ErrorCode> {
-        match self.polygon_request() {
-            Ok(response) => {
-                if let Some(adjusted) = response["adjusted"].as_bool() {
-                    self.adjusted = adjusted
-                }
-                if let Some(request_id) = response["request_id"].as_str() {
-                    self.request_id = request_id.to_string()
-                }
-                if let Some(status) = response["status"].as_str() {
-                    self.status = status.to_string()
-                }
-                if let Some(ticker) = response["ticker"].as_str() {
-                    self.ticker = ticker.to_string()
-                }
-                if let Some(query_count) = response["queryCount"].as_i64() {
-                    self.query_count = query_count
-                }
-                if let Some(results_count) = response["resultsCount"].as_i64() {
-                    self.results_count = results_count
-                }
-                if let Some(results) = response["results"].as_array() {
-                    for result in results {
-                        let mut bar = Bar::default();
-                        if let Some(ticker) = result["T"].as_str() {
-                            bar.ticker = ticker.to_string()
-                        }
-                        if let Some(close) = result["c"].as_f64() {
-                            bar.close = close
-                        }
-                        if let Some(high) = result["h"].as_f64() {
-                            bar.high = high
-                        }
-                        if let Some(low) = result["l"].as_f64() {
-                            bar.low = low
-                        }
-                        if let Some(open) = result["o"].as_f64() {
-                            bar.open = open
-                        }
-                        if let Some(timestamp) = result["t"].as_i64() {
-                            bar.timestamp = timestamp
-                        }
-                        if let Some(volume) = result["v"].as_f64() {
-                            bar.volume = volume
-                        }
-                        if let Some(volume_weighted) = result["vw"].as_f64() {
-                            bar.volume_weighted = volume_weighted
-                        }
-                        self.results.push(bar);
-                    }
-                }
+        &parameters.api_key,
+    ));
+    Ok(url)
+}
+#[test]
+fn test_previous_parse() {
+    let data = serde_json::json!({
+        "ticker": "AAPL",
+        "status": "OK",
+        "adjusted": true,
+        "queryCount": 1,
+        "resultsCount": 1,
+        "results": [
+            {
+                "v": 123456,
+                "vw": 1.23,
+                "o": 2.34,
+                "c": 3.45,
+                "h": 4.56,
+                "l": 0.12,
+                "t": 164545545,
+                "n": 123
             }
-            Err(e) => return Err(e),
-        };
+        ],
+        "request_id": "req12345"
+    });
+    let previous = Previous::parse(&data.as_object().unwrap());
+    assert_eq!(previous.ticker.unwrap(), "AAPL");
+    assert_eq!(previous.status.unwrap(), "OK");
+    assert_eq!(previous.adjusted.unwrap(), true);
+    assert_eq!(previous.query_count.unwrap(), 1);
+    assert_eq!(previous.results_count.unwrap(), 1);
+    assert_eq!(previous.results.unwrap()[0].volume.unwrap(), 123456.0);
+    assert_eq!(previous.request_id.unwrap(), "req12345");
+}
 
-        Ok(())
-    }
+#[test]
+fn test_url() {
+    let mut parameters = Parameters::default();
+    parameters.api_key = String::from("apiKey");
+    parameters.ticker = Some(String::from("AAPL"));
+    parameters.adjusted = Some(true);
+    let url = url(&parameters).unwrap();
+    assert_eq!(url, "https://api.polygon.io/v2/aggs/ticker/AAPL/prev?adjusted=true&apiKey=apiKey");
 }

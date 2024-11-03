@@ -1,134 +1,117 @@
-use crate::{ErrorCode, Parameter, ParameterRequirment, Parameters, Request};
+use crate::{
+    data_types::{quote::Quote, Parse},
+    rest::{
+        error::ErrorCode,
+        parameters::{Parameter, ParameterRequirment, Parameters, TickerTypes},
+    },
+    tools::{request::Request, verification::Verification},
+};
+use serde::{Deserialize, Serialize};
 
-#[derive(serde::Deserialize, Clone, Debug, Default)]
+#[derive(Serialize, Deserialize, Clone, Debug)]
 pub struct LastQuote {
-    last_quote_parameters: Parameters,
-    last_quote_url: String,
-    pub request_id: String,
-    pub results: Quote,
-    pub status: String,
+    pub request_id: Option<String>,
+    pub results: Option<Quote>,
+    pub status: Option<String>,
 }
 
-#[derive(serde::Deserialize, Clone, Debug, Default)]
-pub struct Quote {
-    pub ask_price: f64,
-    pub ask_size: i64,
-    pub exchange: String,
-    pub exchange_id: i64,
-    pub conditions: Vec<i64>,
-    pub trf_timestamp: i64,
-    pub indicators: Vec<i64>,
-    pub bid_price: f64,
-    pub sequence_number: i64,
-    pub bid_size: i64,
-    pub sip_timestamp: i64,
-    pub participant_timestamp: i64,
-    pub tape: i64,
+impl LastQuoteRequest for LastQuote {}
+
+impl Parse for LastQuote {
+    fn parse(map: &serde_json::Map<String, serde_json::Value>) -> Self {
+        let request_id = Self::string_parse(map, vec!["request_id"]);
+        let status = Self::string_parse(map, vec!["status"]);
+        let results = Self::object_parse(map, vec!["results"]);
+
+        LastQuote {
+            request_id,
+            results,
+            status,
+        }
+    }
 }
 
-impl LastQuote {
-    pub fn set_parameters(&mut self, api_key: String, ticker: String) {
-        self.last_quote_parameters = Parameters {
-            api_key: api_key,
+pub trait LastQuoteRequest {
+    fn get_last_quote(api_key: &String, ticker: String) -> Result<LastQuote, ErrorCode> {
+        let last_quote_parameters = Parameters {
+            api_key: api_key.to_string(),
             ticker: Some(ticker),
             ..Parameters::default()
+        };
+        if let Err(check) = Verification::check_parameters(
+            &TickerTypes::stocks(),
+            PARAMETERS,
+            &last_quote_parameters,
+        ) {
+            return Err(check);
+        }
+        let url = match url(&last_quote_parameters) {
+            Ok(url) => url,
+            Err(e) => return Err(e),
+        };
+        match Request::request(url) {
+            Ok(mut map) => Ok(LastQuote::parse(&mut map)),
+            Err(e) => return Err(e),
         }
     }
 }
 
-impl Request for LastQuote {
-    const VERSION: &'static str = "v2";
-    const CALL: &'static str = "last/nbbo";
-    const PARAMETERS: &'static [&'static ParameterRequirment] = &[&ParameterRequirment {
-        required: true,
-        parameter: Parameter::Ticker,
-    }];
+const PARAMETERS: &'static [&'static ParameterRequirment] = &[&ParameterRequirment {
+    required: true,
+    parameter: Parameter::Ticker,
+}];
 
-    fn parameters(&self) -> &Parameters {
-        &self.last_quote_parameters
-    }
+fn url(parameters: &Parameters) -> Result<String, ErrorCode> {
+    let url = String::from(format!(
+        "https://api.polygon.io/v2/last/nbbo/{}?apiKey={}",
+        match &parameters.ticker {
+            Some(ticker) => ticker,
+            None => return Err(ErrorCode::TickerNotSet),
+        },
+        &parameters.api_key,
+    ));
+    Ok(url)
+}
+#[test]
+fn test_last_quote_parse() {
+    let data = serde_json::json!({
+        "request_id": "req12345",
+        "results": {
+            "p": 1.23,
+            "s": 456,
+            "P": 7.89,
+            "S": 123,
+            "bid_exchange": 10,
+            "ask_exchange": 11,
+            "t": 164545545,
+            "mid_point": 4.56,
+            "timeframe": "DELAYED",
+            "x": 12,
+            "T": "TEST",
+            "c": [
+                13
+            ],
+            "f": 164545546,
+            "i": [
+                14
+            ],
+            "q": 15,
+            "y": 164545547,
+            "z": 16
+        },
+        "status": "OK"
+    });
+    let last_quote = LastQuote::parse(&data.as_object().unwrap());
+    assert_eq!(last_quote.request_id.unwrap(), "req12345");
+    assert_eq!(last_quote.status.unwrap(), "OK");
+    assert_eq!(last_quote.results.unwrap().bid.unwrap(), 1.23);
+}
 
-    fn url(&mut self) -> &String {
-        &self.last_quote_url
-    }
-
-    fn set_url(&mut self) -> Result<(), ErrorCode> {
-        if let Err(check) = self.check_parameters() {
-            return Err(check);
-        }
-        self.last_quote_url = String::from(format!(
-            "{}/{}/{}/{}apiKey={}",
-            Self::BASE_URL,
-            Self::VERSION,
-            Self::CALL,
-            self.parameters().clone().ticker.unwrap(),
-            self.parameters().clone().api_key,
-        ));
-        Ok(())
-    }
-
-    fn request(&mut self) -> Result<(), ErrorCode> {
-        match self.polygon_request() {
-            Ok(response) => {
-                if let Some(request_id) = response["request_id"].as_str() {
-                    self.request_id = request_id.to_string()
-                }
-                if let Some(status) = response["status"].as_str() {
-                    self.status = status.to_string()
-                }
-                if let Some(result) = response["results"].as_object() {
-                    if let Some(ask_price) = result["P"].as_f64() {
-                        self.results.ask_price = ask_price
-                    }
-                    if let Some(ask_size) = result["S"].as_i64() {
-                        self.results.ask_size = ask_size
-                    }
-                    if let Some(exchange) = result["T"].as_str() {
-                        self.results.exchange = exchange.to_string()
-                    }
-                    if let Some(exchange_id) = result["x"].as_i64() {
-                        self.results.exchange_id = exchange_id
-                    }
-                    if let Some(conditions) = result["c"].as_array() {
-                        for condition in conditions {
-                            if let Some(c) = condition.as_i64() {
-                                self.results.conditions.push(c)
-                            }
-                        }
-                    }
-                    if let Some(trf_timestamp) = result["f"].as_i64() {
-                        self.results.trf_timestamp = trf_timestamp
-                    }
-                    if let Some(indicators) = result["i"].as_array() {
-                        for indicator in indicators {
-                            if let Some(i) = indicator.as_i64() {
-                                self.results.indicators.push(i)
-                            }
-                        }
-                    }
-                    if let Some(bid_price) = result["p"].as_f64() {
-                        self.results.bid_price = bid_price
-                    }
-                    if let Some(sequence_number) = result["q"].as_i64() {
-                        self.results.sequence_number = sequence_number
-                    }
-                    if let Some(bid_size) = result["s"].as_i64() {
-                        self.results.bid_size = bid_size
-                    }
-                    if let Some(sip_timestamp) = result["t"].as_i64() {
-                        self.results.sip_timestamp = sip_timestamp
-                    }
-                    if let Some(participant_timestamp) = result["y"].as_i64() {
-                        self.results.participant_timestamp = participant_timestamp
-                    }
-                    if let Some(tape) = result["z"].as_i64() {
-                        self.results.tape = tape
-                    }
-                }
-            }
-            Err(e) => return Err(e),
-        };
-
-        Ok(())
-    }
+#[test]
+fn test_url() {
+    let mut parameters = Parameters::default();
+    parameters.api_key = String::from("apiKey");
+    parameters.ticker = Some(String::from("AAPL"));
+    let url = url(&parameters).unwrap();
+    assert_eq!(url, "https://api.polygon.io/v2/last/nbbo/AAPL?apiKey=apiKey");
 }

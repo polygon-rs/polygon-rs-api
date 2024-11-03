@@ -1,8 +1,19 @@
+pub mod data_types;
 pub mod rest;
+pub mod tools;
 pub mod web_socket;
 
-use crate::rest::{
-    error::ErrorCode,
-    parameters::{Order, Parameter, ParameterRequirment, Parameters, Sort, Sortv3, Timespan, ContractType, ContractStyle, Timeframe},
-    Request,
-};
+use rest::RestRequest;
+
+use crate::rest::market::{daily::DailyRequest, previous::PreviousRequest};
+
+pub struct Polygon {
+    pub api_key: String,
+    pub rest: RestRequest,
+}
+
+pub struct Stocks {}
+
+impl DailyRequest for Stocks {}
+
+impl PreviousRequest for Stocks {}
