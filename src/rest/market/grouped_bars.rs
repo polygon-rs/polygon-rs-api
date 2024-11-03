@@ -105,3 +105,43 @@ fn url(parameters: &Parameters) -> Result<String, ErrorCode> {
     ));
     Ok(url)
 }
+#[test]
+fn test_grouped_bars_parse() {
+    let data = serde_json::json!({
+        "adjusted": true,
+        "bars": [
+            {
+                "T": "test_exchange",
+                "c": 1.23,
+                "h": 2.34,
+                "l": 0.12,
+                "n": 123,
+                "o": 0.12,
+                "t": 164545545,
+                "v": 456.78,
+                "vw": 901.23,
+                "otc": false
+            }
+        ],
+        "status": "OK",
+        "resultsCount": 1,
+        "queryCount": 1
+    });
+    let grouped_bars = GroupedBars::parse(&data.as_object().unwrap());
+    assert_eq!(grouped_bars.adjusted.unwrap(), true);
+    assert_eq!(grouped_bars.bars.unwrap()[0].close.unwrap(), 1.23);
+    assert_eq!(grouped_bars.status.unwrap(), "OK");
+    assert_eq!(grouped_bars.results_count.unwrap(), 1);
+    assert_eq!(grouped_bars.query_count.unwrap(), 1);
+}
+
+#[test]
+fn test_url() {
+    let mut parameters = Parameters::default();
+    parameters.api_key = String::from("apiKey");
+    parameters.date = Some(String::from("2023-04-01"));
+    parameters.adjusted = Some(true);
+    parameters.include_otc = Some(true);
+    let url = url(&parameters).unwrap();
+    assert_eq!(url, "https://api.polygon.io/v2/aggs/grouped/locale/us/market/stocks/2023-04-01?adjusted=true&include_otc=true&apiKey=apiKey");
+}

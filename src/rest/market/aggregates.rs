@@ -132,7 +132,7 @@ fn url(parameters: &Parameters) -> Result<String, ErrorCode> {
             None => return Err(ErrorCode::MultiplierNotSet),
         },
         match &parameters.timespan {
-            Some(timespan) => timespan,
+            Some(timespan) => timespan.to_string().to_lowercase(),
             None => return Err(ErrorCode::TimespanNotSet),
         },
         match &parameters.from {
@@ -149,7 +149,7 @@ fn url(parameters: &Parameters) -> Result<String, ErrorCode> {
             "".to_string()
         },
         if let Some(s) = &parameters.sort {
-            format!("sort={}&", s)
+            format!("sort={}&", s.to_string().to_lowercase())
         } else {
             "".to_string()
         },
@@ -161,4 +161,53 @@ fn url(parameters: &Parameters) -> Result<String, ErrorCode> {
         &parameters.api_key,
     ));
     Ok(url)
+}
+#[test]
+fn test_aggregates_parse() {
+    let data = serde_json::json!({
+        "ticker": "AAPL",
+        "status": "OK",
+        "adjusted": true,
+        "queryCount": 1,
+        "resultsCount": 1,
+        "results": [
+            {
+                "v": 123456,
+                "vw": 1.23,
+                "o": 2.34,
+                "c": 3.45,
+                "h": 4.56,
+                "l": 0.12,
+                "t": 164545545,
+                "n": 123
+            }
+        ],
+        "request_id": "req12345",
+        "next_url": "https://api.polygon.io/v2/aggs/ticker/AAPL/range/1/day/2023-03-01/2023-04-01?cursor=YWN0aXZlPXRydWUmZGF0ZT0yMDIzLTA0LTAxJmxpbWl0PTEmb3JkZXI9YXNjJnBhZ2VfbWFya2VyPUElMjBWU1MjQyMCU3QzIwMjMtMDQtMDElN0M5JTNBNDElN0MwMCUzQTAwJnNvcnQ9dGlja2Vy&apiKey=apiKey"
+    });
+    let aggregates = Aggregates::parse(&data.as_object().unwrap());
+    assert_eq!(aggregates.ticker.unwrap(), "AAPL");
+    assert_eq!(aggregates.status.unwrap(), "OK");
+    assert_eq!(aggregates.adjusted.unwrap(), true);
+    assert_eq!(aggregates.query_count.unwrap(), 1);
+    assert_eq!(aggregates.results_count.unwrap(), 1);
+    assert_eq!(aggregates.results.unwrap()[0].volume.unwrap(), 123456.0);
+    assert_eq!(aggregates.request_id.unwrap(), "req12345");
+    assert_eq!(aggregates.next_url.unwrap(), "https://api.polygon.io/v2/aggs/ticker/AAPL/range/1/day/2023-03-01/2023-04-01?cursor=YWN0aXZlPXRydWUmZGF0ZT0yMDIzLTA0LTAxJmxpbWl0PTEmb3JkZXI9YXNjJnBhZ2VfbWFya2VyPUElMjBWU1MjQyMCU3QzIwMjMtMDQtMDElN0M5JTNBNDElN0MwMCUzQTAwJnNvcnQ9dGlja2Vy&apiKey=apiKey");
+}
+
+#[test]
+fn test_url() {
+    let mut parameters = Parameters::default();
+    parameters.api_key = String::from("apiKey");
+    parameters.ticker = Some(String::from("AAPL"));
+    parameters.multiplier = Some(1);
+    parameters.timespan = Some(Timespan::Day);
+    parameters.from = Some(String::from("2023-03-01"));
+    parameters.to = Some(String::from("2023-04-01"));
+    parameters.adjusted = Some(true);
+    parameters.sort = Some(Sort::Asc);
+    parameters.limit = Some(5000);
+    let url = url(&parameters).unwrap();
+    assert_eq!(url, "https://api.polygon.io/v2/aggs/ticker/AAPL/range/1/day/2023-03-01/2023-04-01?adjusted=true&sort=asc&limit=5000&apiKey=apiKey");
 }

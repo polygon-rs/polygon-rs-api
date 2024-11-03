@@ -187,7 +187,7 @@ fn url(parameters: &Parameters) -> Result<String, ErrorCode> {
             "".to_string()
         },
         if let Some(ts) = &parameters.timespan {
-            format!("timespan={}&", ts)
+            format!("timespan={}&", ts.to_string().to_lowercase())
         } else {
             "".to_string()
         },
@@ -212,7 +212,7 @@ fn url(parameters: &Parameters) -> Result<String, ErrorCode> {
             "".to_string()
         },
         if let Some(st) = &parameters.series_type {
-            format!("series_type={}&", st)
+            format!("series_type={}&", st.to_string().to_lowercase())
         } else {
             "".to_string()
         },
@@ -222,7 +222,7 @@ fn url(parameters: &Parameters) -> Result<String, ErrorCode> {
             "".to_string()
         },
         if let Some(o) = &parameters.order {
-            format!("order={}&", o)
+            format!("order={}&", o.to_string().to_lowercase())
         } else {
             "".to_string()
         },
@@ -234,4 +234,61 @@ fn url(parameters: &Parameters) -> Result<String, ErrorCode> {
         &parameters.api_key,
     ));
     Ok(url)
+}
+#[test]
+fn test_moving_average_converge_divergence_parse() {
+    let data = serde_json::json!({
+        "next_url": "https://api.polygon.io/v1/indicators/macd/AAPL?cursor=YWN0aXZlPXRydWUmZGF0ZT0yMDIzLTA0LTAxJmxpbWl0PTEmb3JkZXI9YXNjJnBhZ2VfbWFya2VyPUElMjBWU1MjQyMCU3QzIwMjMtMDQtMDElN0M5JTNBNDElN0MwMCUzQTAwJnNvcnQ9dGlja2Vy",
+        "request_id": "req12345",
+        "status": "OK",
+        "results": {
+            "aggregates": [
+                {
+                    "c": 1.23,
+                    "h": 2.34,
+                    "l": 0.12,
+                    "n": 123,
+                    "o": 0.12,
+                    "t": 164545545,
+                    "v": 456.78,
+                    "vw": 901.23
+                }
+            ],
+            "values": [
+                {
+                    "histogram": 1.23,
+                    "signal": 2.34,
+                    "timestamp": 164545545,
+                    "value": 3.45
+                }
+            ],
+            "next_url": "https://api.polygon.io/v1/indicators/macd/AAPL?cursor=YWN0aXZlPXRydWUmZGF0ZT0yMDIzLTA0LTAxJmxpbWl0PTEmb3JkZXI9YXNjJnBhZ2VfbWFya2VyPUElMjBWU1MjQyMCU3QzIwMjMtMDQtMDElN0M5JTNBNDElN0MwMCUzQTAwJnNvcnQ9dGlja2Vy"
+        }
+    });
+    let moving_average_convergence_divergence = MovingAverageConvergenceDivergence::parse(&data.as_object().unwrap());
+    assert_eq!(moving_average_convergence_divergence.next_url.unwrap(), "https://api.polygon.io/v1/indicators/macd/AAPL?cursor=YWN0aXZlPXRydWUmZGF0ZT0yMDIzLTA0LTAxJmxpbWl0PTEmb3JkZXI9YXNjJnBhZ2VfbWFya2VyPUElMjBWU1MjQyMCU3QzIwMjMtMDQtMDElN0M5JTNBNDElN0MwMCUzQTAwJnNvcnQ9dGlja2Vy");
+    assert_eq!(moving_average_convergence_divergence.request_id.unwrap(), "req12345");
+    assert_eq!(moving_average_convergence_divergence.status.unwrap(), "OK");
+    assert_eq!(moving_average_convergence_divergence.bars.unwrap()[0].close.unwrap(), 1.23);
+    assert_eq!(moving_average_convergence_divergence.macd.unwrap()[0].histogram.unwrap(), 1.23);
+}
+
+#[test]
+fn test_url() {
+    let mut parameters = Parameters::default();
+    parameters.api_key = String::from("apiKey");
+    parameters.ticker = Some(String::from("AAPL"));
+    parameters.from = Some(String::from("2023-03-01"));
+    parameters.to = Some(String::from("2023-04-01"));
+    parameters.timespan = Some(Timespan::Minute);
+    parameters.adjusted = Some(true);
+    parameters.long_window = Some(26);
+    parameters.short_window = Some(12);
+    parameters.signal_window = Some(9);
+    parameters.series_type = Some(SeriesType::Close);
+    parameters.expand_underlying = Some(true);
+    parameters.order = Some(Order::Asc);
+    parameters.limit = Some(1000);
+    let url = url(&parameters).unwrap();
+    assert_eq!(url, "https://api.polygon.io/v1/indicators/macd/AAPL?timestamp.gte=2023-03-01&timestamp.lte=2023-04-01&timespan=minute&adjusted=true&long_window=26&short_window=12&signal_window=9&series_type=close&expand_underlying=true&order=asc&limit=1000&apiKey=apiKey");
 }

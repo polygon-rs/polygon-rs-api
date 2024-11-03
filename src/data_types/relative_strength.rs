@@ -14,3 +14,14 @@ impl Parse for RelativeStrength {
         RelativeStrength { timestamp, value }
     }
 }
+
+#[test]
+fn test_relative_strength_parse() {
+    let data = serde_json::json!({
+        "timestamp": 164545545,
+        "value": 1.23
+    });
+    let relative_strength = RelativeStrength::parse(&data.as_object().unwrap());
+    assert_eq!(relative_strength.timestamp.unwrap(), 164545545);
+    assert_eq!(relative_strength.value.unwrap(), 1.23);
+}

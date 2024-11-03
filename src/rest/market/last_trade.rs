@@ -72,3 +72,41 @@ fn url(parameters: &Parameters) -> Result<String, ErrorCode> {
     ));
     Ok(url)
 }
+#[test]
+fn test_last_trade_parse() {
+    let data = serde_json::json!({
+        "request_id": "req12345",
+        "results": {
+            "c": [
+                29
+            ],
+            "x": 30,
+            "p": 31.0,
+            "t": 164545549,
+            "s": 32,
+            "i": "trade",
+            "timeframe": "REAL-TIME",
+            "T": "TEST1",
+            "e": 33,
+            "f": 164545550,
+            "q": 34,
+            "r": 35,
+            "y": 164545551,
+            "z": 36
+        },
+        "status": "OK"
+    });
+    let last_trade = LastTrade::parse(&data.as_object().unwrap());
+    assert_eq!(last_trade.request_id.unwrap(), "req12345");
+    assert_eq!(last_trade.status.unwrap(), "OK");
+    assert_eq!(last_trade.results.unwrap().conditions.unwrap(), vec![29]);
+}
+
+#[test]
+fn test_url() {
+    let mut parameters = Parameters::default();
+    parameters.api_key = String::from("apiKey");
+    parameters.ticker = Some(String::from("AAPL"));
+    let url = url(&parameters).unwrap();
+    assert_eq!(url, "https://api.polygon.io/v2/last/trade/AAPLapiKey=apiKey");
+}

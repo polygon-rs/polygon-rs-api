@@ -107,7 +107,7 @@ pub trait Parse {
                 continue;
             }
             let mut array = Vec::new();
-            if let Some(values) = map.get("results").and_then(|v| v.as_array()) {
+            if let Some(values) = map.get(key).and_then(|v| v.as_array()) {
                 for object in values {
                     match object.as_object() {
                         Some(o) => array.push(T::parse(o)),
@@ -129,7 +129,7 @@ pub trait Parse {
                 continue;
             }
             let mut i64_array = Vec::new();
-            if let Some(values) = map.get("results").and_then(|v| v.as_array()) {
+            if let Some(values) = map.get(key).and_then(|v| v.as_array()) {
                 for i64 in values {
                     match i64.as_i64() {
                         Some(i) => i64_array.push(i),

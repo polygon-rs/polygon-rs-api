@@ -72,3 +72,48 @@ impl Parse for Quote {
         }
     }
 }
+
+#[test]
+fn test_quote_parse() {
+    let data = serde_json::json!({
+        "p": 1.23,
+        "s": 456,
+        "P": 7.89,
+        "S": 123,
+        "bid_exchange": 10,
+        "ask_exchange": 11,
+        "t": 164545545,
+        "mid_point": 4.56,
+        "timeframe": "DELAYED",
+        "x": 12,
+        "T": "TEST",
+        "c": [
+            13
+        ],
+        "f": 164545546,
+        "i": [
+            14
+        ],
+        "q": 15,
+        "y": 164545547,
+        "z": 16
+    });
+    let quote = Quote::parse(&data.as_object().unwrap());
+    assert_eq!(quote.bid.unwrap(), 1.23);
+    assert_eq!(quote.bid_size.unwrap(), 456);
+    assert_eq!(quote.ask.unwrap(), 7.89);
+    assert_eq!(quote.ask_size.unwrap(), 123);
+    assert_eq!(quote.bid_exchange_id.unwrap(), 10);
+    assert_eq!(quote.ask_exchange_id.unwrap(), 11);
+    assert_eq!(quote.last_updated.unwrap(), 164545545);
+    assert_eq!(quote.mid_point.unwrap(), 4.56);
+    assert_eq!(quote.timeframe.unwrap(), Timeframe::Delayed);
+    assert_eq!(quote.exchange_id.unwrap(), 12);
+    assert_eq!(quote.exchange.unwrap(), "TEST");
+    assert_eq!(quote.conditions.unwrap(), vec![13]);
+    assert_eq!(quote.trf_timestamp.unwrap(), 164545546);
+    assert_eq!(quote.indicators.unwrap(), vec![14]);
+    assert_eq!(quote.sequence_number.unwrap(), 15);
+    assert_eq!(quote.participant_timestamp.unwrap(), 164545547);
+    assert_eq!(quote.tape.unwrap(), 16);
+}

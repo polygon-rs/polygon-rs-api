@@ -23,3 +23,18 @@ impl Parse for MACD {
         }
     }
 }
+
+#[test]
+fn test_macd_parse() {
+    let data = serde_json::json!({
+        "histogram": 1.23,
+        "signal": 2.34,
+        "timestamp": 164545545,
+        "value": 3.45
+    });
+    let macd = MACD::parse(&data.as_object().unwrap());
+    assert_eq!(macd.histogram.unwrap(), 1.23);
+    assert_eq!(macd.signal.unwrap(), 2.34);
+    assert_eq!(macd.timestamp.unwrap(), 164545545);
+    assert_eq!(macd.value.unwrap(), 3.45);
+}

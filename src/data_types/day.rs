@@ -45,3 +45,32 @@ impl Parse for Day {
         }
     }
 }
+
+#[test]
+fn test_day_parse() {
+    let data = serde_json::json!({
+        "change": 1.0,
+        "change_percent": 2.0,
+        "c": 3.0,
+        "h": 4.0,
+        "last_updated": 164545545,
+        "l": 5.0,
+        "o": 6.0,
+        "previous_close": 7.0,
+        "v": 8,
+        "vw": 9.0,
+        "otc": false
+    });
+    let day = Day::parse(&data.as_object().unwrap());
+    assert_eq!(day.change.unwrap(), 1.0);
+    assert_eq!(day.change_percent.unwrap(), 2.0);
+    assert_eq!(day.close.unwrap(), 3.0);
+    assert_eq!(day.high.unwrap(), 4.0);
+    assert_eq!(day.last_updated.unwrap(), 164545545);
+    assert_eq!(day.low.unwrap(), 5.0);
+    assert_eq!(day.open.unwrap(), 6.0);
+    assert_eq!(day.previous_close.unwrap(), 7.0);
+    assert_eq!(day.volume.unwrap(), 8);
+    assert_eq!(day.volume_weighted_average_price.unwrap(), 9.0);
+    assert_eq!(day.otc.unwrap(), false);
+}

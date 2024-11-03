@@ -128,7 +128,7 @@ fn url(parameters: &Parameters) -> Result<String, ErrorCode> {
             "".to_string()
         },
         if let Some(o) = &parameters.order {
-            format!("order={}&", o)
+            format!("order={}&", o.to_string().to_lowercase())
         } else {
             "".to_string()
         },
@@ -138,11 +138,56 @@ fn url(parameters: &Parameters) -> Result<String, ErrorCode> {
             "".to_string()
         },
         if let Some(s) = &parameters.sortv3 {
-            format!("sort={}&", s)
+            format!("sort={}&", s.to_string().to_lowercase())
         } else {
             "".to_string()
         },
         &parameters.api_key,
     ));
     Ok(url)
+}
+
+#[test]
+fn test_indicies_snapshot_parse() {
+    let data = serde_json::json!({
+        "status": "OK",
+        "request_id": "req12345",
+        "next_url": "https://api.polygon.io/v3/snapshot/indicies?cursor=YWN0aXZlPXRydWUmZGF0ZT0yMDIzLTA0LTAxJmxpbWl0PTEmb3JkZXI9YXNjJnBhZ2VfbWFya2VyPUElMjBWU1MjQyMCU3QzIwMjMtMDQtMDElN0M5JTNBNDElN0MwMCUzQTAwJnNvcnQ9dGlja2Vy",
+        "results": [
+            {
+                "ticker": "DJIA",
+                "session": {
+                    "change": 1.23,
+                    "change_percent": 2.34,
+                    "close": 3.45,
+                    "high": 4.56,
+                    "low": 5.67,
+                    "open": 6.78,
+                    "previous_close": 7.89
+                },
+                "value": 12345.67,
+                "ticker_type": "indicies",
+                "timeframe": "2023-04-01",
+                "name": "Dow Jones Industrial Average",
+                "market_status": "PRE"
+            }
+        ]
+    });
+    let indicies_snapshot = IndiciesSnapshot::parse(&data.as_object().unwrap());
+    assert_eq!(indicies_snapshot.status.unwrap(), "OK");
+    assert_eq!(indicies_snapshot.request_id.unwrap(), "req12345");
+    assert_eq!(indicies_snapshot.next_url.unwrap(), "https://api.polygon.io/v3/snapshot/indicies?cursor=YWN0aXZlPXRydWUmZGF0ZT0yMDIzLTA0LTAxJmxpbWl0PTEmb3JkZXI9YXNjJnBhZ2VfbWFya2VyPUElMjBWU1MjQyMCU3QzIwMjMtMDQtMDElN0M5JTNBNDElN0MwMCUzQTAwJnNvcnQ9dGlja2Vy");
+    assert_eq!(indicies_snapshot.indicies.unwrap()[0].ticker.clone().unwrap(), "DJIA");
+}
+
+#[test]
+fn test_url() {
+    let mut parameters = Parameters::default();
+    parameters.api_key = String::from("apiKey");
+    parameters.tickers = Some(vec![String::from("I:DJI"), String::from("I:SPX")]);
+    parameters.sortv3 = Some(Sortv3::Ticker);
+    parameters.limit = Some(1);
+    parameters.order = Some(Order::Asc);
+    let url = url(&parameters).unwrap();
+    assert_eq!(url, "https://api.polygon.io/v3/snapshot/indicies?tickers.any_of=I:DJI,I:SPX&order=asc&limit=1&sort=ticker&apiKey=apiKey");
 }

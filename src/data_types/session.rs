@@ -32,3 +32,24 @@ impl Parse for Session {
         }
     }
 }
+
+#[test]
+fn test_session_parse() {
+    let data = serde_json::json!({
+        "change": 1.23,
+        "change_percent": 2.34,
+        "close": 3.45,
+        "high": 4.56,
+        "low": 5.67,
+        "open": 6.78,
+        "previous_close": 7.89
+    });
+    let session = Session::parse(&data.as_object().unwrap());
+    assert_eq!(session.change.unwrap(), 1.23);
+    assert_eq!(session.change_percent.unwrap(), 2.34);
+    assert_eq!(session.close.unwrap(), 3.45);
+    assert_eq!(session.high.unwrap(), 4.56);
+    assert_eq!(session.low.unwrap(), 5.67);
+    assert_eq!(session.open.unwrap(), 6.78);
+    assert_eq!(session.previous_close.unwrap(), 7.89);
+}

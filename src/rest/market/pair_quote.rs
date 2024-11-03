@@ -79,3 +79,33 @@ fn url(parameters: &Parameters) -> Result<String, ErrorCode> {
     ));
     Ok(url)
 }
+#[test]
+fn test_pair_quote_parse() {
+    let data = serde_json::json!({
+        "request_id": "req12345",
+        "last": {
+            "ask": 1.23,
+            "bid": 2.34,
+            "asksize": 100,
+            "bidsize": 200,
+            "timestamp": 164545545,
+            "exchange": 48,
+            "symbol": "C:EURUSD"
+        },
+        "status": "OK"
+    });
+    let pair_quote = PairQuote::parse(&data.as_object().unwrap());
+    assert_eq!(pair_quote.request_id.unwrap(), "req12345");
+    assert_eq!(pair_quote.status.unwrap(), "OK");
+    assert_eq!(pair_quote.pair_quote.unwrap().ask.unwrap(), 1.23);
+}
+
+#[test]
+fn test_url() {
+    let mut parameters = Parameters::default();
+    parameters.api_key = String::from("apiKey");
+    parameters.ticker = Some(String::from("C:EURUSD"));
+    let url = url(&parameters).unwrap();
+    assert_eq!(url, "https://api.polygon.io/v1/lastquote/currencies/EU/US?apiKey=apiKey");
+}
+

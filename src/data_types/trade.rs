@@ -62,3 +62,40 @@ impl Parse for Trade {
         }
     }
 }
+
+#[test]
+fn test_trade_parse() {
+    let data = serde_json::json!({
+        "c": [
+            29
+        ],
+        "x": 30,
+        "p": 31.0,
+        "t": 164545549,
+        "s": 32,
+        "i": "trade",
+        "timeframe": "REAL-TIME",
+        "T": "TEST1",
+        "e": 33,
+        "f": 164545550,
+        "q": 34,
+        "r": 35,
+        "y": 164545551,
+        "z": 36
+    });
+    let trade = Trade::parse(&data.as_object().unwrap());
+    assert_eq!(trade.conditions.unwrap(), vec![29]);
+    assert_eq!(trade.exchange_id.unwrap(), 30);
+    assert_eq!(trade.price.unwrap(), 31.0);
+    assert_eq!(trade.sip_timestamp.unwrap(), 164545549);
+    assert_eq!(trade.size.unwrap(), 32);
+    assert_eq!(trade.trade_id.unwrap(), "trade");
+    assert_eq!(trade.timeframe.unwrap(), Timeframe::RealTime);
+    assert_eq!(trade.exchange.unwrap(), "TEST1");
+    assert_eq!(trade.trade_correction.unwrap(), 33);
+    assert_eq!(trade.trf_timestamp.unwrap(), 164545550);
+    assert_eq!(trade.sequence_number.unwrap(), 34);
+    assert_eq!(trade.trf_id.unwrap(), 35);
+    assert_eq!(trade.participant_timestamp.unwrap(), 164545551);
+    assert_eq!(trade.tape.unwrap(), 36);
+}

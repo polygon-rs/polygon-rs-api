@@ -117,3 +117,40 @@ fn url(parameters: &Parameters) -> Result<String, ErrorCode> {
     ));
     Ok(url)
 }
+#[test]
+fn test_daily_parse() {
+    let data = serde_json::json!({
+        "afterHours": 1.23,
+        "close": 2.34,
+        "from": "2023-04-01",
+        "high": 3.45,
+        "low": 0.12,
+        "open": 0.12,
+        "preMarket": 4.56,
+        "status": "OK",
+        "symbol": "AAPL",
+        "volume": 123456
+    });
+    let daily = Daily::parse(&data.as_object().unwrap());
+    assert_eq!(daily.after_hours.unwrap(), 1.23);
+    assert_eq!(daily.close.unwrap(), 2.34);
+    assert_eq!(daily.from.unwrap(), "2023-04-01");
+    assert_eq!(daily.high.unwrap(), 3.45);
+    assert_eq!(daily.low.unwrap(), 0.12);
+    assert_eq!(daily.open.unwrap(), 0.12);
+    assert_eq!(daily.pre_market.unwrap(), 4.56);
+    assert_eq!(daily.status.unwrap(), "OK");
+    assert_eq!(daily.symbol.unwrap(), "AAPL");
+    assert_eq!(daily.volume.unwrap(), 123456.0);
+}
+
+#[test]
+fn test_url() {
+    let mut parameters = Parameters::default();
+    parameters.api_key = String::from("apiKey");
+    parameters.ticker = Some(String::from("AAPL"));
+    parameters.date = Some(String::from("2023-04-01"));
+    parameters.adjusted = Some(true);
+    let url = url(&parameters).unwrap();
+    assert_eq!(url, "https://api.polygon.io/v1/open-close/AAPL/2023-04-01?adjusted=true&apiKey=apiKey");
+}

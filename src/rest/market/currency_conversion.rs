@@ -28,7 +28,7 @@ impl Parse for CurrencyConversion {
         let status = Self::string_parse(map, vec!["status"]);
         let quote = Self::object_parse(map, vec!["last"]);
         let symbol = Self::string_parse(map, vec!["symbol"]);
-        let initial_amount = Self::f64_parse(map, vec!["initial_amount"]);
+        let initial_amount = Self::f64_parse(map, vec!["initialAmount"]);
         let converted = Self::f64_parse(map, vec!["converted"]);
 
         CurrencyConversion {
@@ -93,11 +93,11 @@ const PARAMETERS: &'static [&'static ParameterRequirment] = &[
 
 fn url(parameters: &Parameters) -> Result<String, ErrorCode> {
     let from = match &parameters.ticker {
-        Some(ticker) => ticker[2..4].to_string(),
+        Some(ticker) => ticker[2..5].to_string(),
         None => return Err(ErrorCode::TickerNotSet),
     };
     let to = match &parameters.ticker {
-        Some(ticker) => ticker[5..7].to_string(),
+        Some(ticker) => ticker[5..8].to_string(),
         None => return Err(ErrorCode::TickerNotSet),
     };
     let url = String::from(format!(
@@ -117,4 +117,42 @@ fn url(parameters: &Parameters) -> Result<String, ErrorCode> {
         &parameters.api_key,
     ));
     Ok(url)
+}
+#[test]
+fn test_currency_conversion_parse() {
+    let data = serde_json::json!({
+        "to": "USD",
+        "from": "EUR",
+        "initialAmount": 100.00,
+        "converted": 108.35,
+        "last": {
+            "ask": 1.0835,
+            "bid": 1.0834,
+            "exchange": 48,
+            "timestamp": 1678886401000 as i64
+        },
+        "symbol": "C:EURUSD",
+        "status": "OK",
+        "request_id": "req12345"
+    });
+    let currency_conversion = CurrencyConversion::parse(&data.as_object().unwrap());
+    assert_eq!(currency_conversion.to.unwrap(), "USD");
+    assert_eq!(currency_conversion.from.unwrap(), "EUR");
+    assert_eq!(currency_conversion.initial_amount.unwrap(), 100.00);
+    assert_eq!(currency_conversion.converted.unwrap(), 108.35);
+    assert_eq!(currency_conversion.quote.unwrap().ask.unwrap(), 1.0835);
+    assert_eq!(currency_conversion.symbol.unwrap(), "C:EURUSD");
+    assert_eq!(currency_conversion.status.unwrap(), "OK");
+    assert_eq!(currency_conversion.request_id.unwrap(), "req12345");
+}
+
+#[test]
+fn test_url() {
+    let mut parameters = Parameters::default();
+    parameters.api_key = String::from("apiKey");
+    parameters.ticker = Some(String::from("C:EURUSD"));
+    parameters.amount = Some(100.0);
+    parameters.precision = Some(2);
+    let url = url(&parameters).unwrap();
+    assert_eq!(url, "https://api.polygon.io/v1/conversion/EUR/USD?amount=100&precision=2&apiKey=apiKey");
 }

@@ -35,10 +35,11 @@ impl Parse for PairTrade {
 }
 
 pub trait PairTradeRequest {
-    fn get_pair_trade(api_key: &String, ticker: String) -> Result<PairTrade, ErrorCode> {
+    //Once reference to tickers is complete extract to and from via ticker reference
+    fn get_pair_trade(api_key: &String, from: String, to: String) -> Result<PairTrade, ErrorCode> {
         let pair_trade_parameters = Parameters {
             api_key: api_key.to_string(),
-            ticker: Some(ticker),
+            ticker: Some(format!("X:{}{}",from,to)),
             ..Parameters::default()
         };
         if let Err(check) = Verification::check_parameters(
@@ -48,7 +49,7 @@ pub trait PairTradeRequest {
         ) {
             return Err(check);
         }
-        let url = match url(&pair_trade_parameters) {
+        let url = match url(&pair_trade_parameters, from, to) {
             Ok(url) => url,
             Err(e) => return Err(e),
         };
@@ -64,19 +65,40 @@ const PARAMETERS: &'static [&'static ParameterRequirment] = &[&ParameterRequirme
     parameter: Parameter::Ticker,
 }];
 
-fn url(parameters: &Parameters) -> Result<String, ErrorCode> {
-    //Need a different method to extract to and from as Crypto can be different lengths
-    let from = match &parameters.ticker {
-        Some(ticker) => ticker[2..4].to_string(),
-        None => return Err(ErrorCode::TickerNotSet),
-    };
-    let to = match &parameters.ticker {
-        Some(ticker) => ticker[5..7].to_string(),
-        None => return Err(ErrorCode::TickerNotSet),
-    };
+fn url(parameters: &Parameters, from: String, to: String) -> Result<String, ErrorCode> {
     let url = String::from(format!(
         "https://api.polygon.io/v1/last/crypto/{}/{}?apiKey={}",
         from, to, &parameters.api_key,
     ));
     Ok(url)
+}
+#[test]
+fn test_pair_trade_parse() {
+    let data = serde_json::json!({
+        "request_id": "req12345",
+        "last": {
+            "conditions": [
+                1
+            ],
+            "exchange": 10,
+            "price": 1.23,
+            "size": 100,
+            "timestamp": 164545545,
+            "symbol": "X:BTCUSD"
+        },
+        "status": "OK"
+    });
+    let pair_trade = PairTrade::parse(&data.as_object().unwrap());
+    assert_eq!(pair_trade.request_id.unwrap(), "req12345");
+    assert_eq!(pair_trade.status.unwrap(), "OK");
+    assert_eq!(pair_trade.pair_trade.unwrap().conditions.unwrap(), vec![1]);
+}
+
+#[test]
+fn test_url() {
+    let mut parameters = Parameters::default();
+    parameters.api_key = String::from("apiKey");
+    parameters.ticker = Some(String::from("X:BTCUSD"));
+    let url = url(&parameters, String::from("BTC"), String::from("USD")).unwrap();
+    assert_eq!(url, "https://api.polygon.io/v1/last/crypto/BTC/USD?apiKey=apiKey");
 }

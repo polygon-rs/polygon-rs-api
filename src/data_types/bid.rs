@@ -15,3 +15,18 @@ impl Parse for Bid {
         Bid { price, size }
     }
 }
+
+#[test]
+fn test_bid_parse() {
+    let data = serde_json::json!({
+        "price": 1.23,
+        "size": {
+            "a": 1.0,
+            "b": 2.0,
+        }
+    });
+    let bid = Bid::parse(&data.as_object().unwrap());
+    assert_eq!(bid.price.unwrap(), 1.23);
+    assert_eq!(bid.size.clone().unwrap().get("a").unwrap(), &1.0);
+    assert_eq!(bid.size.clone().unwrap().get("b").unwrap(), &2.0);
+}

@@ -64,3 +64,49 @@ fn url(parameters: &Parameters) -> Result<String, ErrorCode> {
     ));
     Ok(url)
 }
+
+#[test]
+fn test_l2_snapshot_parse() {
+    let data = serde_json::json!({
+        "status": "OK",
+        "data": [
+            {
+                "bids": [
+                    {
+                        "price": 1.23,
+                        "size": {
+                            "a": 1.0,
+                            "b": 2.0,
+                        }
+                    }
+                ],
+                "asks": [
+                    {
+                        "price": 4.56,
+                        "size": {
+                            "a": 7.0,
+                            "b": 8.0,
+                        }
+                    }
+                ],
+                "bid_count": 1,
+                "ask_count": 1,
+                "timestamp": 164545545,
+                "spread": 3.33,
+                "ticker": "TEST"
+            }
+        ]
+    });
+    let l2_snapshot = L2Snapshot::parse(&data.as_object().unwrap());
+    assert_eq!(l2_snapshot.status.unwrap(), "OK");
+    assert_eq!(l2_snapshot.l2.unwrap()[0].bids.clone().unwrap()[0].price.unwrap(), 1.23);
+}
+
+#[test]
+fn test_url() {
+    let mut parameters = Parameters::default();
+    parameters.api_key = String::from("apiKey");
+    parameters.ticker = Some(String::from("X:BTCUSD"));
+    let url = url(&parameters).unwrap();
+    assert_eq!(url, "https://api.polygon.io/v2/snapshot/locale/global/markets/crypto/tickers/X:BTCUSD/book?apiKey=apiKey");
+}

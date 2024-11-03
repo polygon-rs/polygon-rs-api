@@ -98,3 +98,44 @@ fn url(parameters: &Parameters) -> Result<String, ErrorCode> {
     ));
     Ok(url)
 }
+#[test]
+fn test_previous_parse() {
+    let data = serde_json::json!({
+        "ticker": "AAPL",
+        "status": "OK",
+        "adjusted": true,
+        "queryCount": 1,
+        "resultsCount": 1,
+        "results": [
+            {
+                "v": 123456,
+                "vw": 1.23,
+                "o": 2.34,
+                "c": 3.45,
+                "h": 4.56,
+                "l": 0.12,
+                "t": 164545545,
+                "n": 123
+            }
+        ],
+        "request_id": "req12345"
+    });
+    let previous = Previous::parse(&data.as_object().unwrap());
+    assert_eq!(previous.ticker.unwrap(), "AAPL");
+    assert_eq!(previous.status.unwrap(), "OK");
+    assert_eq!(previous.adjusted.unwrap(), true);
+    assert_eq!(previous.query_count.unwrap(), 1);
+    assert_eq!(previous.results_count.unwrap(), 1);
+    assert_eq!(previous.results.unwrap()[0].volume.unwrap(), 123456.0);
+    assert_eq!(previous.request_id.unwrap(), "req12345");
+}
+
+#[test]
+fn test_url() {
+    let mut parameters = Parameters::default();
+    parameters.api_key = String::from("apiKey");
+    parameters.ticker = Some(String::from("AAPL"));
+    parameters.adjusted = Some(true);
+    let url = url(&parameters).unwrap();
+    assert_eq!(url, "https://api.polygon.io/v2/aggs/ticker/AAPL/prev?adjusted=true&apiKey=apiKey");
+}

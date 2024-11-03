@@ -38,3 +38,28 @@ impl Parse for Min {
         }
     }
 }
+
+#[test]
+fn test_min_parse() {
+    let data = serde_json::json!({
+        "av": 123456,
+        "o": 1.23,
+        "h": 2.34,
+        "l": 0.12,
+        "c": 3.45,
+        "v": 456.78,
+        "vw": 901.23,
+        "n": 123,
+        "t": 164545545
+    });
+    let min = Min::parse(&data.as_object().unwrap());
+    assert_eq!(min.accumulated_volume.unwrap(), 123456);
+    assert_eq!(min.open.unwrap(), 1.23);
+    assert_eq!(min.high.unwrap(), 2.34);
+    assert_eq!(min.low.unwrap(), 0.12);
+    assert_eq!(min.close.unwrap(), 3.45);
+    assert_eq!(min.volume.unwrap(), 456.78);
+    assert_eq!(min.volume_weighted_average_price.unwrap(), 901.23);
+    assert_eq!(min.transactions.unwrap(), 123);
+    assert_eq!(min.timestamp.unwrap(), 164545545);
+}

@@ -14,3 +14,14 @@ impl Parse for MovingAverage {
         MovingAverage { timestamp, value }
     }
 }
+
+#[test]
+fn test_moving_average_parse() {
+    let data = serde_json::json!({
+        "timestamp": 164545545,
+        "value": 1.23
+    });
+    let moving_average = MovingAverage::parse(&data.as_object().unwrap());
+    assert_eq!(moving_average.timestamp.unwrap(), 164545545);
+    assert_eq!(moving_average.value.unwrap(), 1.23);
+}

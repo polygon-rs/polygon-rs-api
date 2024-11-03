@@ -1,4 +1,4 @@
-use chrono::DateTime;
+use chrono::{DateTime, NaiveDate};
 
 use crate::rest::{
     error::ErrorCode,
@@ -24,24 +24,24 @@ impl Verification {
             return Ok(());
         }
         let to_string = match &parameters.to {
-            Some(t) => t,
+            Some(t) => t.as_str(),
             None => return Err(ErrorCode::ToNotSet),
         };
         let from_string = match &parameters.from {
-            Some(f) => f,
+            Some(f) => f.as_str(),
             None => return Err(ErrorCode::FromNotSet),
         };
-        let from = match DateTime::parse_from_str(from_string.as_str(), "%Y-%m-%dT%H:%M:%S") {
-            Ok(d) => d,
+        let from = match NaiveDate::parse_from_str(from_string, "%Y-%m-%d") {
+            Ok(d) => d.and_hms_opt(0, 0, 0).unwrap().and_utc(),
             Err(_) => match from_string.parse::<i64>() {
-                Ok(n) => DateTime::from_timestamp_nanos(n).fixed_offset(),
-                Err(_) => return Err(ErrorCode::DateFromError),
+                Ok(n) => DateTime::from_timestamp_nanos(n),
+                Err(_) => return Err(ErrorCode::DateToError),
             },
         };
-        let to = match DateTime::parse_from_str(to_string.as_str(), "%Y-%m-%dT%H:%M:%S") {
-            Ok(d) => d,
+        let to = match NaiveDate::parse_from_str(to_string, "%Y-%m-%d") {
+            Ok(d) => d.and_hms_opt(0, 0, 0).unwrap().and_utc(),
             Err(_) => match to_string.parse::<i64>() {
-                Ok(n) => DateTime::from_timestamp_nanos(n).fixed_offset(),
+                Ok(n) => DateTime::from_timestamp_nanos(n),
                 Err(_) => return Err(ErrorCode::DateToError),
             },
         };
@@ -53,7 +53,7 @@ impl Verification {
     }
 
     fn verify_to_from_strike_price(parameters: &Parameters) -> Result<(), ErrorCode> {
-        if parameters.to.is_none() || parameters.from.is_none() {
+        if parameters.strike_price_to.is_none() || parameters.strike_price_from.is_none() {
             return Ok(());
         }
         let to_strike_price = match &parameters.strike_price_to {
@@ -184,7 +184,7 @@ impl Verification {
     }
 
     fn verify_crypto_ticker(ticker: String) -> Result<(), ErrorCode> {
-        if !RegexPatterns::forex_ticker().is_match(ticker.as_str()) {
+        if !RegexPatterns::crypto_ticker().is_match(ticker.as_str()) {
             return Err(ErrorCode::TickerError);
         }
         Ok(())
@@ -215,7 +215,7 @@ impl Verification {
         if RegexPatterns::forex_check().is_match(ticker.as_str()) == true {
             return Ok(TickerType::Forex);
         }
-        if RegexPatterns::indicies_check().is_match(ticker.as_str()) == true {
+        if RegexPatterns::crypto_check().is_match(ticker.as_str()) == true {
             return Ok(TickerType::Crypto);
         }
         return Err(ErrorCode::TickerError);
@@ -667,4 +667,491 @@ impl Verification {
         }
         Ok(())
     }
+}
+
+#[test]
+fn test_verify_date() {
+    assert_eq!(
+        Verification::verify_date(&String::from("2020-12-01"), &Parameter::Date),
+        Ok(())
+    );
+    assert_eq!(
+        Verification::verify_date(&String::from("2020-12-01T"), &Parameter::Date),
+        Err(ErrorCode::DateError)
+    );
+    assert_eq!(
+        Verification::verify_date(&String::from("1645455450000000000"), &Parameter::Date),
+        Ok(())
+    );
+}
+
+#[test]
+fn test_verify_to_from() {
+    let mut parameters = Parameters::default();
+    parameters.to = Some(String::from("2021-12-01"));
+    parameters.from = Some(String::from("2020-12-01"));
+    assert_eq!(Verification::verify_to_from(&parameters), Ok(()));
+    parameters.to = Some(String::from("2020-12-01"));
+    parameters.from = Some(String::from("2021-12-01"));
+    assert_eq!(
+        Verification::verify_to_from(&parameters),
+        Err(ErrorCode::DateToError)
+    );
+    parameters.to = Some(String::from("1727951392000000000"));
+    parameters.from = Some(String::from("1730629792000000000"));
+    assert_eq!(
+        Verification::verify_to_from(&parameters),
+        Err(ErrorCode::DateToError)
+    );
+    parameters.to = Some(String::from("1730629792000000000"));
+    parameters.from = Some(String::from("1727951392000000000"));
+    assert_eq!(Verification::verify_to_from(&parameters), Ok(()));
+}
+
+#[test]
+fn test_verify_to_from_strike_price() {
+    let mut parameters = Parameters::default();
+    parameters.strike_price_to = Some(10.0);
+    parameters.strike_price_from = Some(1.0);
+    assert_eq!(
+        Verification::verify_to_from_strike_price(&parameters),
+        Ok(())
+    );
+    parameters.strike_price_to = Some(1.0);
+    parameters.strike_price_from = Some(10.0);
+    assert_eq!(
+        Verification::verify_to_from_strike_price(&parameters),
+        Err(ErrorCode::StrikePriceToError)
+    );
+    parameters.strike_price_to = Some(10.0);
+    parameters.strike_price_from = Some(10.0);
+    assert_eq!(
+        Verification::verify_to_from_strike_price(&parameters),
+        Ok(())
+    );
+}
+
+#[test]
+fn test_verify_api_key() {
+    let mut parameters = Parameters::default();
+    parameters.api_key = String::from("12345678901234567890123456789012");
+    assert_eq!(Verification::verify_api_key(&parameters), Ok(()));
+    parameters.api_key = String::from("a");
+    assert_eq!(
+        Verification::verify_api_key(&parameters),
+        Err(ErrorCode::APIError)
+    );
+}
+
+#[test]
+fn test_verify_stock_ticker() {
+    let ticker = String::from("AAPL");
+    assert_eq!(Verification::verify_stock_ticker(ticker), Ok(()));
+    let ticker = String::from("A");
+    assert_eq!(Verification::verify_stock_ticker(ticker), Ok(()));
+    let ticker = String::from("AA");
+    assert_eq!(Verification::verify_stock_ticker(ticker), Ok(()));
+    let ticker = String::from("AAA");
+    assert_eq!(Verification::verify_stock_ticker(ticker), Ok(()));
+    let ticker = String::from("AAAA");
+    assert_eq!(Verification::verify_stock_ticker(ticker), Ok(()));
+    let ticker = String::from("AAAAAAA");
+    assert_eq!(
+        Verification::verify_stock_ticker(ticker),
+        Err(ErrorCode::TickerError)
+    );
+}
+
+#[test]
+fn test_verify_stocks_ticker() {
+    let mut parameters = Parameters::default();
+    parameters.ticker = Some(String::from("AAPL"));
+    assert_eq!(
+        Verification::verify_stocks_ticker(true, &parameters),
+        Ok(())
+    );
+    parameters.ticker = Some(String::from("A"));
+    assert_eq!(
+        Verification::verify_stocks_ticker(true, &parameters),
+        Ok(())
+    );
+    parameters.ticker = Some(String::from("AA"));
+    assert_eq!(
+        Verification::verify_stocks_ticker(true, &parameters),
+        Ok(())
+    );
+    parameters.ticker = Some(String::from("AAA"));
+    assert_eq!(
+        Verification::verify_stocks_ticker(true, &parameters),
+        Ok(())
+    );
+    parameters.ticker = Some(String::from("AAAA"));
+    assert_eq!(
+        Verification::verify_stocks_ticker(true, &parameters),
+        Ok(())
+    );
+    parameters.ticker = Some(String::from("AAAAAAA"));
+    assert_eq!(
+        Verification::verify_stocks_ticker(true, &parameters),
+        Err(ErrorCode::TickerError)
+    );
+    parameters.ticker = None;
+    assert_eq!(
+        Verification::verify_stocks_ticker(true, &parameters),
+        Err(ErrorCode::TickerNotSet)
+    );
+    assert_eq!(
+        Verification::verify_stocks_ticker(false, &parameters),
+        Ok(())
+    );
+}
+
+#[test]
+fn test_verify_option_ticker() {
+    let ticker = String::from("O:AAL210820C00014000");
+    assert_eq!(Verification::verify_option_ticker(ticker), Ok(()));
+    let ticker = String::from("A");
+    assert_eq!(
+        Verification::verify_option_ticker(ticker),
+        Err(ErrorCode::TickerError)
+    );
+}
+
+#[test]
+fn test_verify_options_ticker() {
+    let mut parameters = Parameters::default();
+    parameters.ticker = Some(String::from("O:AAL210820C00014000"));
+    assert_eq!(
+        Verification::verify_options_ticker(true, &parameters),
+        Ok(())
+    );
+    parameters.ticker = Some(String::from("A"));
+    assert_eq!(
+        Verification::verify_options_ticker(true, &parameters),
+        Err(ErrorCode::TickerError)
+    );
+    parameters.ticker = None;
+    assert_eq!(
+        Verification::verify_options_ticker(true, &parameters),
+        Err(ErrorCode::TickerNotSet)
+    );
+    assert_eq!(
+        Verification::verify_options_ticker(false, &parameters),
+        Ok(())
+    );
+}
+
+#[test]
+fn test_verify_indicie_ticker() {
+    let ticker = String::from("I:DJI");
+    assert_eq!(Verification::verify_indicie_ticker(ticker), Ok(()));
+    let ticker = String::from("A");
+    assert_eq!(
+        Verification::verify_indicie_ticker(ticker),
+        Err(ErrorCode::TickerError)
+    );
+}
+
+#[test]
+fn test_verify_indices_ticker() {
+    let mut parameters = Parameters::default();
+    parameters.ticker = Some(String::from("I:DJI"));
+    assert_eq!(
+        Verification::verify_indices_ticker(true, &parameters),
+        Ok(())
+    );
+    parameters.ticker = Some(String::from("A"));
+    assert_eq!(
+        Verification::verify_indices_ticker(true, &parameters),
+        Err(ErrorCode::TickerError)
+    );
+    parameters.ticker = None;
+    assert_eq!(
+        Verification::verify_indices_ticker(true, &parameters),
+        Err(ErrorCode::TickerNotSet)
+    );
+    assert_eq!(
+        Verification::verify_indices_ticker(false, &parameters),
+        Ok(())
+    );
+}
+
+#[test]
+fn test_verify_forex_ticker() {
+    let ticker = String::from("C:EURUSD");
+    assert_eq!(Verification::verify_forex_ticker(ticker), Ok(()));
+    let ticker = String::from("A");
+    assert_eq!(
+        Verification::verify_forex_ticker(ticker),
+        Err(ErrorCode::TickerError)
+    );
+}
+
+#[test]
+fn test_verify_forex_tickers() {
+    let mut parameters = Parameters::default();
+    parameters.ticker = Some(String::from("C:EURUSD"));
+    assert_eq!(
+        Verification::verify_forex_tickers(true, &parameters),
+        Ok(())
+    );
+    parameters.ticker = Some(String::from("A"));
+    assert_eq!(
+        Verification::verify_forex_tickers(true, &parameters),
+        Err(ErrorCode::TickerError)
+    );
+    parameters.ticker = None;
+    assert_eq!(
+        Verification::verify_forex_tickers(true, &parameters),
+        Err(ErrorCode::TickerNotSet)
+    );
+    assert_eq!(
+        Verification::verify_forex_tickers(false, &parameters),
+        Ok(())
+    );
+}
+
+#[test]
+fn test_verify_crypto_ticker() {
+    let ticker = String::from("X:BTCUSD");
+    assert_eq!(Verification::verify_crypto_ticker(ticker), Ok(()));
+    let ticker = String::from("A");
+    assert_eq!(
+        Verification::verify_crypto_ticker(ticker),
+        Err(ErrorCode::TickerError)
+    );
+}
+
+#[test]
+fn test_verify_crypto_tickers() {
+    let mut parameters = Parameters::default();
+    parameters.ticker = Some(String::from("X:BTCUSD"));
+    assert_eq!(
+        Verification::verify_crypto_tickers(true, &parameters),
+        Ok(())
+    );
+    parameters.ticker = Some(String::from("A"));
+    assert_eq!(
+        Verification::verify_crypto_tickers(true, &parameters),
+        Err(ErrorCode::TickerError)
+    );
+    parameters.ticker = None;
+    assert_eq!(
+        Verification::verify_crypto_tickers(true, &parameters),
+        Err(ErrorCode::TickerNotSet)
+    );
+    assert_eq!(
+        Verification::verify_crypto_tickers(false, &parameters),
+        Ok(())
+    );
+}
+
+#[test]
+fn test_get_ticker_type() {
+    let ticker = String::from("X:BTCUSD");
+    assert_eq!(
+        Verification::get_ticker_type(&ticker),
+        Ok(TickerType::Crypto)
+    );
+    let ticker = String::from("C:EURUSD");
+    assert_eq!(
+        Verification::get_ticker_type(&ticker),
+        Ok(TickerType::Forex)
+    );
+    let ticker = String::from("I:DJI");
+    assert_eq!(
+        Verification::get_ticker_type(&ticker),
+        Ok(TickerType::Indicies)
+    );
+    let ticker = String::from("O:AAL210820C00014000");
+    assert_eq!(
+        Verification::get_ticker_type(&ticker),
+        Ok(TickerType::Options)
+    );
+    let ticker = String::from("AAPL");
+    assert_eq!(
+        Verification::get_ticker_type(&ticker),
+        Ok(TickerType::Stocks)
+    );
+    let ticker = String::from("$A");
+    assert_eq!(
+        Verification::get_ticker_type(&ticker),
+        Err(ErrorCode::TickerError)
+    );
+}
+
+#[test]
+fn test_verify_ticker() {
+    let ticker_types = TickerTypes::set(false, false, false, false, false);
+    let mut parameters = Parameters::default();
+    parameters.ticker = Some(String::from("X:BTCUSD"));
+    assert_eq!(
+        Verification::verify_ticker(true, &ticker_types, &parameters),
+        Err(ErrorCode::TickerNotValidForAPICall)
+    );
+    parameters.ticker = Some(String::from("C:EURUSD"));
+    assert_eq!(
+        Verification::verify_ticker(true, &ticker_types, &parameters),
+        Err(ErrorCode::TickerNotValidForAPICall)
+    );
+    parameters.ticker = Some(String::from("I:DJI"));
+    assert_eq!(
+        Verification::verify_ticker(true, &ticker_types, &parameters),
+        Err(ErrorCode::TickerNotValidForAPICall)
+    );
+    parameters.ticker = Some(String::from("O:AAL210820C00014000"));
+    assert_eq!(
+        Verification::verify_ticker(true, &ticker_types, &parameters),
+        Err(ErrorCode::TickerNotValidForAPICall)
+    );
+    parameters.ticker = Some(String::from("AAPL"));
+    assert_eq!(
+        Verification::verify_ticker(true, &ticker_types, &parameters),
+        Err(ErrorCode::TickerNotValidForAPICall)
+    );
+    parameters.ticker = Some(String::from("$A"));
+    assert_eq!(
+        Verification::verify_ticker(true, &ticker_types, &parameters),
+        Err(ErrorCode::TickerError)
+    );
+    parameters.ticker = None;
+    assert_eq!(
+        Verification::verify_ticker(true, &ticker_types, &parameters),
+        Err(ErrorCode::TickerNotSet)
+    );
+    assert_eq!(
+        Verification::verify_ticker(false, &ticker_types, &parameters),
+        Ok(())
+    );
+}
+
+#[test]
+fn test_verify_tickers() {
+    let ticker_types = TickerTypes::set(false, false, false, false, false);
+    let mut parameters = Parameters::default();
+    parameters.tickers = Some(vec![String::from("X:BTCUSD")]);
+    assert_eq!(
+        Verification::verify_tickers(true, &ticker_types, &parameters),
+        Err(ErrorCode::TickerNotValidForAPICall)
+    );
+    parameters.tickers = Some(vec![String::from("C:EURUSD")]);
+    assert_eq!(
+        Verification::verify_tickers(true, &ticker_types, &parameters),
+        Err(ErrorCode::TickerNotValidForAPICall)
+    );
+    parameters.tickers = Some(vec![String::from("I:DJI")]);
+    assert_eq!(
+        Verification::verify_tickers(true, &ticker_types, &parameters),
+        Err(ErrorCode::TickerNotValidForAPICall)
+    );
+    parameters.tickers = Some(vec![String::from("O:AAL210820C00014000")]);
+    assert_eq!(
+        Verification::verify_tickers(true, &ticker_types, &parameters),
+        Err(ErrorCode::TickerNotValidForAPICall)
+    );
+    parameters.tickers = Some(vec![String::from("AAPL")]);
+    assert_eq!(
+        Verification::verify_tickers(true, &ticker_types, &parameters),
+        Err(ErrorCode::TickerNotValidForAPICall)
+    );
+    parameters.tickers = Some(vec![String::from("$A")]);
+    assert_eq!(
+        Verification::verify_tickers(true, &ticker_types, &parameters),
+        Err(ErrorCode::TickerError)
+    );
+    parameters.tickers = None;
+    assert_eq!(
+        Verification::verify_tickers(true, &ticker_types, &parameters),
+        Err(ErrorCode::TickersNotSet)
+    );
+    assert_eq!(
+        Verification::verify_tickers(false, &ticker_types, &parameters),
+        Ok(())
+    );
+}
+
+#[test]
+fn test_verify_underlying_asset() {
+    let mut parameters = Parameters::default();
+    parameters.underlying_asset = Some(String::from("X:BTCUSD"));
+    assert_eq!(
+        Verification::verify_underlying_asset(true, &parameters),
+        Ok(())
+    );
+    parameters.underlying_asset = Some(String::from("C:EURUSD"));
+    assert_eq!(
+        Verification::verify_underlying_asset(true, &parameters),
+        Ok(())
+    );
+    parameters.underlying_asset = Some(String::from("I:DJI"));
+    assert_eq!(
+        Verification::verify_underlying_asset(true, &parameters),
+        Ok(())
+    );
+    parameters.underlying_asset = Some(String::from("O:AAL210820C00014000"));
+    assert_eq!(
+        Verification::verify_underlying_asset(true, &parameters),
+        Ok(())
+    );
+    parameters.underlying_asset = Some(String::from("AAPL"));
+    assert_eq!(
+        Verification::verify_underlying_asset(true, &parameters),
+        Ok(())
+    );
+    parameters.underlying_asset = Some(String::from("$A"));
+    assert_eq!(
+        Verification::verify_underlying_asset(true, &parameters),
+        Err(ErrorCode::TickerError)
+    );
+    parameters.underlying_asset = None;
+    assert_eq!(
+        Verification::verify_underlying_asset(true, &parameters),
+        Err(ErrorCode::UnderlyingAssetNotSet)
+    );
+    assert_eq!(
+        Verification::verify_underlying_asset(false, &parameters),
+        Ok(())
+    );
+}
+
+#[test]
+fn test_verify() {
+    let date = Some(String::from("2020-12-01"));
+    assert_eq!(Verification::verify(true, &date, &Parameter::Date), Ok(()));
+    let date = Some(String::from("2020-12-01T"));
+    assert_eq!(
+        Verification::verify(true, &date, &Parameter::Date),
+        Err(ErrorCode::DateError)
+    );
+    let include_otc: Option<bool> = None;
+    assert_eq!(
+        Verification::verify(true, &include_otc, &Parameter::IncludeOTC),
+        Err(ErrorCode::IncludeOTCNotSet)
+    );
+}
+
+#[test]
+fn test_check_parameters() {
+    let mut parameters = Parameters::default();
+    parameters.api_key = String::from("12345678901234567890123456789012");
+    let parameter_requirements = &[&ParameterRequirment {
+        required: true,
+        parameter: Parameter::Ticker,
+    }];
+    let ticker_types = TickerTypes::stocks();
+    parameters.ticker = Some(String::from("AAPL"));
+    assert_eq!(
+        Verification::check_parameters(&ticker_types, parameter_requirements, &parameters),
+        Ok(())
+    );
+    parameters.ticker = Some(String::from("O:AAL210820C00014000"));
+    assert_eq!(
+        Verification::check_parameters(&ticker_types, parameter_requirements, &parameters),
+        Err(ErrorCode::TickerNotValidForAPICall)
+    );
+    parameters.ticker = None;
+    assert_eq!(
+        Verification::check_parameters(&ticker_types, parameter_requirements, &parameters),
+        Err(ErrorCode::TickerNotSet)
+    );
 }

@@ -32,3 +32,41 @@ impl Parse for L2 {
         }
     }
 }
+
+
+#[test]
+fn test_l2_parse() {
+    let data = serde_json::json!({
+        "bids": [
+            {
+                "price": 1.23,
+                "size": {
+                    "a": 1.0,
+                    "b": 2.0,
+                }
+            }
+        ],
+        "asks": [
+            {
+                "price": 4.56,
+                "size": {
+                    "a": 7.0,
+                    "b": 8.0,
+                }
+            }
+        ],
+        "bid_count": 1,
+        "ask_count": 1,
+        "timestamp": 164545545,
+        "spread": 3.33,
+        "ticker": "TEST"
+    });
+    let l2 = L2::parse(&data.as_object().unwrap());
+    assert_eq!(l2.bids.clone().unwrap()[0].price.unwrap(), 1.23);
+    assert_eq!(l2.asks.clone().unwrap()[0].price.unwrap(), 4.56);
+    assert_eq!(l2.bid_count.unwrap(), 1.0);
+    assert_eq!(l2.ask_count.unwrap(), 1.0);
+    assert_eq!(l2.timestamp.unwrap(), 164545545);
+    assert_eq!(l2.spread.unwrap(), 3.33);
+    assert_eq!(l2.ticker.unwrap(), "TEST");
+}

@@ -151,3 +151,50 @@ fn url(parameters: &Parameters) -> Result<String, ErrorCode> {
     ));
     Ok(url)
 }
+#[test]
+fn test_trades_parse() {
+    let data = serde_json::json!({
+        "request_id": "req12345",
+        "next_url": "https://api.polygon.io/v3/trades/AAPL?cursor=YWN0aXZlPXRydWUmZGF0ZT0yMDIzLTA0LTAxJmxpbWl0PTEmb3JkZXI9YXNjJnBhZ2VfbWFya2VyPUElMjBWU1MjQyMCU3QzIwMjMtMDQtMDElN0M5JTNBNDElN0MwMCUzQTAwJnNvcnQ9dGlja2Vy",
+        "status": "OK",
+        "results": [
+            {
+                "c": [
+                    29
+                ],
+                "x": 30,
+                "p": 31.0,
+                "t": 164545549,
+                "s": 32,
+                "i": "trade",
+                "timeframe": "REAL-TIME",
+                "T": "TEST1",
+                "e": 33,
+                "f": 164545550,
+                "q": 34,
+                "r": 35,
+                "y": 164545551,
+                "z": 36
+            }
+        ]
+    });
+    let trades = Trades::parse(&data.as_object().unwrap());
+    assert_eq!(trades.request_id.unwrap(), "req12345");
+    assert_eq!(trades.next_url.unwrap(), "https://api.polygon.io/v3/trades/AAPL?cursor=YWN0aXZlPXRydWUmZGF0ZT0yMDIzLTA0LTAxJmxpbWl0PTEmb3JkZXI9YXNjJnBhZ2VfbWFya2VyPUElMjBWU1MjQyMCU3QzIwMjMtMDQtMDElN0M5JTNBNDElN0MwMCUzQTAwJnNvcnQ9dGlja2Vy");
+    assert_eq!(trades.status.unwrap(), "OK");
+    assert_eq!(trades.trades.unwrap()[0].conditions.clone().unwrap(), vec![29]);
+}
+
+#[test]
+fn test_url() {
+    let mut parameters = Parameters::default();
+    parameters.api_key = String::from("apiKey");
+    parameters.ticker = Some(String::from("AAPL"));
+    parameters.from = Some(String::from("2023-03-01"));
+    parameters.to = Some(String::from("2023-04-01"));
+    parameters.sortv3 = Some(Sortv3::Timestamp);
+    parameters.limit = Some(1);
+    parameters.order = Some(Order::Asc);
+    let url = url(&parameters).unwrap();
+    assert_eq!(url, "https://api.polygon.io/v3/trades/AAPL?timestamp.gte=2023-03-01&timestamp.lte=2023-04-01&order=asc&limit=1&sort=timestamp&apiKey=apiKey");
+}

@@ -72,3 +72,46 @@ fn url(parameters: &Parameters) -> Result<String, ErrorCode> {
     ));
     Ok(url)
 }
+#[test]
+fn test_last_quote_parse() {
+    let data = serde_json::json!({
+        "request_id": "req12345",
+        "results": {
+            "p": 1.23,
+            "s": 456,
+            "P": 7.89,
+            "S": 123,
+            "bid_exchange": 10,
+            "ask_exchange": 11,
+            "t": 164545545,
+            "mid_point": 4.56,
+            "timeframe": "DELAYED",
+            "x": 12,
+            "T": "TEST",
+            "c": [
+                13
+            ],
+            "f": 164545546,
+            "i": [
+                14
+            ],
+            "q": 15,
+            "y": 164545547,
+            "z": 16
+        },
+        "status": "OK"
+    });
+    let last_quote = LastQuote::parse(&data.as_object().unwrap());
+    assert_eq!(last_quote.request_id.unwrap(), "req12345");
+    assert_eq!(last_quote.status.unwrap(), "OK");
+    assert_eq!(last_quote.results.unwrap().bid.unwrap(), 1.23);
+}
+
+#[test]
+fn test_url() {
+    let mut parameters = Parameters::default();
+    parameters.api_key = String::from("apiKey");
+    parameters.ticker = Some(String::from("AAPL"));
+    let url = url(&parameters).unwrap();
+    assert_eq!(url, "https://api.polygon.io/v2/last/nbbo/AAPL?apiKey=apiKey");
+}

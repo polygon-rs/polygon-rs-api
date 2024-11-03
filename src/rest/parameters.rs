@@ -1,7 +1,7 @@
 use serde::{Deserialize, Serialize};
 use strum_macros::Display;
 
-#[derive(Serialize, Deserialize, Clone, Debug, Display, Copy)]
+#[derive(Serialize, Deserialize, Clone, Debug, Display, Copy, PartialEq)]
 pub enum TickerType {
     Stocks,
     Options,
@@ -169,21 +169,21 @@ pub struct Parameters {
     pub expand_underlying: Option<bool>,
 }
 
-#[derive(Serialize, Deserialize, Copy, Clone, Debug, Display)]
+#[derive(Serialize, Deserialize, Copy, Clone, Debug, Display, PartialEq)]
 pub enum ContractType {
     Call,
     Put,
     Other,
 }
 
-#[derive(Serialize, Deserialize, Copy, Clone, Debug, Display)]
+#[derive(Serialize, Deserialize, Copy, Clone, Debug, Display, PartialEq)]
 pub enum ContractStyle {
     American,
     European,
     Bermudan,
 }
 
-#[derive(Serialize, Deserialize, Copy, Clone, Debug, Display)]
+#[derive(Serialize, Deserialize, Copy, Clone, Debug, Display, PartialEq)]
 pub enum Timeframe {
     Delayed,
     RealTime,

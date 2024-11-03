@@ -47,3 +47,22 @@ impl Parse for Details {
         }
     }
 }
+
+#[test]
+fn test_details_parse() {
+    let data = serde_json::json!({
+        "contract_type": "Call",
+        "contract_style": "American",
+        "expiration_date": "2023-03-03",
+        "shares_per_contract": 100,
+        "strike_price": 10.0,
+        "ticker": "TEST"
+    });
+    let details = Details::parse(&data.as_object().unwrap());
+    assert_eq!(details.contract_type.unwrap(), ContractType::Call);
+    assert_eq!(details.contract_style.unwrap(), ContractStyle::American);
+    assert_eq!(details.expiration_date.unwrap(), "2023-03-03");
+    assert_eq!(details.shares_per_contract.unwrap(), 100);
+    assert_eq!(details.strike_price.unwrap(), 10.0);
+    assert_eq!(details.ticker.unwrap(), "TEST");
+}

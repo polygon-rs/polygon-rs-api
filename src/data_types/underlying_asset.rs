@@ -38,3 +38,22 @@ impl Parse for UnderlyingAsset {
         }
     }
 }
+
+#[test]
+fn test_underlying_asset_parse() {
+    let data = serde_json::json!({
+        "change_to_break_even": 1.23,
+        "last_updated": 164545545,
+        "price": 2.34,
+        "ticker": "TEST",
+        "timeframe": "REAL-TIME",
+        "value": 3.45
+    });
+    let underlying_asset = UnderlyingAsset::parse(&data.as_object().unwrap());
+    assert_eq!(underlying_asset.change_to_break_even.unwrap(), 1.23);
+    assert_eq!(underlying_asset.last_updated.unwrap(), 164545545);
+    assert_eq!(underlying_asset.price.unwrap(), 2.34);
+    assert_eq!(underlying_asset.ticker.unwrap(), "TEST");
+    assert_eq!(underlying_asset.timeframe.unwrap(), Timeframe::RealTime);
+    assert_eq!(underlying_asset.value.unwrap(), 3.45);
+}

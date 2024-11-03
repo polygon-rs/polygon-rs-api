@@ -41,3 +41,30 @@ impl Parse for Bar {
         }
     }
 }
+
+#[test]
+fn test_bar_parse() {
+    let data = serde_json::json!({
+        "T": "test_exchange",
+        "c": 1.23,
+        "h": 2.34,
+        "l": 0.12,
+        "n": 123,
+        "o": 0.12,
+        "t": 164545545,
+        "v": 456.78,
+        "vw": 901.23,
+        "otc": false
+    });
+    let bar = Bar::parse(&data.as_object().unwrap());
+    assert_eq!(bar.excahnge.unwrap(), "test_exchange");
+    assert_eq!(bar.close.unwrap(), 1.23);
+    assert_eq!(bar.high.unwrap(), 2.34);
+    assert_eq!(bar.low.unwrap(), 0.12);
+    assert_eq!(bar.transactions.unwrap(), 123);
+    assert_eq!(bar.open.unwrap(), 0.12);
+    assert_eq!(bar.timestamp.unwrap(), 164545545);
+    assert_eq!(bar.volume.unwrap(), 456.78);
+    assert_eq!(bar.volume_weighted.unwrap(), 901.23);
+    assert_eq!(bar.otc.unwrap(), false);
+}

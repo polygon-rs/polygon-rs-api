@@ -175,7 +175,7 @@ fn url(parameters: &Parameters) -> Result<String, ErrorCode> {
             "".to_string()
         },
         if let Some(ts) = &parameters.timespan {
-            format!("timespan={}&", ts)
+            format!("timespan={}&", ts.to_string().to_lowercase())
         } else {
             "".to_string()
         },
@@ -190,7 +190,7 @@ fn url(parameters: &Parameters) -> Result<String, ErrorCode> {
             "".to_string()
         },
         if let Some(st) = &parameters.series_type {
-            format!("series_type={}&", st)
+            format!("series_type={}&", st.to_string().to_lowercase())
         } else {
             "".to_string()
         },
@@ -200,7 +200,7 @@ fn url(parameters: &Parameters) -> Result<String, ErrorCode> {
             "".to_string()
         },
         if let Some(o) = &parameters.order {
-            format!("order={}&", o)
+            format!("order={}&", o.to_string().to_lowercase())
         } else {
             "".to_string()
         },
@@ -212,4 +212,57 @@ fn url(parameters: &Parameters) -> Result<String, ErrorCode> {
         &parameters.api_key,
     ));
     Ok(url)
+}
+#[test]
+fn test_simple_moving_average_parse() {
+    let data = serde_json::json!({
+        "next_url": "https://api.polygon.io/v1/indicators/sma/AAPL?cursor=YWN0aXZlPXRydWUmZGF0ZT0yMDIzLTA0LTAxJmxpbWl0PTEmb3JkZXI9YXNjJnBhZ2VfbWFya2VyPUElMjBWU1MjQyMCU3QzIwMjMtMDQtMDElN0M5JTNBNDElN0MwMCUzQTAwJnNvcnQ9dGlja2Vy",
+        "request_id": "req12345",
+        "status": "OK",
+        "results": {
+            "aggregates": [
+                {
+                    "c": 1.23,
+                    "h": 2.34,
+                    "l": 0.12,
+                    "n": 123,
+                    "o": 0.12,
+                    "t": 164545545,
+                    "v": 456.78,
+                    "vw": 901.23
+                }
+            ],
+            "values": [
+                {
+                    "timestamp": 164545545,
+                    "value": 1.23
+                }
+            ],
+            "next_url": "https://api.polygon.io/v1/indicators/sma/AAPL?cursor=YWN0aXZlPXRydWUmZGF0ZT0yMDIzLTA0LTAxJmxpbWl0PTEmb3JkZXI9YXNjJnBhZ2VfbWFya2VyPUElMjBWU1MjQyMCU3QzIwMjMtMDQtMDElN0M5JTNBNDElN0MwMCUzQTAwJnNvcnQ9dGlja2Vy"
+        }
+    });
+    let simple_moving_average = SimpleMovingAverage::parse(&data.as_object().unwrap());
+    assert_eq!(simple_moving_average.next_url.unwrap(), "https://api.polygon.io/v1/indicators/sma/AAPL?cursor=YWN0aXZlPXRydWUmZGF0ZT0yMDIzLTA0LTAxJmxpbWl0PTEmb3JkZXI9YXNjJnBhZ2VfbWFya2VyPUElMjBWU1MjQyMCU3QzIwMjMtMDQtMDElN0M5JTNBNDElN0MwMCUzQTAwJnNvcnQ9dGlja2Vy");
+    assert_eq!(simple_moving_average.request_id.unwrap(), "req12345");
+    assert_eq!(simple_moving_average.status.unwrap(), "OK");
+    assert_eq!(simple_moving_average.bars.unwrap()[0].close.unwrap(), 1.23);
+    assert_eq!(simple_moving_average.moving_average.unwrap()[0].timestamp.unwrap(), 164545545);
+}
+
+#[test]
+fn test_url() {
+    let mut parameters = Parameters::default();
+    parameters.api_key = String::from("apiKey");
+    parameters.ticker = Some(String::from("AAPL"));
+    parameters.from = Some(String::from("2023-03-01"));
+    parameters.to = Some(String::from("2023-04-01"));
+    parameters.timespan = Some(Timespan::Minute);
+    parameters.adjusted = Some(true);
+    parameters.window = Some(10);
+    parameters.series_type = Some(SeriesType::Close);
+    parameters.expand_underlying = Some(true);
+    parameters.order = Some(Order::Asc);
+    parameters.limit = Some(1000);
+    let url = url(&parameters).unwrap();
+    assert_eq!(url, "https://api.polygon.io/v1/indicators/sma/AAPL?timestamp.gte=2023-03-01&timestamp.lte=2023-04-01&timespan=minute&adjusted=true&window=10&series_type=close&expand_underlying=true&order=asc&limit=1000&apiKey=apiKey");
 }

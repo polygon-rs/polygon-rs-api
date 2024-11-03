@@ -131,7 +131,7 @@ fn url(parameters: &Parameters) -> Result<String, ErrorCode> {
             "".to_string()
         },
         if let Some(o) = &parameters.order {
-            format!("order={}&", o)
+            format!("order={}&", o.to_string().to_lowercase())
         } else {
             "".to_string()
         },
@@ -141,11 +141,63 @@ fn url(parameters: &Parameters) -> Result<String, ErrorCode> {
             "".to_string()
         },
         if let Some(s) = &parameters.sortv3 {
-            format!("sort={}&", s)
+            format!("sort={}&", s.to_string().to_lowercase())
         } else {
             "".to_string()
         },
         &parameters.api_key,
     ));
     Ok(url)
+}
+#[test]
+fn test_bbo_parse() {
+    let data = serde_json::json!({
+        "request_id": "req12345",
+        "next_url": "https://api.polygon.io/v3/quotes/C:EURUSD?cursor=YWN0aXZlPXRydWUmZGF0ZT0yMDIzLTA0LTAxJmxpbWl0PTEmb3JkZXI9YXNjJnBhZ2VfbWFya2VyPUElMjBWU1MjQyMCU3QzIwMjMtMDQtMDElN0M5JTNBNDElN0MwMCUzQTAwJnNvcnQ9dGlja2Vy",
+        "status": "OK",
+        "results": [
+            {
+                "p": 1.23,
+                "s": 456,
+                "P": 7.89,
+                "S": 123,
+                "bid_exchange": 10,
+                "ask_exchange": 11,
+                "t": 164545545,
+                "mid_point": 4.56,
+                "timeframe": "DELAYED",
+                "x": 12,
+                "T": "TEST",
+                "c": [
+                    13
+                ],
+                "f": 164545546,
+                "i": [
+                    14
+                ],
+                "q": 15,
+                "y": 164545547,
+                "z": 16
+            }
+        ]
+    });
+    let bbo = BBO::parse(&data.as_object().unwrap());
+    assert_eq!(bbo.request_id.unwrap(), "req12345");
+    assert_eq!(bbo.next_url.unwrap(), "https://api.polygon.io/v3/quotes/C:EURUSD?cursor=YWN0aXZlPXRydWUmZGF0ZT0yMDIzLTA0LTAxJmxpbWl0PTEmb3JkZXI9YXNjJnBhZ2VfbWFya2VyPUElMjBWU1MjQyMCU3QzIwMjMtMDQtMDElN0M5JTNBNDElN0MwMCUzQTAwJnNvcnQ9dGlja2Vy");
+    assert_eq!(bbo.status.unwrap(), "OK");
+    assert_eq!(bbo.results.unwrap()[0].bid.unwrap(), 1.23);
+}
+
+#[test]
+fn test_url() {
+    let mut parameters = Parameters::default();
+    parameters.api_key = String::from("apiKey");
+    parameters.ticker = Some(String::from("C:EURUSD"));
+    parameters.from = Some(String::from("2023-03-01"));
+    parameters.to = Some(String::from("2023-04-01"));
+    parameters.sortv3 = Some(Sortv3::Timestamp);
+    parameters.limit = Some(1);
+    parameters.order = Some(Order::Asc);
+    let url = url(&parameters).unwrap();
+    assert_eq!(url, "https://api.polygon.io/v3/quotes/C:EURUSD?timestamp.gte=2023-03-01&timestamp.lte=2023-04-01&order=asc&limit=1&sort=timestamp&apiKey=apiKey");
 }
