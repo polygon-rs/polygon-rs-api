@@ -10,11 +10,11 @@ pub struct Greeks {
 }
 
 impl Parse for Greeks {
-    fn parse(map: &mut serde_json::Map<String, serde_json::Value>) -> Self {
-        let delta = map.get("delta").and_then(|v| v.as_f64());
-        let gamma = map.get("gamma").and_then(|v| v.as_f64());
-        let theta = map.get("theta").and_then(|v| v.as_f64());
-        let vega = map.get("vega").and_then(|v| v.as_f64());
+    fn parse(map: &serde_json::Map<String, serde_json::Value>) -> Self {
+        let delta = Self::f64_parse(map, vec!["delta"]);
+        let gamma = Self::f64_parse(map, vec!["gamma"]);
+        let theta = Self::f64_parse(map, vec!["theta"]);
+        let vega = Self::f64_parse(map, vec!["vega"]);
         Self {
             delta,
             gamma,
@@ -22,4 +22,22 @@ impl Parse for Greeks {
             vega,
         }
     }
+
+
 }
+
+#[test]
+fn test_greeks_parse() {
+    let data = serde_json::json!({
+        "delta": 1.23,
+        "gamma": 2.34,
+        "theta": 3.45,
+        "vega": 4.56
+    });
+    let greeks = Greeks::parse(&data.as_object().unwrap());
+    assert_eq!(greeks.delta.unwrap(), 1.23);
+    assert_eq!(greeks.gamma.unwrap(), 2.34);
+    assert_eq!(greeks.theta.unwrap(), 3.45);
+    assert_eq!(greeks.vega.unwrap(), 4.56);
+}
+

@@ -19,12 +19,12 @@ pub enum TechnicalIndicators {
     SimpleMovingAverage(simple_moving_average::SimpleMovingAverage),
 }
 
-pub trait TechnicalIndicatorsRequest {}
+pub struct TechnicalIndicatorsRequest {}
 
-impl ExponentialMovingAverageRequest for dyn TechnicalIndicatorsRequest {}
+impl ExponentialMovingAverageRequest for TechnicalIndicatorsRequest {}
 
-impl MovingAverageConvergenceDivergenceRequest for dyn TechnicalIndicatorsRequest {}
+impl MovingAverageConvergenceDivergenceRequest for TechnicalIndicatorsRequest {}
 
-impl RelativeStrengthIndexRequest for dyn TechnicalIndicatorsRequest {}
+impl RelativeStrengthIndexRequest for TechnicalIndicatorsRequest {}
 
-impl SimpleMovingAverageRequest for dyn TechnicalIndicatorsRequest {}
+impl SimpleMovingAverageRequest for TechnicalIndicatorsRequest {}

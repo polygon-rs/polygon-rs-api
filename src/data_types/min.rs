@@ -15,16 +15,16 @@ pub struct Min {
 }
 
 impl Parse for Min {
-    fn parse(map: &mut serde_json::Map<String, serde_json::Value>) -> Self {
-        let accumulated_volume = map.get("av").and_then(|v| v.as_i64());
-        let open = map.get("o").and_then(|v| v.as_f64());
-        let high = map.get("h").and_then(|v| v.as_f64());
-        let low = map.get("l").and_then(|v| v.as_f64());
-        let close = map.get("c").and_then(|v| v.as_f64());
-        let volume = map.get("v").and_then(|v| v.as_f64());
-        let volume_weighted_average_price = map.get("vw").and_then(|v| v.as_f64());
-        let transactions = map.get("n").and_then(|v| v.as_i64());
-        let timestamp = map.get("t").and_then(|v| v.as_i64());
+    fn parse(map: &serde_json::Map<String, serde_json::Value>) -> Self {
+        let accumulated_volume = Self::i64_parse(map, vec!["av"]);
+        let open = Self::f64_parse(map, vec!["o"]);
+        let high = Self::f64_parse(map, vec!["h"]);
+        let low = Self::f64_parse(map, vec!["l"]);
+        let close = Self::f64_parse(map, vec!["c"]);
+        let volume = Self::f64_parse(map, vec!["v"]);
+        let volume_weighted_average_price = Self::f64_parse(map, vec!["vw"]);
+        let transactions = Self::i64_parse(map, vec!["n"]);
+        let timestamp = Self::i64_parse(map, vec!["t"]);
         Min {
             accumulated_volume,
             open,
@@ -37,4 +37,29 @@ impl Parse for Min {
             timestamp,
         }
     }
+}
+
+#[test]
+fn test_min_parse() {
+    let data = serde_json::json!({
+        "av": 123456,
+        "o": 1.23,
+        "h": 2.34,
+        "l": 0.12,
+        "c": 3.45,
+        "v": 456.78,
+        "vw": 901.23,
+        "n": 123,
+        "t": 164545545
+    });
+    let min = Min::parse(&data.as_object().unwrap());
+    assert_eq!(min.accumulated_volume.unwrap(), 123456);
+    assert_eq!(min.open.unwrap(), 1.23);
+    assert_eq!(min.high.unwrap(), 2.34);
+    assert_eq!(min.low.unwrap(), 0.12);
+    assert_eq!(min.close.unwrap(), 3.45);
+    assert_eq!(min.volume.unwrap(), 456.78);
+    assert_eq!(min.volume_weighted_average_price.unwrap(), 901.23);
+    assert_eq!(min.transactions.unwrap(), 123);
+    assert_eq!(min.timestamp.unwrap(), 164545545);
 }

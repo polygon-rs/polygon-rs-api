@@ -4,10 +4,7 @@ use crate::{
         error::ErrorCode,
         parameters::{Order, Parameter, ParameterRequirment, Parameters, Sortv3, TickerTypes},
     },
-    tools::{
-        request::{Next, Request},
-        verification::Verification,
-    },
+    tools::{request::Request, verification::Verification},
 };
 use serde::{Deserialize, Serialize};
 
@@ -22,24 +19,11 @@ pub struct Trades {
 impl TradesRequest for Trades {}
 
 impl Parse for Trades {
-    fn parse(map: &mut serde_json::Map<String, serde_json::Value>) -> Self {
-        let request_id = map
-            .get("request_id")
-            .and_then(|v| v.as_str())
-            .map(|v| v.to_string());
-        let next_url = map
-            .get("next_url")
-            .and_then(|v| v.as_str())
-            .map(|v| v.to_string());
-        let trades = map.get("results").and_then(|v| v.as_array()).map(|v| {
-            v.iter()
-                .map(|v| Trade::parse(v.clone().as_object_mut().unwrap()))
-                .collect()
-        });
-        let status = map
-            .get("status")
-            .and_then(|v| v.as_str())
-            .map(|v| v.to_string());
+    fn parse(map: &serde_json::Map<String, serde_json::Value>) -> Self {
+        let request_id = Self::string_parse(map, vec!["request_id"]);
+        let next_url: Option<String> = Self::string_parse(map, vec!["next_url"]);
+        let trades = Self::array_parse(map, vec!["results"]);
+        let status = Self::string_parse(map, vec!["status"]);
 
         Trades {
             request_id,
@@ -50,11 +34,9 @@ impl Parse for Trades {
     }
 }
 
-impl Next for Trades {}
-
 pub trait TradesRequest {
     fn get_trades(
-        api_key: String,
+        api_key: &String,
         ticker: String,
         timestamp: Option<String>,
         from: Option<String>,
@@ -62,8 +44,6 @@ pub trait TradesRequest {
         sort: Option<Sortv3>,
         limit: Option<u16>,
         order: Option<Order>,
-        request: &impl Request,
-        verification: &impl Verification,
     ) -> Result<Trades, ErrorCode> {
         let ts = if to.is_some() || from.is_some() {
             None
@@ -71,7 +51,7 @@ pub trait TradesRequest {
             timestamp
         };
         let trades_parameters = Parameters {
-            api_key: api_key,
+            api_key: api_key.to_string(),
             ticker: Some(ticker),
             timestamp: ts,
             from: from,
@@ -81,15 +61,18 @@ pub trait TradesRequest {
             order: order,
             ..Parameters::default()
         };
-        if let Err(check) = verification.check_parameters(
+        if let Err(check) = Verification::check_parameters(
             &TickerTypes::set(true, true, false, false, true),
             PARAMETERS,
             &trades_parameters,
         ) {
             return Err(check);
         }
-        let url = url(&trades_parameters);
-        match request.request(url) {
+        let url = match url(&trades_parameters) {
+            Ok(url) => url,
+            Err(e) => return Err(e),
+        };
+        match Request::request(url) {
             Ok(mut map) => Ok(Trades::parse(&mut map)),
             Err(e) => return Err(e),
         }
@@ -127,40 +110,91 @@ const PARAMETERS: &'static [&'static ParameterRequirment] = &[
     },
 ];
 
-fn url(parametes: &Parameters) -> String {
-    String::from(format!(
+fn url(parameters: &Parameters) -> Result<String, ErrorCode> {
+    let url = String::from(format!(
         "https://api.polygon.io/v3/trades/{}?{}{}{}{}{}{}apiKey={}",
-        parametes.ticker.clone().unwrap(),
-        if let Some(t) = parametes.clone().timestamp {
+        match &parameters.ticker {
+            Some(ticker) => ticker,
+            None => return Err(ErrorCode::TickerNotSet),
+        },
+        if let Some(t) = &parameters.timestamp {
             format!("timestamp={}&", t)
         } else {
             "".to_string()
         },
-        if let Some(tf) = parametes.clone().from {
+        if let Some(tf) = &parameters.from {
             format!("timestamp.gte={}&", tf)
         } else {
             "".to_string()
         },
-        if let Some(tt) = parametes.clone().to {
+        if let Some(tt) = &parameters.to {
             format!("timestamp.lte={}&", tt)
         } else {
             "".to_string()
         },
-        if let Some(o) = parametes.clone().order {
-            format!("order={}&", o)
+        if let Some(o) = &parameters.order {
+            format!("order={}&", o.to_string().to_lowercase())
         } else {
             "".to_string()
         },
-        if let Some(l) = parametes.clone().limit {
+        if let Some(l) = &parameters.limit {
             format!("limit={}&", l)
         } else {
             "".to_string()
         },
-        if let Some(s) = parametes.clone().sortv3 {
-            format!("sort={}&", s)
+        if let Some(s) = &parameters.sortv3 {
+            format!("sort={}&", s.to_string().to_lowercase())
         } else {
             "".to_string()
         },
-        parametes.api_key,
-    ))
+        &parameters.api_key,
+    ));
+    Ok(url)
+}
+#[test]
+fn test_trades_parse() {
+    let data = serde_json::json!({
+        "request_id": "req12345",
+        "next_url": "https://api.polygon.io/v3/trades/AAPL?cursor=YWN0aXZlPXRydWUmZGF0ZT0yMDIzLTA0LTAxJmxpbWl0PTEmb3JkZXI9YXNjJnBhZ2VfbWFya2VyPUElMjBWU1MjQyMCU3QzIwMjMtMDQtMDElN0M5JTNBNDElN0MwMCUzQTAwJnNvcnQ9dGlja2Vy",
+        "status": "OK",
+        "results": [
+            {
+                "c": [
+                    29
+                ],
+                "x": 30,
+                "p": 31.0,
+                "t": 164545549,
+                "s": 32,
+                "i": "trade",
+                "timeframe": "REAL-TIME",
+                "T": "TEST1",
+                "e": 33,
+                "f": 164545550,
+                "q": 34,
+                "r": 35,
+                "y": 164545551,
+                "z": 36
+            }
+        ]
+    });
+    let trades = Trades::parse(&data.as_object().unwrap());
+    assert_eq!(trades.request_id.unwrap(), "req12345");
+    assert_eq!(trades.next_url.unwrap(), "https://api.polygon.io/v3/trades/AAPL?cursor=YWN0aXZlPXRydWUmZGF0ZT0yMDIzLTA0LTAxJmxpbWl0PTEmb3JkZXI9YXNjJnBhZ2VfbWFya2VyPUElMjBWU1MjQyMCU3QzIwMjMtMDQtMDElN0M5JTNBNDElN0MwMCUzQTAwJnNvcnQ9dGlja2Vy");
+    assert_eq!(trades.status.unwrap(), "OK");
+    assert_eq!(trades.trades.unwrap()[0].conditions.clone().unwrap(), vec![29]);
+}
+
+#[test]
+fn test_url() {
+    let mut parameters = Parameters::default();
+    parameters.api_key = String::from("apiKey");
+    parameters.ticker = Some(String::from("AAPL"));
+    parameters.from = Some(String::from("2023-03-01"));
+    parameters.to = Some(String::from("2023-04-01"));
+    parameters.sortv3 = Some(Sortv3::Timestamp);
+    parameters.limit = Some(1);
+    parameters.order = Some(Order::Asc);
+    let url = url(&parameters).unwrap();
+    assert_eq!(url, "https://api.polygon.io/v3/trades/AAPL?timestamp.gte=2023-03-01&timestamp.lte=2023-04-01&order=asc&limit=1&sort=timestamp&apiKey=apiKey");
 }

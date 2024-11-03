@@ -21,28 +21,16 @@ pub struct CurrencyConversion {
 }
 
 impl Parse for CurrencyConversion {
-    fn parse(map: &mut serde_json::Map<String, serde_json::Value>) -> Self {
-        let to = map
-            .get("to")
-            .and_then(|v| v.as_str().map(|s| s.to_string()));
-        let from = map
-            .get("from")
-            .and_then(|v| v.as_str().map(|s| s.to_string()));
-        let request_id = map
-            .get("request_id")
-            .and_then(|v| v.as_str().map(|s| s.to_string()));
-        let status = map
-            .get("status")
-            .and_then(|v| v.as_str().map(|s| s.to_string()));
-        let symbol = map
-            .get("symbol")
-            .and_then(|v| v.as_str().map(|s| s.to_string()));
-        let initial_amount = map.get("initial_amount").and_then(|v| v.as_f64());
-        let converted = map.get("converted").and_then(|v| v.as_f64());
-        let quote = map
-            .get_mut("last")
-            .and_then(|v| v.as_object_mut())
-            .map(|v| Quote::parse(v));
+    fn parse(map: &serde_json::Map<String, serde_json::Value>) -> Self {
+        let to = Self::string_parse(map, vec!["to"]);
+        let from = Self::string_parse(map, vec!["from"]);
+        let request_id = Self::string_parse(map, vec!["request_id"]);
+        let status = Self::string_parse(map, vec!["status"]);
+        let quote = Self::object_parse(map, vec!["last"]);
+        let symbol = Self::string_parse(map, vec!["symbol"]);
+        let initial_amount = Self::f64_parse(map, vec!["initialAmount"]);
+        let converted = Self::f64_parse(map, vec!["converted"]);
+
         CurrencyConversion {
             to,
             from,
@@ -58,29 +46,30 @@ impl Parse for CurrencyConversion {
 
 pub trait CurrencyConversionRequest {
     fn get_currency_conversion(
-        api_key: String,
+        api_key: &String,
         ticker: String,
         amount: Option<f64>,
         precision: Option<u8>,
-        request: &impl Request,
-        verification: &impl Verification,
     ) -> Result<CurrencyConversion, ErrorCode> {
         let currency_conversion_parameters = Parameters {
-            api_key: api_key,
+            api_key: api_key.to_string(),
             ticker: Some(ticker),
             amount: amount,
             precision: precision,
             ..Parameters::default()
         };
-        if let Err(check) = verification.check_parameters(
+        if let Err(check) = Verification::check_parameters(
             &TickerTypes::forex(),
             PARAMETERS,
             &currency_conversion_parameters,
         ) {
             return Err(check);
         }
-        let url = url(&currency_conversion_parameters);
-        match request.request(url) {
+        let url = match url(&currency_conversion_parameters) {
+            Ok(url) => url,
+            Err(e) => return Err(e),
+        };
+        match Request::request(url) {
             Ok(mut map) => Ok(CurrencyConversion::parse(&mut map)),
             Err(e) => return Err(e),
         }
@@ -102,23 +91,68 @@ const PARAMETERS: &'static [&'static ParameterRequirment] = &[
     },
 ];
 
-fn url(parameters: &Parameters) -> String {
-    let from = parameters.ticker.clone().unwrap()[2..4].to_string();
-    let to = parameters.ticker.clone().unwrap()[5..7].to_string();
-    String::from(format!(
+fn url(parameters: &Parameters) -> Result<String, ErrorCode> {
+    let from = match &parameters.ticker {
+        Some(ticker) => ticker[2..5].to_string(),
+        None => return Err(ErrorCode::TickerNotSet),
+    };
+    let to = match &parameters.ticker {
+        Some(ticker) => ticker[5..8].to_string(),
+        None => return Err(ErrorCode::TickerNotSet),
+    };
+    let url = String::from(format!(
         "https://api.polygon.io/v1/conversion/{}/{}?{}{}apiKey={}",
         from,
         to,
-        if let Some(s) = parameters.amount {
+        if let Some(s) = &parameters.amount {
             format!("amount={}&", s)
         } else {
             "".to_string()
         },
-        if let Some(s) = parameters.precision {
+        if let Some(s) = &parameters.precision {
             format!("precision={}&", s)
         } else {
             "".to_string()
         },
-        parameters.api_key,
-    ))
+        &parameters.api_key,
+    ));
+    Ok(url)
+}
+#[test]
+fn test_currency_conversion_parse() {
+    let data = serde_json::json!({
+        "to": "USD",
+        "from": "EUR",
+        "initialAmount": 100.00,
+        "converted": 108.35,
+        "last": {
+            "ask": 1.0835,
+            "bid": 1.0834,
+            "exchange": 48,
+            "timestamp": 1678886401000 as i64
+        },
+        "symbol": "C:EURUSD",
+        "status": "OK",
+        "request_id": "req12345"
+    });
+    let currency_conversion = CurrencyConversion::parse(&data.as_object().unwrap());
+    assert_eq!(currency_conversion.to.unwrap(), "USD");
+    assert_eq!(currency_conversion.from.unwrap(), "EUR");
+    assert_eq!(currency_conversion.initial_amount.unwrap(), 100.00);
+    assert_eq!(currency_conversion.converted.unwrap(), 108.35);
+    assert_eq!(currency_conversion.quote.unwrap().ask.unwrap(), 1.0835);
+    assert_eq!(currency_conversion.symbol.unwrap(), "C:EURUSD");
+    assert_eq!(currency_conversion.status.unwrap(), "OK");
+    assert_eq!(currency_conversion.request_id.unwrap(), "req12345");
+}
+
+#[test]
+fn test_url() {
+    let mut parameters = Parameters::default();
+    parameters.api_key = String::from("apiKey");
+    parameters.ticker = Some(String::from("C:EURUSD"));
+    parameters.amount = Some(100.0);
+    parameters.precision = Some(2);
+    let url = url(&parameters).unwrap();
+    assert_eq!(url, "https://api.polygon.io/v1/conversion/EUR/USD?amount=100&precision=2&apiKey=apiKey");
 }

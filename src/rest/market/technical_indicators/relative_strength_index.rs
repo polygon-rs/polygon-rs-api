@@ -6,10 +6,7 @@ use crate::{
             Order, Parameter, ParameterRequirment, Parameters, SeriesType, TickerTypes, Timespan,
         },
     },
-    tools::{
-        request::{Next, Request},
-        verification::Verification,
-    },
+    tools::{request::Request, verification::Verification},
 };
 use serde::{Deserialize, Serialize};
 
@@ -26,46 +23,23 @@ pub struct RelativeStrengthIndex {
 impl RelativeStrengthIndexRequest for RelativeStrengthIndex {}
 
 impl Parse for RelativeStrengthIndex {
-    fn parse(map: &mut serde_json::Map<String, serde_json::Value>) -> Self {
-        let next_url = map
-            .get("next_url")
-            .and_then(|v| v.as_str())
-            .map(|v| v.to_string());
-        let request_id = map
-            .get("request_id")
-            .and_then(|v| v.as_str())
-            .map(|v| v.to_string());
-        let status = map
-            .get("status")
-            .and_then(|v| v.as_str())
-            .map(|v| v.to_string());
-        let underyling = map.get("results").and_then(|v| {
-            v.as_object();
-            v.get("underlying").and_then(|v| v.as_object())
-        });
-        let bars = match underyling {
-            Some(u) => u.get("aggregates").and_then(|v| v.as_array()).map(|v| {
-                v.iter()
-                    .map(|v| Bar::parse(v.clone().as_object_mut().unwrap()))
-                    .collect()
-            }),
+    fn parse(map: &serde_json::Map<String, serde_json::Value>) -> Self {
+        let next_url = Self::string_parse(map, vec!["next_url"]);
+        let request_id = Self::string_parse(map, vec!["request_id"]);
+        let status = Self::string_parse(map, vec!["status"]);
+        let results = Self::object(map, vec!["results"]);
+        let bars = match results {
+            Some(bars) => Self::array_parse(bars, vec!["aggregates"]),
             None => None,
         };
-        let bars_url = match underyling {
-            Some(u) => u
-                .get("next_url")
-                .and_then(|v| v.as_str())
-                .map(|v| v.to_string()),
+        let bars_url = match results {
+            Some(bars_url) => Self::string_parse(bars_url, vec!["next_url"]),
             None => None,
         };
-        let relative_strength = map.get("results").and_then(|v| {
-            v.as_object();
-            v.get("values").and_then(|v| v.as_array()).map(|v| {
-                v.iter()
-                    .map(|v| RelativeStrength::parse(v.clone().as_object_mut().unwrap()))
-                    .collect()
-            })
-        });
+        let relative_strength = match results {
+            Some(relative_strength) => Self::array_parse(relative_strength, vec!["values"]),
+            None => None,
+        };
 
         RelativeStrengthIndex {
             next_url,
@@ -78,11 +52,9 @@ impl Parse for RelativeStrengthIndex {
     }
 }
 
-impl Next for RelativeStrengthIndex {}
-
 pub trait RelativeStrengthIndexRequest {
     fn get_relatvie_strength(
-        api_key: String,
+        api_key: &String,
         ticker: String,
         timestamp: Option<String>,
         from: Option<String>,
@@ -94,8 +66,6 @@ pub trait RelativeStrengthIndexRequest {
         expand_underlying: Option<bool>,
         order: Option<Order>,
         limit: Option<u16>,
-        request: &impl Request,
-        verification: &impl Verification,
     ) -> Result<RelativeStrengthIndex, ErrorCode> {
         let ts = if to.is_some() || from.is_some() {
             None
@@ -103,7 +73,7 @@ pub trait RelativeStrengthIndexRequest {
             timestamp
         };
         let relatvie_strength_index_parameters = Parameters {
-            api_key: api_key,
+            api_key: api_key.to_string(),
             ticker: Some(ticker),
             timestamp: ts,
             from: from,
@@ -117,15 +87,18 @@ pub trait RelativeStrengthIndexRequest {
             limit: limit,
             ..Parameters::default()
         };
-        if let Err(check) = verification.check_parameters(
+        if let Err(check) = Verification::check_parameters(
             &TickerTypes::all(),
             PARAMETERS,
             &relatvie_strength_index_parameters,
         ) {
             return Err(check);
         }
-        let url = url(&relatvie_strength_index_parameters);
-        match request.request(url) {
+        let url = match url(&relatvie_strength_index_parameters){
+            Ok(url) => url,
+            Err(e) => return Err(e),
+        };
+        match Request::request(url) {
             Ok(mut map) => Ok(RelativeStrengthIndex::parse(&mut map)),
             Err(e) => return Err(e),
         }
@@ -179,27 +152,30 @@ const PARAMETERS: &'static [&'static ParameterRequirment] = &[
     },
 ];
 
-fn url(parameters: &Parameters) -> String {
-    String::from(format!(
+fn url(parameters: &Parameters) -> Result<String, ErrorCode> {
+    let url = String::from(format!(
         "https://api.polygon.io/v1/indicators/rsi/{}?{}{}{}{}{}{}{}{}{}{}apiKey={}",
-        parameters.ticker.clone().unwrap(),
-        if let Some(t) = parameters.clone().timestamp {
+        match &parameters.ticker{
+            Some(ticker) => ticker,
+            None => return Err(ErrorCode::TickerNotSet),
+        },
+        if let Some(t) = &parameters.timestamp {
             format!("timestamp={}&", t)
         } else {
             "".to_string()
         },
-        if let Some(tf) = parameters.clone().from {
+        if let Some(tf) = &parameters.from {
             format!("timestamp.gte={}&", tf)
         } else {
             "".to_string()
         },
-        if let Some(tt) = parameters.clone().to {
+        if let Some(tt) = &parameters.to {
             format!("timestamp.lte={}&", tt)
         } else {
             "".to_string()
         },
-        if let Some(ts) = parameters.clone().timespan {
-            format!("timespan={}&", ts)
+        if let Some(ts) = &parameters.timespan {
+            format!("timespan={}&", ts.to_string().to_lowercase())
         } else {
             "".to_string()
         },
@@ -208,31 +184,85 @@ fn url(parameters: &Parameters) -> String {
         } else {
             "".to_string()
         },
-        if let Some(w) = parameters.clone().window {
+        if let Some(w) = &parameters.window {
             format!("window={}&", w)
         } else {
             "".to_string()
         },
-        if let Some(st) = parameters.clone().series_type {
-            format!("series_type={}&", st)
+        if let Some(st) = &parameters.series_type {
+            format!("series_type={}&", st.to_string().to_lowercase())
         } else {
             "".to_string()
         },
-        if let Some(eu) = parameters.clone().expand_underlying {
+        if let Some(eu) = &parameters.expand_underlying {
             format!("expand_underlying={}&", eu)
         } else {
             "".to_string()
         },
-        if let Some(o) = parameters.clone().order {
-            format!("order={}&", o)
+        if let Some(o) = &parameters.order {
+            format!("order={}&", o.to_string().to_lowercase())
         } else {
             "".to_string()
         },
-        if let Some(l) = parameters.clone().limit {
+        if let Some(l) = &parameters.limit {
             format!("limit={}&", l)
         } else {
             "".to_string()
         },
-        parameters.api_key,
-    ))
+        &parameters.api_key,
+    ));
+    Ok(url)
+}
+#[test]
+fn test_relative_strength_index_parse() {
+    let data = serde_json::json!({
+        "next_url": "https://api.polygon.io/v1/indicators/rsi/AAPL?cursor=YWN0aXZlPXRydWUmZGF0ZT0yMDIzLTA0LTAxJmxpbWl0PTEmb3JkZXI9YXNjJnBhZ2VfbWFya2VyPUElMjBWU1MjQyMCU3QzIwMjMtMDQtMDElN0M5JTNBNDElN0MwMCUzQTAwJnNvcnQ9dGlja2Vy",
+        "request_id": "req12345",
+        "status": "OK",
+        "results": {
+            "aggregates": [
+                {
+                    "c": 1.23,
+                    "h": 2.34,
+                    "l": 0.12,
+                    "n": 123,
+                    "o": 0.12,
+                    "t": 164545545,
+                    "v": 456.78,
+                    "vw": 901.23
+                }
+            ],
+            "values": [
+                {
+                    "timestamp": 164545545,
+                    "value": 1.23
+                }
+            ],
+            "next_url": "https://api.polygon.io/v1/indicators/rsi/AAPL?cursor=YWN0aXZlPXRydWUmZGF0ZT0yMDIzLTA0LTAxJmxpbWl0PTEmb3JkZXI9YXNjJnBhZ2VfbWFya2VyPUElMjBWU1MjQyMCU3QzIwMjMtMDQtMDElN0M5JTNBNDElN0MwMCUzQTAwJnNvcnQ9dGlja2Vy"
+        }
+    });
+    let relative_strength_index = RelativeStrengthIndex::parse(&data.as_object().unwrap());
+    assert_eq!(relative_strength_index.next_url.unwrap(), "https://api.polygon.io/v1/indicators/rsi/AAPL?cursor=YWN0aXZlPXRydWUmZGF0ZT0yMDIzLTA0LTAxJmxpbWl0PTEmb3JkZXI9YXNjJnBhZ2VfbWFya2VyPUElMjBWU1MjQyMCU3QzIwMjMtMDQtMDElN0M5JTNBNDElN0MwMCUzQTAwJnNvcnQ9dGlja2Vy");
+    assert_eq!(relative_strength_index.request_id.unwrap(), "req12345");
+    assert_eq!(relative_strength_index.status.unwrap(), "OK");
+    assert_eq!(relative_strength_index.bars.unwrap()[0].close.unwrap(), 1.23);
+    assert_eq!(relative_strength_index.relative_strength.unwrap()[0].timestamp.unwrap(), 164545545);
+}
+
+#[test]
+fn test_url() {
+    let mut parameters = Parameters::default();
+    parameters.api_key = String::from("apiKey");
+    parameters.ticker = Some(String::from("AAPL"));
+    parameters.from = Some(String::from("2023-03-01"));
+    parameters.to = Some(String::from("2023-04-01"));
+    parameters.timespan = Some(Timespan::Minute);
+    parameters.adjusted = Some(true);
+    parameters.window = Some(10);
+    parameters.series_type = Some(SeriesType::Close);
+    parameters.expand_underlying = Some(true);
+    parameters.order = Some(Order::Asc);
+    parameters.limit = Some(1000);
+    let url = url(&parameters).unwrap();
+    assert_eq!(url, "https://api.polygon.io/v1/indicators/rsi/AAPL?timestamp.gte=2023-03-01&timestamp.lte=2023-04-01&timespan=minute&adjusted=true&window=10&series_type=close&expand_underlying=true&order=asc&limit=1000&apiKey=apiKey");
 }

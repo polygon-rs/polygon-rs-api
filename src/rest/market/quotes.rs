@@ -4,10 +4,7 @@ use crate::{
         error::ErrorCode,
         parameters::{Order, Parameter, ParameterRequirment, Parameters, Sortv3, TickerTypes},
     },
-    tools::{
-        request::{Next, Request},
-        verification::Verification,
-    },
+    tools::{request::Request, verification::Verification},
 };
 use serde::{Deserialize, Serialize};
 
@@ -22,24 +19,11 @@ pub struct Quotes {
 impl QuotesRequest for Quotes {}
 
 impl Parse for Quotes {
-    fn parse(map: &mut serde_json::Map<String, serde_json::Value>) -> Self {
-        let request_id = map
-            .get("request_id")
-            .and_then(|v| v.as_str())
-            .map(|v| v.to_string());
-        let next_url = map
-            .get("next_url")
-            .and_then(|v| v.as_str())
-            .map(|v| v.to_string());
-        let quotes = map.get("results").and_then(|v| v.as_array()).map(|v| {
-            v.iter()
-                .map(|v| Quote::parse(v.clone().as_object_mut().unwrap()))
-                .collect()
-        });
-        let status = map
-            .get("status")
-            .and_then(|v| v.as_str())
-            .map(|v| v.to_string());
+    fn parse(map: &serde_json::Map<String, serde_json::Value>) -> Self {
+        let request_id = Self::string_parse(map, vec!["request_id"]);
+        let next_url: Option<String> = Self::string_parse(map, vec!["next_url"]);
+        let quotes = Self::array_parse(map, vec!["results"]);
+        let status = Self::string_parse(map, vec!["status"]);
 
         Quotes {
             request_id,
@@ -50,11 +34,9 @@ impl Parse for Quotes {
     }
 }
 
-impl Next for Quotes {}
-
 pub trait QuotesRequest {
     fn get_quotes(
-        api_key: String,
+        api_key: &String,
         ticker: String,
         timestamp: Option<String>,
         from: Option<String>,
@@ -62,8 +44,6 @@ pub trait QuotesRequest {
         sort: Option<Sortv3>,
         limit: Option<u16>,
         order: Option<Order>,
-        request: &impl Request,
-        verification: &impl Verification,
     ) -> Result<Quotes, ErrorCode> {
         let ts = if to.is_some() || from.is_some() {
             None
@@ -71,7 +51,7 @@ pub trait QuotesRequest {
             timestamp
         };
         let quotes_parameters = Parameters {
-            api_key: api_key,
+            api_key: api_key.to_string(),
             ticker: Some(ticker),
             timestamp: ts,
             from: from,
@@ -81,15 +61,18 @@ pub trait QuotesRequest {
             order: order,
             ..Parameters::default()
         };
-        if let Err(check) = verification.check_parameters(
+        if let Err(check) = Verification::check_parameters(
             &TickerTypes::set(true, true, false, false, false),
             PARAMETERS,
             &quotes_parameters,
         ) {
             return Err(check);
         }
-        let url = url(&quotes_parameters);
-        match request.request(url) {
+        let url = match url(&quotes_parameters) {
+            Ok(url) => url,
+            Err(e) => return Err(e),
+        };
+        match Request::request(url) {
             Ok(mut map) => Ok(Quotes::parse(&mut map)),
             Err(e) => return Err(e),
         }
@@ -127,40 +110,96 @@ const PARAMETERS: &'static [&'static ParameterRequirment] = &[
     },
 ];
 
-fn url(parameters: &Parameters) -> String {
-    String::from(format!(
+fn url(parameters: &Parameters) -> Result<String, ErrorCode> {
+    let url = String::from(format!(
         "https://api.polygon.io/v3/quotes/{}?{}{}{}{}{}{}apiKey={}",
-        parameters.ticker.clone().unwrap(),
-        if let Some(t) = parameters.clone().timestamp {
+        match &parameters.ticker {
+            Some(ticker) => ticker,
+            None => return Err(ErrorCode::TickerNotSet),
+        },
+        if let Some(t) = &parameters.timestamp {
             format!("timestamp={}&", t)
         } else {
             "".to_string()
         },
-        if let Some(tf) = parameters.clone().from {
+        if let Some(tf) = &parameters.from {
             format!("timestamp.gte={}&", tf)
         } else {
             "".to_string()
         },
-        if let Some(tt) = parameters.clone().to {
+        if let Some(tt) = &parameters.to {
             format!("timestamp.lte={}&", tt)
         } else {
             "".to_string()
         },
-        if let Some(o) = parameters.clone().order {
-            format!("order={}&", o)
+        if let Some(o) = &parameters.order {
+            format!("order={}&", o.to_string().to_lowercase())
         } else {
             "".to_string()
         },
-        if let Some(l) = parameters.clone().limit {
+        if let Some(l) = &parameters.limit {
             format!("limit={}&", l)
         } else {
             "".to_string()
         },
-        if let Some(s) = parameters.clone().sortv3 {
-            format!("sort={}&", s)
+        if let Some(s) = &parameters.sortv3 {
+            format!("sort={}&", s.to_string().to_lowercase())
         } else {
             "".to_string()
         },
-        parameters.clone().api_key,
-    ))
+        &parameters.api_key,
+    ));
+    Ok(url)
+}
+#[test]
+fn test_quotes_parse() {
+    let data = serde_json::json!({
+        "request_id": "req12345",
+        "next_url": "https://api.polygon.io/v3/quotes/C:EURUSD?cursor=YWN0aXZlPXRydWUmZGF0ZT0yMDIzLTA0LTAxJmxpbWl0PTEmb3JkZXI9YXNjJnBhZ2VfbWFya2VyPUElMjBWU1MjQyMCU3QzIwMjMtMDQtMDElN0M5JTNBNDElN0MwMCUzQTAwJnNvcnQ9dGlja2Vy",
+        "status": "OK",
+        "results": [
+            {
+                "p": 1.23,
+                "s": 456,
+                "P": 7.89,
+                "S": 123,
+                "bid_exchange": 10,
+                "ask_exchange": 11,
+                "t": 164545545,
+                "mid_point": 4.56,
+                "timeframe": "DELAYED",
+                "x": 12,
+                "T": "TEST",
+                "c": [
+                    13
+                ],
+                "f": 164545546,
+                "i": [
+                    14
+                ],
+                "q": 15,
+                "y": 164545547,
+                "z": 16
+            }
+        ]
+    });
+    let quotes = Quotes::parse(&data.as_object().unwrap());
+    assert_eq!(quotes.request_id.unwrap(), "req12345");
+    assert_eq!(quotes.next_url.unwrap(), "https://api.polygon.io/v3/quotes/C:EURUSD?cursor=YWN0aXZlPXRydWUmZGF0ZT0yMDIzLTA0LTAxJmxpbWl0PTEmb3JkZXI9YXNjJnBhZ2VfbWFya2VyPUElMjBWU1MjQyMCU3QzIwMjMtMDQtMDElN0M5JTNBNDElN0MwMCUzQTAwJnNvcnQ9dGlja2Vy");
+    assert_eq!(quotes.status.unwrap(), "OK");
+    assert_eq!(quotes.quotes.unwrap()[0].bid.unwrap(), 1.23);
+}
+
+#[test]
+fn test_url() {
+    let mut parameters = Parameters::default();
+    parameters.api_key = String::from("apiKey");
+    parameters.ticker = Some(String::from("AAPL"));
+    parameters.from = Some(String::from("2023-03-01"));
+    parameters.to = Some(String::from("2023-04-01"));
+    parameters.sortv3 = Some(Sortv3::Timestamp);
+    parameters.limit = Some(1);
+    parameters.order = Some(Order::Asc);
+    let url = url(&parameters).unwrap();
+    assert_eq!(url, "https://api.polygon.io/v3/quotes/AAPL?timestamp.gte=2023-03-01&timestamp.lte=2023-04-01&order=asc&limit=1&sort=timestamp&apiKey=apiKey");
 }

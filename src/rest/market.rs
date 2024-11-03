@@ -25,14 +25,24 @@ use pair_trade::PairTradeRequest;
 use previous::PreviousRequest;
 use quotes::QuotesRequest;
 use serde::{Deserialize, Serialize};
-use snapshot::SnapshotRequest;
-use technical_indicators::TechnicalIndicatorsRequest;
+use snapshot::gainers_losers::GainersLosersRequest;
+use snapshot::indicies_snapshot::IndiciesSnapshotRequest;
+use snapshot::l2_snapshot::L2SnapshotRequest;
+use snapshot::options_chain::OptionsChainRequest;
+use snapshot::options_contract::OptionsContractRequest;
+use snapshot::ticker_snapshot::TickerSnapshotRequest;
+use snapshot::tickers_snapshot::TickersSnapshotRequest;
+use snapshot::universal_snapshot::UniversalSnapshotRequest;
+use technical_indicators::exponential_moving_average::ExponentialMovingAverageRequest;
+use technical_indicators::moving_average_converge_divergence::MovingAverageConvergenceDivergenceRequest;
+use technical_indicators::relative_strength_index::RelativeStrengthIndexRequest;
+use technical_indicators::simple_moving_average::SimpleMovingAverageRequest;
 use trades::TradesRequest;
 
 #[derive(Serialize, Deserialize)]
 pub enum Market {
     Aggregates(aggregates::Aggregates),
-    BBO(bbo::BBO), // Change all parse arrays to this parse method
+    BBO(bbo::BBO),
     CurrencyConversion(currency_conversion::CurrencyConversion),
     Daily(daily::Daily),
     Grouped(grouped_bars::GroupedBars),
@@ -47,32 +57,52 @@ pub enum Market {
     Trades(trades::Trades),
 }
 
-pub trait MarketRequest {}
+pub struct MarketRequest {}
 
-impl SnapshotRequest for dyn MarketRequest {}
+impl AggregatesRequest for MarketRequest {}
 
-impl AggregatesRequest for dyn MarketRequest {}
+impl BBORequest for MarketRequest {}
 
-impl BBORequest for dyn MarketRequest {}
+impl CurrencyConversionRequest for MarketRequest {}
 
-impl CurrencyConversionRequest for dyn MarketRequest {}
+impl DailyRequest for MarketRequest {}
 
-impl DailyRequest for dyn MarketRequest {}
+impl GroupedBarsRequest for MarketRequest {}
 
-impl GroupedBarsRequest for dyn MarketRequest {}
+impl LastQuoteRequest for MarketRequest {}
 
-impl LastQuoteRequest for dyn MarketRequest {}
+impl LastTradeRequest for MarketRequest {}
 
-impl LastTradeRequest for dyn MarketRequest {}
+impl PairQuoteRequest for MarketRequest {}
 
-impl PairQuoteRequest for dyn MarketRequest {}
+impl PairTradeRequest for MarketRequest {}
 
-impl PairTradeRequest for dyn MarketRequest {}
+impl PreviousRequest for MarketRequest {}
 
-impl PreviousRequest for dyn MarketRequest {}
+impl QuotesRequest for MarketRequest {}
 
-impl QuotesRequest for dyn MarketRequest {}
+impl TradesRequest for MarketRequest {}
 
-impl TechnicalIndicatorsRequest for dyn MarketRequest {}
+impl GainersLosersRequest for MarketRequest {}
 
-impl TradesRequest for dyn MarketRequest {}
+impl IndiciesSnapshotRequest for MarketRequest {}
+
+impl L2SnapshotRequest for MarketRequest {}
+
+impl OptionsChainRequest for MarketRequest {}
+
+impl OptionsContractRequest for MarketRequest {}
+
+impl TickerSnapshotRequest for MarketRequest {}
+
+impl TickersSnapshotRequest for MarketRequest {}
+
+impl UniversalSnapshotRequest for MarketRequest {}
+
+impl ExponentialMovingAverageRequest for MarketRequest {}
+
+impl MovingAverageConvergenceDivergenceRequest for MarketRequest {}
+
+impl RelativeStrengthIndexRequest for MarketRequest {}
+
+impl SimpleMovingAverageRequest for MarketRequest {}

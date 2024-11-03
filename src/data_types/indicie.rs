@@ -17,48 +17,27 @@ pub struct Indicie {
 }
 
 impl Parse for Indicie {
-    fn parse(map: &mut serde_json::Map<String, serde_json::Value>) -> Self {
-        let timestamp = map.get("last_updated").and_then(|v| v.as_i64());
-        let market_status = map
-            .get("market_status")
-            .and_then(|v| v.as_str())
-            .map(|v| v.to_string());
-        let name = map
-            .get("name")
-            .and_then(|v| v.as_str())
-            .map(|v| v.to_string());
-        let session: Option<Session> = map
-            .get_mut("session")
-            .and_then(|v| v.as_object_mut())
-            .map(|v| Session::parse(v));
-        let ticker = map
-            .get("ticker")
-            .and_then(|v| v.as_str())
-            .map(|v| v.to_string());
-        let timeframe = map
-            .get("timeframe")
-            .and_then(|v| v.as_str())
-            .map(|v| v.to_string());
-        let ticker_type = map
-            .get("ticker_type")
-            .and_then(|v| v.as_str())
-            .map(|v| match v {
-                "stocks" => TickerType::Stocks,
-                "options" => TickerType::Options,
-                "indices" => TickerType::Indicies,
-                "forex" => TickerType::Forex,
-                "crypto" => TickerType::Crypto,
-                _ => TickerType::default(),
-            });
-        let value = map.get("value").and_then(|v| v.as_f64());
-        let error = map
-            .get("error")
-            .and_then(|v| v.as_str())
-            .map(|v| v.to_string());
-        let message = map
-            .get("message")
-            .and_then(|v| v.as_str())
-            .map(|v| v.to_string());
+    fn parse(map: &serde_json::Map<String, serde_json::Value>) -> Self {
+        let timestamp = Self::i64_parse(map, vec!["timestamp"]);
+        let market_status = Self::string_parse(map, vec!["market_status"]);
+        let name = Self::string_parse(map, vec!["name"]);
+        let session = Self::object_parse(map, vec!["session"]);
+        let ticker = Self::string_parse(map, vec!["ticker"]);
+        let timeframe = Self::string_parse(map, vec!["timeframe"]);
+        let ticker_type = match Self::string_parse(map, vec!["ticker_type"]) {
+            Some(ticker_type) => match ticker_type.as_str() {
+                "stocks" => Some(TickerType::Stocks),
+                "options" => Some(TickerType::Options),
+                "indicies" => Some(TickerType::Indicies),
+                "forex" => Some(TickerType::Forex),
+                "crypto" => Some(TickerType::Crypto),
+                _ => None,
+            },
+            None => None,
+        };
+        let value = Self::f64_parse(map, vec!["value"]);
+        let error = Self::string_parse(map, vec!["error"]);
+        let message = Self::string_parse(map, vec!["message"]);
         Indicie {
             timestamp,
             market_status,
@@ -72,4 +51,39 @@ impl Parse for Indicie {
             message,
         }
     }
+}
+
+#[test]
+fn test_indicie_parse() {
+    let data = serde_json::json!({
+        "timestamp": 1679756220000 as i64,
+        "market_status": "PRE",
+        "name": "Dow Jones Industrial Average",
+        "session": {
+            "change": 1.23,
+            "change_percent": 2.34,
+            "close": 3.45,
+            "high": 4.56,
+            "low": 5.67,
+            "open": 6.78,
+            "previous_close": 7.89
+        },
+        "ticker": "DJIA",
+        "timeframe": "2023-03-25",
+        "ticker_type": "indicies",
+        "value": 12345.67,
+        "error": null,
+        "message": null
+    });
+    let indicie = Indicie::parse(&data.as_object().unwrap());
+    assert_eq!(indicie.timestamp.unwrap(), 1679756220000);
+    assert_eq!(indicie.market_status.unwrap(), "PRE");
+    assert_eq!(indicie.name.unwrap(), "Dow Jones Industrial Average");
+    assert_eq!(indicie.session.unwrap().change.unwrap(), 1.23);
+    assert_eq!(indicie.ticker.unwrap(), "DJIA");
+    assert_eq!(indicie.timeframe.unwrap(), "2023-03-25");
+    assert_eq!(indicie.ticker_type.unwrap(), TickerType::Indicies);
+    assert_eq!(indicie.value.unwrap(), 12345.67);
+    assert_eq!(indicie.error, None);
+    assert_eq!(indicie.message, None);
 }
