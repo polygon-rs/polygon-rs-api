@@ -19,6 +19,8 @@ pub mod ticker;
 pub mod trade;
 pub mod underlying_asset;
 pub mod universal;
+pub mod option_contract;
+pub mod additional_underlying;
 
 pub trait Parse {
     fn parse(map: &serde_json::Map<String, serde_json::Value>) -> Self;
