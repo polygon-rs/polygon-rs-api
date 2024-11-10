@@ -124,6 +124,8 @@ pub enum Parameter {
     LongWindow,
     ShortWindow,
     SignalWindow,
+    Expired,
+    AsOf,
 }
 
 #[derive(Clone, Debug)]
@@ -167,6 +169,8 @@ pub struct Parameters {
     pub signal_window: Option<i64>,
     pub series_type: Option<SeriesType>,
     pub expand_underlying: Option<bool>,
+    pub expired: Option<bool>,
+    pub as_of: Option<String>,
 }
 
 #[derive(Serialize, Deserialize, Copy, Clone, Debug, Display, PartialEq)]

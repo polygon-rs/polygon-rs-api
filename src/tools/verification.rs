@@ -370,6 +370,7 @@ impl Verification {
         match parameter_value {
             Some(p) => match parameter_type {
                 Parameter::Date => Self::verify_date(p, parameter_type),
+                Parameter::AsOf => Self::verify_date(p, parameter_type),
                 Parameter::To => Self::verify_date(p, parameter_type),
                 Parameter::From => Self::verify_date(p, parameter_type),
                 Parameter::Timestamp => Self::verify_timestamp(p, parameter_type),
@@ -651,6 +652,20 @@ impl Verification {
                         &parameters.signal_window,
                         &parameter.parameter,
                     ) {
+                        return Err(check);
+                    }
+                }
+                Parameter::AsOf => {
+                    if let Err(check) =
+                        Self::verify(parameter.required, &parameters.as_of, &parameter.parameter)
+                    {
+                        return Err(check);
+                    }
+                }
+                Parameter::Expired => {
+                    if let Err(check) =
+                        Self::verify(parameter.required, &parameters.expired, &parameter.parameter)
+                    {
                         return Err(check);
                     }
                 }
