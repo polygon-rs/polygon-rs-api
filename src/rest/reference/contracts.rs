@@ -170,7 +170,7 @@ fn url(parameters: &Parameters) -> Result<String, ErrorCode> {
     let url = String::from(format!(
         "https://api.polygon.io/v3/reference/options/contracts?{}{}{}{}{}{}{}{}{}{}{}{}{}{}{}apiKey={}",
         if let Some(ticker) = &parameters.ticker {
-            format!("ticker={}&", ticker)
+            format!("underlying_ticker={}&", ticker)
         } else {
             "".to_string()
         },
