@@ -11,7 +11,7 @@ use crate::tools::{request::Request, verification::Verification};
 pub struct OptionContracts {
     pub request_id: Option<String>,
     pub next_url: Option<String>,
-    pub chain: Option<Vec<OptionContract>>,
+    pub contracts: Option<Vec<OptionContract>>,
     pub status: Option<String>,
 }
 
@@ -22,12 +22,12 @@ impl Parse for OptionContracts {
         let request_id = Self::string_parse(map, vec!["request_id"]);
         let next_url = Self::string_parse(map, vec!["next_url"]);
         let status = Self::string_parse(map, vec!["status"]);
-        let chain = Self::array_parse(map, vec!["results"]);
+        let contracts = Self::array_parse(map, vec!["results"]);
         OptionContracts {
             request_id,
             next_url,
             status,
-            chain,
+            contracts,
         }
     }
 }
@@ -86,7 +86,7 @@ pub trait OptionContractsRequest {
             ..Parameters::default()
         };
         if let Err(check) = Verification::check_parameters(
-            &TickerTypes::options(),
+            &TickerTypes::set(true,true,true,false,false),
             PARAMETERS,
             &options_chain_parameters,
         ) {
