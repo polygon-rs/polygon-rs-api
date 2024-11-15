@@ -6,14 +6,18 @@ pub struct Request {}
 impl Request {
     #[tokio::main]
     pub async fn request(url: String) -> Result<serde_json::Map<String, Value>, ErrorCode> {
-        let r = match reqwest::get(url).await {
-            Ok(response) => match response.text().await {
-                Ok(text) => text,
-                Err(e) => {
-                    println!("{}", e);
-                    return Err(ErrorCode::RequestError);
+        let request = reqwest::get(url).await;
+        let r = match request {
+            Ok(response) => {
+                let response_text = response.text().await;
+                match response_text {
+                    Ok(text) => text,
+                    Err(e) => {
+                        println!("{}", e);
+                        return Err(ErrorCode::RequestError);
+                    }
                 }
-            },
+            }
             Err(e) => {
                 println!("{}", e);
                 return Err(ErrorCode::RequestError);
